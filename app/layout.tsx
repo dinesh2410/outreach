@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ToastProvider } from "@/components/shared/ToastProvider";
-import { AuthProvider } from "@/lib/auth";
+import { Providers } from "@/components/shared/Providers";
 import "./globals.css";
 
 const geist = Geist({
@@ -28,9 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
       <body className="min-h-screen font-sans antialiased">
-        <AuthProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

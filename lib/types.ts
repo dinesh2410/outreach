@@ -19,6 +19,19 @@ export interface GeneratorInput {
   audience?: string;
   tone: "professional" | "casual" | "playful" | "minimal";
   storeUrl?: string;
+  clarifications?: ClarifyingAnswer[];
+}
+
+export interface ClarifyingQuestion {
+  id: string;
+  question: string;
+  why: string;
+}
+
+export interface ClarifyingAnswer {
+  id: string;
+  question: string;
+  answer: string;
 }
 
 export interface Variant {
@@ -29,6 +42,7 @@ export interface Variant {
   shortDesc?: string;
   subtitle?: string;
   fullDesc: string;
+  keywords?: string[];
 }
 
 export interface GenerationResult {

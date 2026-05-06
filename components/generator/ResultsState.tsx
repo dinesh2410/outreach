@@ -5,7 +5,7 @@ import { GenerationResult, Variant, Platform } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
 import { extractKeywords } from "@/lib/keywords";
-import { Copy, Download, Save, RotateCcw, Check } from "lucide-react";
+import { Copy, Download, Save, RotateCcw, Check, AlertTriangle } from "lucide-react";
 
 export function ResultsState({
   result,
@@ -78,9 +78,21 @@ export function ResultsState({
     push("Saved to library", "success");
   }
 
-  const charColor = (current: number, max: number) => {
+  // Visual status for character counters. green (safe) → gold (>=85%) → warn (over).
+  const charStatus = (current: number, max: number) => {
     const pct = current / max;
-    return pct > 0.9 ? "text-accent" : pct > 0.7 ? "text-gold" : "text-green";
+    if (current > max) {
+      return {
+        text: "text-warn",
+        bar: "bg-warn",
+        border: "border-warn/40 focus-within:border-warn",
+        over: current - max,
+      };
+    }
+    if (pct >= 0.85) {
+      return { text: "text-gold", bar: "bg-gold", border: "border-line", over: 0 };
+    }
+    return { text: "text-green", bar: "bg-green", border: "border-line", over: 0 };
   };
 
   return (
@@ -200,93 +212,186 @@ export function ResultsState({
           <div className="lg:col-span-9">
             <div className="bg-surface rounded-3xl border border-line p-6 space-y-5">
               {/* Title */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-ink-muted">Title</label>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-mono ${charColor(current.title.length, 30)}`}>
-                      {current.title.length}/30
-                    </span>
-                    <button onClick={() => copyField(current.title)} className="text-ink-faint hover:text-ink">
-                      <Copy size={12} />
-                    </button>
+              {(() => {
+                const s = charStatus(current.title.length, 30);
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-medium text-ink-muted">Title</label>
+                      <div className="flex items-center gap-2">
+                        {s.over > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-warn">
+                            <AlertTriangle size={12} />
+                            {s.over} over limit
+                          </span>
+                        )}
+                        <span className={`text-xs font-mono ${s.text}`}>
+                          {current.title.length}/30
+                        </span>
+                        <button onClick={() => copyField(current.title)} className="text-ink-faint hover:text-ink">
+                          <Copy size={12} />
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      value={current.title}
+                      onChange={(e) => updateField("title", e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl bg-cream border ${s.border} text-ink font-semibold focus:outline-none focus:border-accent text-sm`}
+                    />
+                    <div className="mt-1 h-0.5 rounded-full bg-line-soft overflow-hidden">
+                      <div
+                        className={`h-full ${s.bar} transition-all`}
+                        style={{ width: `${Math.min(100, (current.title.length / 30) * 100)}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <input
-                  type="text"
-                  value={current.title}
-                  onChange={(e) => updateField("title", e.target.value)}
-                  maxLength={30}
-                  className="w-full px-4 py-3 rounded-xl bg-cream border border-line text-ink font-semibold focus:outline-none focus:border-accent text-sm"
-                />
-              </div>
+                );
+              })()}
 
               {/* Short desc / subtitle */}
               {activePlatform === "android" ? (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-ink-muted">Short description</label>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono ${charColor((current.shortDesc || "").length, 80)}`}>
-                        {(current.shortDesc || "").length}/80
-                      </span>
-                      <button onClick={() => copyField(current.shortDesc || "")} className="text-ink-faint hover:text-ink">
-                        <Copy size={12} />
-                      </button>
+                (() => {
+                  const value = current.shortDesc || "";
+                  const s = charStatus(value.length, 80);
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-ink-muted">Short description</label>
+                        <div className="flex items-center gap-2">
+                          {s.over > 0 && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-warn">
+                              <AlertTriangle size={12} />
+                              {s.over} over limit
+                            </span>
+                          )}
+                          <span className={`text-xs font-mono ${s.text}`}>
+                            {value.length}/80
+                          </span>
+                          <button onClick={() => copyField(value)} className="text-ink-faint hover:text-ink">
+                            <Copy size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => updateField("shortDesc", e.target.value)}
+                        className={`w-full px-4 py-3 rounded-xl bg-cream border ${s.border} text-ink focus:outline-none focus:border-accent text-sm`}
+                      />
+                      <div className="mt-1 h-0.5 rounded-full bg-line-soft overflow-hidden">
+                        <div
+                          className={`h-full ${s.bar} transition-all`}
+                          style={{ width: `${Math.min(100, (value.length / 80) * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <input
-                    type="text"
-                    value={current.shortDesc || ""}
-                    onChange={(e) => updateField("shortDesc", e.target.value)}
-                    maxLength={80}
-                    className="w-full px-4 py-3 rounded-xl bg-cream border border-line text-ink focus:outline-none focus:border-accent text-sm"
-                  />
-                </div>
+                  );
+                })()
               ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-ink-muted">Subtitle</label>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono ${charColor((current.subtitle || "").length, 30)}`}>
-                        {(current.subtitle || "").length}/30
-                      </span>
-                      <button onClick={() => copyField(current.subtitle || "")} className="text-ink-faint hover:text-ink">
-                        <Copy size={12} />
-                      </button>
+                (() => {
+                  const value = current.subtitle || "";
+                  const s = charStatus(value.length, 30);
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-ink-muted">Subtitle</label>
+                        <div className="flex items-center gap-2">
+                          {s.over > 0 && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-warn">
+                              <AlertTriangle size={12} />
+                              {s.over} over limit
+                            </span>
+                          )}
+                          <span className={`text-xs font-mono ${s.text}`}>
+                            {value.length}/30
+                          </span>
+                          <button onClick={() => copyField(value)} className="text-ink-faint hover:text-ink">
+                            <Copy size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => updateField("subtitle", e.target.value)}
+                        className={`w-full px-4 py-3 rounded-xl bg-cream border ${s.border} text-ink focus:outline-none focus:border-accent text-sm`}
+                      />
+                      <div className="mt-1 h-0.5 rounded-full bg-line-soft overflow-hidden">
+                        <div
+                          className={`h-full ${s.bar} transition-all`}
+                          style={{ width: `${Math.min(100, (value.length / 30) * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <input
-                    type="text"
-                    value={current.subtitle || ""}
-                    onChange={(e) => updateField("subtitle", e.target.value)}
-                    maxLength={30}
-                    className="w-full px-4 py-3 rounded-xl bg-cream border border-line text-ink focus:outline-none focus:border-accent text-sm"
-                  />
-                </div>
+                  );
+                })()
               )}
 
               {/* Full description */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-ink-muted">Full description</label>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-mono ${charColor(current.fullDesc.length, 4000)}`}>
-                      {current.fullDesc.length}/4000
-                    </span>
-                    <button onClick={() => copyField(current.fullDesc)} className="text-ink-faint hover:text-ink">
+              {(() => {
+                const s = charStatus(current.fullDesc.length, 4000);
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-medium text-ink-muted">Full description</label>
+                      <div className="flex items-center gap-2">
+                        {s.over > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-warn">
+                            <AlertTriangle size={12} />
+                            {s.over} over limit
+                          </span>
+                        )}
+                        <span className={`text-xs font-mono ${s.text}`}>
+                          {current.fullDesc.length}/4000
+                        </span>
+                        <button onClick={() => copyField(current.fullDesc)} className="text-ink-faint hover:text-ink">
+                          <Copy size={12} />
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={current.fullDesc}
+                      onChange={(e) => updateField("fullDesc", e.target.value)}
+                      rows={12}
+                      className={`w-full px-4 py-3 rounded-xl bg-cream border ${s.border} text-ink focus:outline-none focus:border-accent text-sm resize-none leading-relaxed`}
+                    />
+                    <div className="mt-1 h-0.5 rounded-full bg-line-soft overflow-hidden">
+                      <div
+                        className={`h-full ${s.bar} transition-all`}
+                        style={{ width: `${Math.min(100, (current.fullDesc.length / 4000) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Targeted keywords — only for the keyword variant */}
+              {current.approach === "keyword" && current.keywords && current.keywords.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-ink-muted">
+                      Targeted keywords <span className="text-ink-faint">— what this variant is optimizing for</span>
+                    </label>
+                    <button
+                      onClick={() => copyField(current.keywords!.join(", "))}
+                      className="text-ink-faint hover:text-ink"
+                    >
                       <Copy size={12} />
                     </button>
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                    {current.keywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className="inline-flex items-center px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20 text-sm text-accent"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <textarea
-                  value={current.fullDesc}
-                  onChange={(e) => updateField("fullDesc", e.target.value)}
-                  maxLength={4000}
-                  rows={12}
-                  className="w-full px-4 py-3 rounded-xl bg-cream border border-line text-ink focus:outline-none focus:border-accent text-sm resize-none leading-relaxed"
-                />
-              </div>
+              )}
 
               {/* Actions */}
               <div className="flex items-center gap-3 pt-2">

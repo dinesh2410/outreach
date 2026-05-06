@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
-import { LayoutDashboard, Wand2, BookOpen, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Wand2, History, BookOpen, Settings, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/generator", label: "Generator", icon: Wand2 },
+  { href: "/history", label: "History", icon: History },
   { href: "/library", label: "Library", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

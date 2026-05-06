@@ -2,7 +2,7 @@ import { PublicNav } from "@/components/shared/PublicNav";
 import { Footer } from "@/components/shared/Footer";
 import { Hero } from "@/components/landing/Hero";
 import { TrustedBy } from "@/components/landing/TrustedBy";
-import { Showcase } from "@/components/landing/Showcase";
+import { FeatureShowcase } from "@/components/landing/FeatureShowcase";
 import { BentoTools } from "@/components/landing/BentoTools";
 import { Capabilities } from "@/components/landing/Capabilities";
 import { Stats } from "@/components/landing/Stats";
@@ -19,7 +19,7 @@ export default function Home() {
       <main>
         <Hero />
         <TrustedBy />
-        <Showcase />
+        <FeatureShowcase />
         <BentoTools />
         <Capabilities />
         <Stats />

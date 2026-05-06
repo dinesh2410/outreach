@@ -1,19 +1,61 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  updateProfile,
+  type User as FirebaseUser,
+} from "firebase/auth";
+import { firebaseAuth, googleAuthProvider } from "./firebase-client";
+import {
+  deleteHistoryEntry,
+  ensureUserDoc,
+  fetchUserApps,
+  fetchUserHistory,
+  fetchUserSavedGenerations,
+  recordGenerationHistory,
+  saveAppForUser,
+  saveGenerationForUser,
+  updateUserDoc,
+  upsertGenerationOnApp,
+} from "./firestore";
 import { User, AppEntry, GenerationResult, Platform } from "./types";
+
+// Auth context — backed by Firebase Auth (Google + Email/Password) + Firestore.
+// Apps and saved generations persist to Firestore so they survive refresh and sync across devices.
 
 interface AuthContextType {
   user: User | null;
   apps: AppEntry[];
-  signIn: (email: string, password: string) => void;
-  signUp: (firstName: string, lastName: string, email: string, password: string) => void;
-  signOut: () => void;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (
+    firstName: string,
+    lastName: string,
+    email: string,
+    password: string
+  ) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
   addApp: (app: AppEntry) => void;
   addGeneration: (appId: string, gen: GenerationResult) => void;
   updateUser: (updates: Partial<User>) => void;
   savedGenerations: GenerationResult[];
   saveGeneration: (gen: GenerationResult) => void;
+  history: GenerationResult[];
+  recordHistory: (gen: GenerationResult) => void;
+  removeHistory: (genId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,101 +68,221 @@ const GRADIENTS = [
   "linear-gradient(135deg, #D4972A, #B8331E)",
 ];
 
+function splitName(displayName: string | null | undefined): { firstName: string; lastName: string } {
+  if (!displayName) return { firstName: "", lastName: "" };
+  const parts = displayName.trim().split(/\s+/);
+  return {
+    firstName: parts[0] ?? "",
+    lastName: parts.slice(1).join(" "),
+  };
+}
+
+async function firebaseUserToAppUser(fbUser: FirebaseUser): Promise<User> {
+  // Read or create the Firestore user doc; that's the source of truth for app-side fields
+  // (defaultPlatform, emailNotifications, custom firstName/lastName overrides).
+  const split = splitName(fbUser.displayName);
+  const stored = await ensureUserDoc(fbUser.uid, {
+    email: fbUser.email ?? "",
+    firstName: split.firstName,
+    lastName: split.lastName,
+  });
+  return {
+    id: fbUser.uid,
+    email: stored.email,
+    firstName: stored.firstName,
+    lastName: stored.lastName,
+    defaultPlatform: stored.defaultPlatform,
+    emailNotifications: stored.emailNotifications,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState<AppEntry[]>([]);
   const [savedGenerations, setSavedGenerations] = useState<GenerationResult[]>([]);
+  const [history, setHistory] = useState<GenerationResult[]>([]);
 
-  const signIn = useCallback((email: string, _password: string) => {
-    const name = email.split("@")[0];
-    setUser({
-      id: "user-1",
-      firstName: name.charAt(0).toUpperCase() + name.slice(1),
-      lastName: "Developer",
-      email,
-      defaultPlatform: "android" as Platform,
-      emailNotifications: true,
+  // Listen to auth state. On sign-in, hydrate apps + generations + history from Firestore.
+  useEffect(() => {
+    const unsub = onAuthStateChanged(firebaseAuth, async (fbUser) => {
+      if (!fbUser) {
+        setUser(null);
+        setApps([]);
+        setSavedGenerations([]);
+        setHistory([]);
+        setLoading(false);
+        return;
+      }
+      try {
+        const appUser = await firebaseUserToAppUser(fbUser);
+        setUser(appUser);
+        const [userApps, userSaved, userHistory] = await Promise.all([
+          fetchUserApps(fbUser.uid),
+          fetchUserSavedGenerations(fbUser.uid),
+          fetchUserHistory(fbUser.uid),
+        ]);
+        setApps(userApps);
+        setSavedGenerations(userSaved);
+        setHistory(userHistory);
+      } catch (err) {
+        console.error("[auth] failed to hydrate user data:", err);
+      } finally {
+        setLoading(false);
+      }
     });
+    return unsub;
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    await signInWithEmailAndPassword(firebaseAuth, email, password);
+    // onAuthStateChanged will hydrate state.
   }, []);
 
   const signUp = useCallback(
-    (firstName: string, lastName: string, email: string, _password: string) => {
-      setUser({
-        id: "user-1",
-        firstName,
-        lastName,
-        email,
-        defaultPlatform: "android" as Platform,
-        emailNotifications: true,
-      });
+    async (firstName: string, lastName: string, email: string, password: string) => {
+      const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+      // Set Firebase displayName so future sign-ins surface the user's real name.
+      await updateProfile(cred.user, { displayName: `${firstName} ${lastName}`.trim() });
+      // Eagerly create the Firestore user doc with the supplied names (don't rely on splitName fallback).
+      await ensureUserDoc(cred.user.uid, { email, firstName, lastName });
     },
     []
   );
 
-  const signOut = useCallback(() => {
-    setUser(null);
+  const signInWithGoogle = useCallback(async () => {
+    await signInWithPopup(firebaseAuth, googleAuthProvider);
   }, []);
 
-  const addApp = useCallback((app: AppEntry) => {
-    setApps((prev) => [...prev, app]);
+  const signOut = useCallback(async () => {
+    await firebaseSignOut(firebaseAuth);
   }, []);
 
-  const addGeneration = useCallback((appId: string, gen: GenerationResult) => {
-    setApps((prev) =>
-      prev.map((app) =>
-        app.id === appId
-          ? { ...app, generations: [...app.generations, gen] }
-          : app
-      )
-    );
-  }, []);
-
-  const updateUser = useCallback((updates: Partial<User>) => {
-    setUser((prev) => (prev ? { ...prev, ...updates } : null));
-  }, []);
-
-  const saveGeneration = useCallback((gen: GenerationResult) => {
-    setSavedGenerations((prev) => {
-      if (prev.some((g) => g.id === gen.id)) return prev;
-      return [...prev, gen];
-    });
-
-    // Also add to apps if not already there
-    setApps((prev) => {
-      const existing = prev.find((a) => a.name === gen.input.appName);
-      if (existing) {
-        if (existing.generations.some((g) => g.id === gen.id)) return prev;
-        return prev.map((a) =>
-          a.id === existing.id
-            ? { ...a, generations: [...a.generations, gen] }
-            : a
+  const addApp = useCallback(
+    (app: AppEntry) => {
+      setApps((prev) => [...prev, app]);
+      if (user) {
+        saveAppForUser(user.id, app).catch((err) =>
+          console.error("[auth] addApp persist failed:", err)
         );
       }
-      const newApp: AppEntry = {
-        id: `app-${Date.now()}`,
-        name: gen.input.appName,
-        category: gen.input.category,
-        icon: GRADIENTS[prev.length % GRADIENTS.length],
-        generations: [gen],
-        createdAt: new Date().toISOString(),
-      };
-      return [...prev, newApp];
-    });
-  }, []);
+    },
+    [user]
+  );
+
+  const addGeneration = useCallback(
+    (appId: string, gen: GenerationResult) => {
+      setApps((prev) =>
+        prev.map((app) =>
+          app.id === appId ? { ...app, generations: [...app.generations, gen] } : app
+        )
+      );
+      if (user) {
+        upsertGenerationOnApp(user.id, appId, gen).catch((err) =>
+          console.error("[auth] addGeneration persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const updateUser = useCallback(
+    (updates: Partial<User>) => {
+      setUser((prev) => (prev ? { ...prev, ...updates } : null));
+      if (user) {
+        updateUserDoc(user.id, updates).catch((err) =>
+          console.error("[auth] updateUser persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const saveGeneration = useCallback(
+    (gen: GenerationResult) => {
+      setSavedGenerations((prev) => {
+        if (prev.some((g) => g.id === gen.id)) return prev;
+        return [...prev, gen];
+      });
+
+      setApps((prev) => {
+        const existing = prev.find((a) => a.name === gen.input.appName);
+        if (existing) {
+          if (existing.generations.some((g) => g.id === gen.id)) return prev;
+          return prev.map((a) =>
+            a.id === existing.id ? { ...a, generations: [...a.generations, gen] } : a
+          );
+        }
+        const newApp: AppEntry = {
+          id: `app-${Date.now()}`,
+          name: gen.input.appName,
+          category: gen.input.category,
+          icon: GRADIENTS[prev.length % GRADIENTS.length],
+          generations: [gen],
+          createdAt: new Date().toISOString(),
+        };
+        if (user) {
+          saveAppForUser(user.id, newApp).catch((err) =>
+            console.error("[auth] saveGeneration createApp failed:", err)
+          );
+        }
+        return [...prev, newApp];
+      });
+
+      if (user) {
+        saveGenerationForUser(user.id, gen).catch((err) =>
+          console.error("[auth] saveGeneration persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const recordHistory = useCallback(
+    (gen: GenerationResult) => {
+      setHistory((prev) => {
+        if (prev.some((g) => g.id === gen.id)) return prev;
+        return [gen, ...prev];
+      });
+      if (user) {
+        recordGenerationHistory(user.id, gen).catch((err) =>
+          console.error("[auth] recordHistory persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeHistory = useCallback(
+    (genId: string) => {
+      setHistory((prev) => prev.filter((g) => g.id !== genId));
+      if (user) {
+        deleteHistoryEntry(user.id, genId).catch((err) =>
+          console.error("[auth] removeHistory persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
 
   return (
     <AuthContext.Provider
       value={{
         user,
         apps,
+        loading,
         signIn,
         signUp,
+        signInWithGoogle,
         signOut,
         addApp,
         addGeneration,
         updateUser,
         savedGenerations,
         saveGeneration,
+        history,
+        recordHistory,
+        removeHistory,
       }}
     >
       {children}

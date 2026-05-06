@@ -15,6 +15,7 @@
   --color-accent-soft: #262626;
   --color-gold: #FBBF24;
   --color-green: #10B981;
+  --color-warn: #DC2626;
   --color-night: #0A0A0A;
   --color-night-soft: #171717;
   --color-pink: #FF7A9B;
@@ -190,6 +191,29 @@ body {
   from { opacity: 0; transform: translateY(20px); filter: blur(8px); }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow { animation: spinSlow 6s linear infinite; }
+
+@keyframes marqueeX {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee-x {
+  animation: marqueeX 40s linear infinite;
+}
+.animate-marquee-x:hover {
+  animation-duration: 90s;
+}
+
+@keyframes tabContentFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-tab-content { animation: tabContentFade 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .animate-orb-drift { animation: orbDrift 28s ease-in-out infinite; }
 .animate-orb-drift-2 { animation: orbDrift2 32s ease-in-out infinite; }

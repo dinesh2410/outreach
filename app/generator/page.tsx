@@ -1,51 +1,104 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppNav } from "@/components/shared/AppNav";
 import { useAuth } from "@/lib/auth";
-import { GeneratorInput as GenInput, GenerationResult } from "@/lib/types";
+import { useToast } from "@/components/shared/ToastProvider";
+import {
+  GeneratorInput as GenInput,
+  GenerationResult,
+  ClarifyingQuestion,
+  ClarifyingAnswer,
+} from "@/lib/types";
+import { generateVariants } from "@/lib/generate";
+import { fetchClarifyingQuestions } from "@/lib/clarify";
 import { GeneratorInputForm } from "@/components/generator/GeneratorInputForm";
 import { GeneratingState } from "@/components/generator/GeneratingState";
+import { ClarifyingState } from "@/components/generator/ClarifyingState";
 import { ResultsState } from "@/components/generator/ResultsState";
 
-type Stage = "input" | "generating" | "results";
+type Stage = "input" | "loading-questions" | "clarifying" | "generating" | "results";
 
 export default function GeneratorPage() {
-  const { user } = useAuth();
+  const { user, loading, recordHistory } = useAuth();
   const router = useRouter();
+  const toast = useToast();
   const [stage, setStage] = useState<Stage>("input");
   const [result, setResult] = useState<GenerationResult | null>(null);
+  const [pendingInput, setPendingInput] = useState<GenInput | null>(null);
+  const [questions, setQuestions] = useState<ClarifyingQuestion[]>([]);
 
   useEffect(() => {
-    if (!user) router.push("/auth");
-  }, [user, router]);
+    if (!loading && !user) router.push("/auth");
+  }, [user, loading, router]);
 
-  if (!user) return null;
+  if (loading || !user) return null;
 
-  function handleGenerate(input: GenInput) {
+  async function handleStart(input: GenInput) {
+    setPendingInput(input);
+    setStage("loading-questions");
+    try {
+      const qs = await fetchClarifyingQuestions(input);
+      setQuestions(qs);
+      setStage("clarifying");
+    } catch (err) {
+      // If clarification fails, fall back to direct generation — don't block the user.
+      const message = err instanceof Error ? err.message : "Could not load questions";
+      toast.push(`${message} — generating without follow-up questions.`);
+      runGeneration(input);
+    }
+  }
+
+  async function runGeneration(input: GenInput) {
     setStage("generating");
+    try {
+      const gen = await generateVariants(input);
+      setResult(gen);
+      setStage("results");
+      recordHistory(gen);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Generation failed";
+      toast.push(message);
+      setStage("input");
+    }
+  }
 
-    // Import dynamically to keep the swap easy
-    import("@/lib/generate").then(({ generateVariants }) => {
-      setTimeout(() => {
-        const gen = generateVariants(input);
-        setResult(gen);
-        setStage("results");
-      }, 2400);
-    });
+  function handleClarifyContinue(answers: ClarifyingAnswer[]) {
+    if (!pendingInput) return;
+    runGeneration({ ...pendingInput, clarifications: answers });
+  }
+
+  function handleClarifySkip() {
+    if (!pendingInput) return;
+    runGeneration(pendingInput);
+  }
+
+  function handleClarifyBack() {
+    setStage("input");
   }
 
   function handleReset() {
     setStage("input");
     setResult(null);
+    setPendingInput(null);
+    setQuestions([]);
   }
 
   return (
     <>
       <AppNav />
       <main className="max-w-7xl mx-auto px-6 py-12">
-        {stage === "input" && <GeneratorInputForm onGenerate={handleGenerate} />}
+        {stage === "input" && <GeneratorInputForm onGenerate={handleStart} />}
+        {stage === "loading-questions" && <GeneratingState />}
+        {stage === "clarifying" && (
+          <ClarifyingState
+            questions={questions}
+            onContinue={handleClarifyContinue}
+            onSkip={handleClarifySkip}
+            onBack={handleClarifyBack}
+          />
+        )}
         {stage === "generating" && <GeneratingState />}
         {stage === "results" && result && (
           <ResultsState result={result} onReset={handleReset} />
