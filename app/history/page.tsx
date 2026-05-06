@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AppNav } from "@/components/shared/AppNav";
+import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { History as HistoryIcon, Trash2, ArrowRight } from "lucide-react";
 
@@ -18,18 +18,11 @@ export default function HistoryPage() {
   if (loading || !user) return null;
 
   return (
-    <>
-      <AppNav />
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center gap-3 mb-2 animate-fade-up">
-          <HistoryIcon size={24} className="text-ink-faint" />
-          <h1 className="text-3xl font-semibold text-ink">History</h1>
-        </div>
-        <p className="text-sm text-ink-muted mb-8 animate-fade-up">
-          Every generation is auto-saved here. Open one to view, edit, or save it to your library.
-        </p>
-
-        {history.length === 0 ? (
+    <AppShell
+      title="History"
+      description="Every generation is auto-saved here. Open one to view, edit, or save it to your library."
+    >
+      {history.length === 0 ? (
           <div className="p-12 rounded-3xl bg-surface border border-line text-center animate-fade-up">
             <HistoryIcon size={28} className="text-ink-faint mx-auto mb-3" />
             <p className="text-sm text-ink-muted mb-4">No generations yet.</p>
@@ -109,7 +102,6 @@ export default function HistoryPage() {
             })}
           </div>
         )}
-      </main>
-    </>
+    </AppShell>
   );
 }

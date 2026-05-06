@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppNav } from "@/components/shared/AppNav";
+import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
 import { Platform } from "@/lib/types";
@@ -47,15 +47,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <>
-      <AppNav />
-      <main className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-semibold text-ink mb-8 animate-fade-up">
-          Settings
-        </h1>
-
+    <AppShell title="Settings" description="Profile, preferences, and data export.">
+      <div className="max-w-2xl space-y-3">
         {/* Profile */}
-        <div className="bg-surface rounded-3xl border border-line p-6 mb-6 animate-fade-up delay-100">
+        <div className="bg-paper rounded-xl border border-line p-6">
           <h2 className="font-semibold text-ink mb-4">Profile</h2>
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -103,7 +98,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Preferences */}
-        <div className="bg-surface rounded-3xl border border-line p-6 mb-6 animate-fade-up delay-200">
+        <div className="bg-paper rounded-xl border border-line p-6">
           <h2 className="font-semibold text-ink mb-4">Preferences</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -159,7 +154,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Account */}
-        <div className="bg-surface rounded-3xl border border-line p-6 animate-fade-up delay-300">
+        <div className="bg-paper rounded-xl border border-line p-6">
           <h2 className="font-semibold text-ink mb-4">Account</h2>
           <button
             onClick={handleExport}
@@ -168,7 +163,7 @@ export default function SettingsPage() {
             Export all generations
           </button>
         </div>
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }

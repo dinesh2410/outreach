@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { AppNav } from "@/components/shared/AppNav";
+import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { Wand2, Smartphone, Clock } from "lucide-react";
 import Link from "next/link";
@@ -23,15 +23,11 @@ export default function AppDetailPage() {
 
   if (!app) {
     return (
-      <>
-        <AppNav />
-        <main className="max-w-7xl mx-auto px-6 py-12 text-center">
-          <h1 className="text-2xl font-semibold text-ink mb-4">App not found</h1>
-          <Link href="/dashboard" className="text-accent hover:underline text-sm">
-            Back to dashboard
-          </Link>
-        </main>
-      </>
+      <AppShell title="App not found">
+        <Link href="/dashboard" className="text-accent hover:underline text-sm">
+          Back to dashboard
+        </Link>
+      </AppShell>
     );
   }
 
@@ -52,29 +48,33 @@ export default function AppDetailPage() {
   ];
 
   return (
-    <>
-      <AppNav />
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* App card */}
-        <div className="flex items-center gap-5 mb-8 animate-fade-up">
-          <div
-            className="w-16 h-16 rounded-2xl shrink-0"
-            style={{ background: app.icon }}
-          />
-          <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-ink">{app.name}</h1>
-            <p className="text-sm text-ink-muted">{app.category}</p>
-          </div>
-          <Link
-            href="/generator"
-            className="px-5 py-2.5 bg-accent text-white font-semibold rounded-xl hover:bg-accent-deep transition-colors text-sm"
-          >
-            New generation
-          </Link>
+    <AppShell
+      title={app.name}
+      description={app.category}
+      actions={
+        <Link
+          href="/generator"
+          className="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+        >
+          <Wand2 size={14} />
+          New generation
+        </Link>
+      }
+    >
+      {/* App icon */}
+      <div className="flex items-center gap-4 mb-6">
+        <div
+          className="w-14 h-14 rounded-xl shrink-0"
+          style={{ background: app.icon }}
+        />
+        <div>
+          <p className="text-xs text-ink-faint uppercase tracking-wider">{app.category}</p>
+          <p className="text-sm text-ink-muted">{app.generations.length} generation{app.generations.length === 1 ? "" : "s"}</p>
         </div>
+      </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-12">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
           {stats.map((stat, i) => {
             const Icon = stat.icon;
             return (
@@ -88,64 +88,63 @@ export default function AppDetailPage() {
                 <p className="text-xs text-ink-muted mt-1">{stat.label}</p>
               </div>
             );
-          })}
-        </div>
+        })}
+      </div>
 
-        {/* Generation history */}
-        <h2 className="text-lg font-semibold text-ink mb-4">Generation history</h2>
-        {app.generations.length === 0 ? (
-          <p className="text-sm text-ink-muted">No generations yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {app.generations.map((gen) => {
-              const variants = gen.android || gen.ios || [];
-              return (
-                <div
-                  key={gen.id}
-                  className="p-5 rounded-2xl bg-surface border border-line"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-ink-faint">
-                        {gen.android ? "Play Store" : "App Store"}
-                      </span>
-                      <span className="text-xs text-ink-faint">
-                        {new Date(gen.createdAt).toLocaleString()}
-                      </span>
-                    </div>
+      {/* Generation history */}
+      <h2 className="text-sm font-semibold text-ink mb-3">Generation history</h2>
+      {app.generations.length === 0 ? (
+        <p className="text-sm text-ink-muted">No generations yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {app.generations.map((gen) => {
+            const variants = gen.android || gen.ios || [];
+            return (
+              <div
+                key={gen.id}
+                className="p-5 rounded-xl bg-paper border border-line"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-ink-faint">
+                      {gen.android ? "Play Store" : "App Store"}
+                    </span>
                     <span className="text-xs text-ink-faint">
-                      {gen.input.tone}
+                      {new Date(gen.createdAt).toLocaleString()}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {variants.map((v) => (
-                      <div
-                        key={v.id}
-                        className="p-3 rounded-xl bg-paper border border-line-soft"
-                      >
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            v.approach === "keyword"
-                              ? "bg-accent/10 text-accent"
-                              : v.approach === "conversion"
-                                ? "bg-gold/10 text-gold"
-                                : "bg-green/10 text-green"
-                          }`}
-                        >
-                          {v.label}
-                        </span>
-                        <p className="text-sm font-semibold text-ink mt-2 truncate">
-                          {v.title}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  <span className="text-xs text-ink-faint">
+                    {gen.input.tone}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
-    </>
+                <div className="grid grid-cols-3 gap-2">
+                  {variants.map((v) => (
+                    <div
+                      key={v.id}
+                      className="p-3 rounded-xl bg-cream border border-line-soft"
+                    >
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          v.approach === "keyword"
+                            ? "bg-accent/10 text-accent"
+                            : v.approach === "conversion"
+                              ? "bg-gold/10 text-gold"
+                              : "bg-green/10 text-green"
+                        }`}
+                      >
+                        {v.label}
+                      </span>
+                      <p className="text-sm font-semibold text-ink mt-2 truncate">
+                        {v.title}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </AppShell>
   );
 }

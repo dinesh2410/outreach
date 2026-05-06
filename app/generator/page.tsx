@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppNav } from "@/components/shared/AppNav";
+import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
 import {
@@ -85,25 +85,24 @@ export default function GeneratorPage() {
     setQuestions([]);
   }
 
+  const isResults = stage === "results" && result;
   return (
-    <>
-      <AppNav />
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        {stage === "input" && <GeneratorInputForm onGenerate={handleStart} />}
-        {stage === "loading-questions" && <GeneratingState />}
-        {stage === "clarifying" && (
-          <ClarifyingState
-            questions={questions}
-            onContinue={handleClarifyContinue}
-            onSkip={handleClarifySkip}
-            onBack={handleClarifyBack}
-          />
-        )}
-        {stage === "generating" && <GeneratingState />}
-        {stage === "results" && result && (
-          <ResultsState result={result} onReset={handleReset} />
-        )}
-      </main>
-    </>
+    <AppShell
+      title={isResults ? result.input.appName : "ASO Generator"}
+      description={isResults ? "Review, edit, and save your variants." : "Three angle variants per platform — generated from one brief."}
+    >
+      {stage === "input" && <GeneratorInputForm onGenerate={handleStart} />}
+      {stage === "loading-questions" && <GeneratingState />}
+      {stage === "clarifying" && (
+        <ClarifyingState
+          questions={questions}
+          onContinue={handleClarifyContinue}
+          onSkip={handleClarifySkip}
+          onBack={handleClarifyBack}
+        />
+      )}
+      {stage === "generating" && <GeneratingState />}
+      {isResults && <ResultsState result={result} onReset={handleReset} />}
+    </AppShell>
   );
 }

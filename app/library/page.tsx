@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppNav } from "@/components/shared/AppNav";
+import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
 import { Copy, Search, BookOpen } from "lucide-react";
@@ -31,15 +31,12 @@ export default function LibraryPage() {
   });
 
   return (
-    <>
-      <AppNav />
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-semibold text-ink mb-8 animate-fade-up">
-          Library
-        </h1>
-
-        {/* Search & filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-8 animate-fade-up delay-100">
+    <AppShell
+      title="Library"
+      description="Generations you've explicitly saved for reuse."
+    >
+      {/* Search & filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="flex-1 relative">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint" />
             <input
@@ -65,8 +62,8 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="text-center py-24 animate-fade-up delay-200">
+      {filtered.length === 0 ? (
+        <div className="text-center py-24">
             <BookOpen size={48} className="mx-auto text-ink-faint mb-4" />
             <h2 className="text-lg font-semibold text-ink mb-2">
               {savedGenerations.length === 0
@@ -87,8 +84,8 @@ export default function LibraryPage() {
               </Link>
             )}
           </div>
-        ) : (
-          <div className="space-y-3 animate-fade-up delay-200">
+      ) : (
+        <div className="space-y-3">
             {filtered.map((gen) => {
               const variants = gen.android || gen.ios || [];
               return variants.map((v) => (
@@ -139,9 +136,8 @@ export default function LibraryPage() {
                 </div>
               ));
             })}
-          </div>
-        )}
-      </main>
-    </>
+        </div>
+      )}
+    </AppShell>
   );
 }
