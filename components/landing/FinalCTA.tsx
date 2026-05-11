@@ -1,35 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { useInView } from "@/lib/useInView";
 
 export function FinalCTA() {
-  const { ref, inView } = useInView();
-
   return (
-    <section className="py-24 md:py-32" ref={ref}>
-      <div className="max-w-3xl mx-auto px-6 text-center">
-        <div className={inView ? "animate-fade-up" : "opacity-0"}>
-          <h2 className="text-4xl md:text-5xl font-semibold text-ink tracking-tight leading-tight">
-            Your next listing is three drafts away.
-          </h2>
-          <p className="mt-5 text-lg text-ink-muted leading-relaxed max-w-xl mx-auto">
-            Pick the angle that fits. Edit it in place. Copy and publish. The
-            whole thing takes under a minute.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Link href="/auth" className="btn-pill-dark">
-              Start generating
-              <span className="arrow-circle">
-                <ArrowRight size={14} strokeWidth={2.5} />
-              </span>
-            </Link>
-            <Link href="/features" className="btn-pill-light">
-              See all features
-            </Link>
-          </div>
+    <section style={{ backgroundColor: "#D7E5FB" }}>
+      <div className="max-w-[1400px] mx-auto px-8 py-24 lg:py-28 text-center">
+        <h2 className="text-[40px] lg:text-[60px] font-semibold text-ink leading-[1.05] tracking-[-0.02em] max-w-3xl mx-auto">
+          Ready to ship a sharper listing?
+        </h2>
+        <p className="mt-6 text-[17px] lg:text-[18px] text-ink max-w-xl mx-auto leading-relaxed">
+          Generate your first set of variants in under a minute. Keep what
+          works, refine what doesn&apos;t, ship the listing your app deserves.
+        </p>
+
+        <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
+          <Link
+            href="/auth"
+            className="px-6 py-3 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors"
+          >
+            Sign up free
+          </Link>
+          <Link
+            href="/auth"
+            className="px-6 py-3 rounded-full border-[1.5px] border-ink text-[15px] font-medium text-ink hover:bg-ink hover:text-white transition-colors"
+          >
+            Get a demo
+          </Link>
         </div>
+
+        <p className="mt-5 text-[13px] text-ink-muted">No credit card required.</p>
       </div>
     </section>
   );

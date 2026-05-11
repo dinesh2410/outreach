@@ -24,6 +24,11 @@ service cloud.firestore {
       match /history/{genId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // Auto-recorded Score Checker audits. Same owner-only rule.
+      match /audits/{auditId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Default deny — anything not explicitly allowed above is rejected.

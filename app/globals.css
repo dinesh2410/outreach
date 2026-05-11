@@ -10,10 +10,17 @@
   --color-ink-faint: #9CA3AF;
   --color-line: #E5E5E5;
   --color-line-soft: #F0F0F0;
-  --color-accent: #0A0A0A;
-  --color-accent-deep: #000000;
-  --color-accent-soft: #262626;
+  --color-accent: #2563EB;
+  --color-accent-deep: #1D4ED8;
+  --color-accent-soft: #3B82F6;
+  --color-accent-band: #D7E5FB;
+  --color-accent-band-soft: #EFF4FE;
+  --color-accent-ink: #0B3D7A;
   --color-gold: #FBBF24;
+  --color-cream-warm: #FFF6E0;
+  --color-lilac: #E8DEFF;
+  --color-lilac-soft: #F2ECFE;
+  --color-mint: #D8F2E3;
   --color-green: #10B981;
   --color-warn: #DC2626;
   --color-night: #0A0A0A;
@@ -34,20 +41,20 @@ body {
   letter-spacing: -0.011em;
 }
 
-/* Pill buttons — ReadyLaunch signature */
+/* Primary CTA — near-black pill with white arrow circle */
 .btn-pill-dark {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+  gap: 0.75rem;
+  padding: 0.875rem 1.5rem 0.875rem 1.5rem;
   background-color: #0A0A0A;
   color: #FFFFFF;
   font-weight: 500;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   border-radius: 9999px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.2s;
 }
-.btn-pill-dark:hover { background-color: #262626; }
+.btn-pill-dark:hover { background-color: #1A1A1A; transform: translateY(-1px); }
 .btn-pill-dark .arrow-circle {
   width: 1.75rem;
   height: 1.75rem;
@@ -58,6 +65,77 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+/* Secondary CTA — outlined blue pill */
+.btn-pill-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background-color: transparent;
+  color: #0A0A0A;
+  font-weight: 500;
+  font-size: 1rem;
+  border-radius: 9999px;
+  border: 1.5px solid #2563EB;
+  transition: background-color 0.2s, color 0.2s;
+}
+.btn-pill-outline:hover { background-color: #2563EB; color: #FFFFFF; }
+
+/* Shared card primitive — used across app and landing */
+.card-soft {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  border-radius: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.card-soft:hover {
+  border-color: #C7D6F0;
+  box-shadow: 0 16px 32px -16px rgba(11, 61, 122, 0.18);
+}
+
+.card-cream {
+  background-color: #F1F0EE;
+  border-radius: 1rem;
+}
+
+/* Section eyebrow — uppercase deep-blue label above headlines */
+.eyebrow {
+  display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #0B3D7A;
+}
+
+/* Icon tile color variants — match the bento card palette */
+.tile-blue   { background-color: #D7E5FB; color: #0B3D7A; }
+.tile-lilac  { background-color: #E8DEFF; color: #5B3FB8; }
+.tile-mint   { background-color: #D8F2E3; color: #0F6F44; }
+.tile-cream  { background-color: #FFF6E0; color: #8A5A00; }
+.tile-rose   { background-color: #FCE8EC; color: #B0274F; }
+.tile-peach  { background-color: #FFE9D6; color: #9E4A0F; }
+
+/* Section padding rhythm */
+.section-pad   { padding-top: 6rem; padding-bottom: 6rem; }
+@media (max-width: 1024px) {
+  .section-pad { padding-top: 4rem; padding-bottom: 4rem; }
+}
+
+/* Inline arrow link — used for "Learn more →" style */
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: #0B3D7A;
+  font-weight: 600;
+  font-size: 1rem;
+  border-bottom: 1.5px solid #0B3D7A;
+  padding-bottom: 0.25rem;
+  transition: gap 0.2s, color 0.2s;
+}
+.link-arrow:hover { gap: 0.875rem; color: #2563EB; border-bottom-color: #2563EB; }
 
 .btn-pill-light {
   display: inline-flex;

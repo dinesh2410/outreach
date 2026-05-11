@@ -20,7 +20,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { firestore } from "./firebase-client";
-import { AppEntry, GenerationResult, Platform, User } from "./types";
+import { AppEntry, AuditRecord, GenerationResult, Platform, User } from "./types";
 
 interface UserDoc {
   email: string;
@@ -41,6 +41,9 @@ const savedGenRef = (uid: string, genId: string) =>
 const historyCol = (uid: string) => collection(firestore, "users", uid, "history");
 const historyRef = (uid: string, genId: string) =>
   doc(firestore, "users", uid, "history", genId);
+const auditsCol = (uid: string) => collection(firestore, "users", uid, "audits");
+const auditRef = (uid: string, auditId: string) =>
+  doc(firestore, "users", uid, "audits", auditId);
 
 // Read the user doc; create with sensible defaults if it doesn't exist.
 // Returns the resolved fields (not the raw Firestore doc).
@@ -138,4 +141,22 @@ export async function fetchUserHistory(uid: string): Promise<GenerationResult[]>
 
 export async function deleteHistoryEntry(uid: string, genId: string): Promise<void> {
   await deleteDoc(historyRef(uid, genId));
+}
+
+// --- audits (Score Checker history) ---------------------------------------
+
+export async function recordAuditForUser(
+  uid: string,
+  audit: AuditRecord
+): Promise<void> {
+  await setDoc(auditRef(uid, audit.id), audit);
+}
+
+export async function fetchUserAudits(uid: string): Promise<AuditRecord[]> {
+  const snap = await getDocs(query(auditsCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as AuditRecord);
+}
+
+export async function deleteAuditEntry(uid: string, auditId: string): Promise<void> {
+  await deleteDoc(auditRef(uid, auditId));
 }

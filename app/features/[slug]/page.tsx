@@ -5,10 +5,6 @@ import { PublicNav } from "@/components/shared/PublicNav";
 import { Footer } from "@/components/shared/Footer";
 import { getFeature, FEATURES } from "@/lib/features";
 
-// Stub page for "Coming soon" features.
-// Live features (generator, score) link directly to their real pages and
-// don't pass through this route.
-
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
@@ -29,12 +25,12 @@ export async function generateMetadata({ params }: PageProps) {
   };
 }
 
+const TILES = ["tile-blue", "tile-lilac", "tile-mint", "tile-cream", "tile-rose", "tile-peach"];
+
 export default async function FeatureStubPage({ params }: PageProps) {
   const { slug } = await params;
   const feature = getFeature(slug);
 
-  // 404 if the slug doesn't match a known feature, or if it's a live feature
-  // (live features have their own pages — don't render the "soon" stub for them).
   if (!feature || feature.status !== "soon") notFound();
 
   const Icon = feature.icon;
@@ -45,32 +41,39 @@ export default async function FeatureStubPage({ params }: PageProps) {
   return (
     <>
       <PublicNav />
-      <main>
-        {/* Hero */}
-        <section className="pt-32 pb-20 md:pt-40 md:pb-28">
-          <div className="max-w-3xl mx-auto px-6 text-center animate-fade-up">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent/10 mb-6">
-              <Icon size={28} className="text-accent" />
+      <main className="pt-20">
+        {/* Hero band */}
+        <section style={{ backgroundColor: "#D7E5FB" }}>
+          <div className="max-w-3xl mx-auto px-8 py-24 lg:py-32 text-center animate-fade-up">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl tile-lilac mb-6">
+              <Icon size={28} strokeWidth={1.85} />
             </div>
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 text-gold text-sm font-mono mb-6">
+            <span
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] mb-6"
+              style={{ backgroundColor: "#FFF6E0", color: "#8A5A00" }}
+            >
               Coming soon
             </span>
-            <h1 className="text-4xl md:text-5xl font-semibold text-ink leading-[1.1]">
+            <h1 className="text-[44px] lg:text-[60px] font-semibold text-ink leading-[1.05] tracking-[-0.02em]">
               {feature.name}
             </h1>
-            <p className="mt-6 text-lg text-ink-muted leading-relaxed">
+            <p className="mt-7 text-[17px] lg:text-[19px] text-ink leading-relaxed max-w-2xl mx-auto">
               {feature.description}
             </p>
 
             <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <Link href="/auth" className="btn-pill-dark group">
-                <Bell size={14} strokeWidth={2.5} />
+              <Link
+                href="/auth"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors"
+              >
+                <Bell size={14} strokeWidth={2.25} />
                 Get notified
-                <span className="arrow-circle transition-transform duration-300 group-hover:translate-x-0.5">
-                  <ArrowRight size={14} strokeWidth={2.5} />
-                </span>
+                <ArrowRight size={14} strokeWidth={2.25} />
               </Link>
-              <Link href="/generator" className="btn-pill-light">
+              <Link
+                href="/generator"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-[1.5px] border-ink text-[15px] font-medium text-ink hover:bg-ink hover:text-white transition-colors"
+              >
                 Try the description generator
               </Link>
             </div>
@@ -79,31 +82,32 @@ export default async function FeatureStubPage({ params }: PageProps) {
 
         {/* Other coming-soon features */}
         {others.length > 0 && (
-          <section className="py-16 md:py-20 bg-cream-deep/30">
-            <div className="max-w-5xl mx-auto px-6">
-              <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-6">
-                Also on the way
-              </p>
+          <section className="bg-white">
+            <div className="max-w-[1400px] mx-auto px-8 py-24 lg:py-28">
+              <p className="eyebrow mb-8">Also on the way</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {others.map((f) => {
+                {others.map((f, i) => {
                   const FIcon = f.icon;
                   return (
-                    <Link
-                      key={f.slug}
-                      href={f.href}
-                      className="group p-6 rounded-2xl bg-surface border border-line hover:border-ink-faint transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-4">
-                        <FIcon size={20} className="text-accent" />
+                    <Link key={f.slug} href={f.href} className="group card-soft p-6">
+                      <div
+                        className={`w-11 h-11 rounded-xl ${TILES[i % TILES.length]} flex items-center justify-center mb-5`}
+                      >
+                        <FIcon size={20} strokeWidth={1.85} />
                       </div>
-                      <h3 className="font-semibold text-ink mb-1">{f.name}</h3>
-                      <p className="text-sm text-ink-muted leading-relaxed">
+                      <h3 className="text-[16px] font-semibold text-ink mb-2 tracking-[-0.01em]">
+                        {f.name}
+                      </h3>
+                      <p className="text-[14px] text-ink-muted leading-relaxed">
                         {f.tagline}
                       </p>
-                      <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-accent">
+                      <span
+                        className="mt-5 inline-flex items-center gap-1 text-[13px] font-semibold"
+                        style={{ color: "#0B3D7A" }}
+                      >
                         Learn more
                         <ArrowRight
-                          size={12}
+                          size={13}
                           className="transition-transform duration-200 group-hover:translate-x-0.5"
                         />
                       </span>

@@ -19,18 +19,21 @@ import {
 } from "firebase/auth";
 import { firebaseAuth, googleAuthProvider } from "./firebase-client";
 import {
+  deleteAuditEntry,
   deleteHistoryEntry,
   ensureUserDoc,
   fetchUserApps,
+  fetchUserAudits,
   fetchUserHistory,
   fetchUserSavedGenerations,
+  recordAuditForUser,
   recordGenerationHistory,
   saveAppForUser,
   saveGenerationForUser,
   updateUserDoc,
   upsertGenerationOnApp,
 } from "./firestore";
-import { User, AppEntry, GenerationResult, Platform } from "./types";
+import { User, AppEntry, AuditRecord, GenerationResult, Platform } from "./types";
 
 // Auth context — backed by Firebase Auth (Google + Email/Password) + Firestore.
 // Apps and saved generations persist to Firestore so they survive refresh and sync across devices.
@@ -56,6 +59,9 @@ interface AuthContextType {
   history: GenerationResult[];
   recordHistory: (gen: GenerationResult) => void;
   removeHistory: (genId: string) => void;
+  audits: AuditRecord[];
+  recordAudit: (audit: AuditRecord) => void;
+  removeAudit: (auditId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -102,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [apps, setApps] = useState<AppEntry[]>([]);
   const [savedGenerations, setSavedGenerations] = useState<GenerationResult[]>([]);
   const [history, setHistory] = useState<GenerationResult[]>([]);
+  const [audits, setAudits] = useState<AuditRecord[]>([]);
 
   // Listen to auth state. On sign-in, hydrate apps + generations + history from Firestore.
   useEffect(() => {
@@ -111,20 +118,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setApps([]);
         setSavedGenerations([]);
         setHistory([]);
+        setAudits([]);
         setLoading(false);
         return;
       }
       try {
         const appUser = await firebaseUserToAppUser(fbUser);
         setUser(appUser);
-        const [userApps, userSaved, userHistory] = await Promise.all([
+        const [userApps, userSaved, userHistory, userAudits] = await Promise.all([
           fetchUserApps(fbUser.uid),
           fetchUserSavedGenerations(fbUser.uid),
           fetchUserHistory(fbUser.uid),
+          fetchUserAudits(fbUser.uid),
         ]);
         setApps(userApps);
         setSavedGenerations(userSaved);
         setHistory(userHistory);
+        setAudits(userAudits);
       } catch (err) {
         console.error("[auth] failed to hydrate user data:", err);
       } finally {
@@ -265,6 +275,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const recordAudit = useCallback(
+    (audit: AuditRecord) => {
+      setAudits((prev) => {
+        // Replace existing record with the same id (same URL re-audit),
+        // then prepend so the latest sits at the top.
+        const without = prev.filter((a) => a.id !== audit.id);
+        return [audit, ...without];
+      });
+      if (user) {
+        recordAuditForUser(user.id, audit).catch((err) =>
+          console.error("[auth] recordAudit persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeAudit = useCallback(
+    (auditId: string) => {
+      setAudits((prev) => prev.filter((a) => a.id !== auditId));
+      if (user) {
+        deleteAuditEntry(user.id, auditId).catch((err) =>
+          console.error("[auth] removeAudit persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -283,6 +322,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         history,
         recordHistory,
         removeHistory,
+        audits,
+        recordAudit,
+        removeAudit,
       }}
     >
       {children}

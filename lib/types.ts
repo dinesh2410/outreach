@@ -83,6 +83,19 @@ export interface ScoreCheck {
   note: string;
 }
 
+// Persisted record of a Score Checker audit. Keyed by a hash of the URL so
+// re-running the audit for the same listing replaces the prior record rather
+// than duplicating history.
+export interface AuditRecord {
+  id: string;
+  url: string;
+  source: "play" | "ios" | null;
+  appName?: string;
+  score: number;
+  grade: string;
+  createdAt: string;
+}
+
 export interface KeywordResult {
   word: string;
   count: number;

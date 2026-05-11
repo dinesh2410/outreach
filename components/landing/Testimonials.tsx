@@ -1,79 +1,90 @@
 "use client";
 
-import { useInView } from "@/lib/useInView";
+import { FileText, Sparkles, Send } from "lucide-react";
 
-const TESTIMONIALS = [
+type Step = {
+  num: string;
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  bg: string;
+  accent: string;
+};
+
+const STEPS: Step[] = [
   {
-    quote: "I used to spend hours on my Play Store description. Now I generate three options and pick the best one in minutes.",
-    name: "Alex Chen",
-    role: "Indie dev, Productivity",
+    num: "01",
+    title: "Drop in a brief",
+    desc:
+      "App name, category, features, tone. The form takes about 30 seconds — and there's a one-click example if you want to see the format first.",
+    icon: <FileText size={22} strokeWidth={1.85} />,
+    bg: "linear-gradient(135deg, #D7E5FB 0%, #A8C4F0 100%)",
+    accent: "#0B3D7A",
   },
   {
-    quote: "The keyword-optimized variant literally doubled my impressions in the first week. Not a typo.",
-    name: "Maria Santos",
-    role: "Solo founder, Health app",
+    num: "02",
+    title: "Get three angles",
+    desc:
+      "Conversion, brand, and discovery variants for the platform you picked. Live character counters keep you inside the store's limits as you edit.",
+    icon: <Sparkles size={22} strokeWidth={1.85} />,
+    bg: "linear-gradient(135deg, #E8DEFF 0%, #C9B8F5 100%)",
+    accent: "#5B3FB8",
   },
   {
-    quote: "Finally a tool that doesn't try to do everything. It does descriptions really well and that's exactly what I needed.",
-    name: "Jordan Park",
-    role: "Game developer",
-  },
-  {
-    quote: "The character counters alone save me from Play Store rejections. The three-angle approach is the cherry on top.",
-    name: "Priya Sharma",
-    role: "Indie dev, Finance",
-  },
-  {
-    quote: "I showed the brand-led variant to my designer and she thought I hired a copywriter. That's the vibe.",
-    name: "Tom Okoro",
-    role: "Lifestyle app founder",
-  },
-  {
-    quote: "Compare-all view is my favorite feature. Seeing three approaches side by side makes the choice obvious.",
-    name: "Lena Fischer",
-    role: "Dev tools maker",
+    num: "03",
+    title: "Ship the keeper",
+    desc:
+      "Edit in place, copy to your clipboard, or save the variant to your library for later. Everything you generate is auto-saved to history.",
+    icon: <Send size={22} strokeWidth={1.85} />,
+    bg: "linear-gradient(135deg, #D8F2E3 0%, #A8DCC0 100%)",
+    accent: "#0F6F44",
   },
 ];
 
 export function Testimonials() {
-  const { ref, inView } = useInView();
-
   return (
-    <section className="py-24 md:py-32 bg-cream-deep" ref={ref}>
-      <div className="max-w-6xl mx-auto px-6">
-        <div className={`text-center mb-16 ${inView ? "animate-fade-up" : "opacity-0"}`}>
-          <h2 className="text-4xl md:text-5xl font-semibold text-ink tracking-tight">
-            What devs are saying.
+    <section className="bg-white">
+      <div className="max-w-[1400px] mx-auto px-8 py-24 lg:py-32">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <p className="eyebrow mb-5">How it works</p>
+          <h2 className="text-[40px] lg:text-[56px] font-semibold text-ink leading-[1.05] tracking-[-0.02em]">
+            From blank page to ready-to-ship in three steps
           </h2>
-          <p className="mt-4 text-ink-muted max-w-xl mx-auto">
-            Real stories from indie makers who shipped better listings with Outreach.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {TESTIMONIALS.map((t, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {STEPS.map((s) => (
             <div
-              key={t.name}
-              className={`p-6 rounded-3xl bg-surface border border-line-soft ${
-                inView ? "animate-fade-up" : "opacity-0"
-              }`}
-              style={{ animationDelay: inView ? `${i * 80}ms` : undefined }}
+              key={s.num}
+              className="group relative rounded-3xl aspect-[4/5] overflow-hidden"
+              style={{ background: s.bg }}
             >
-              <p className="text-sm text-ink leading-relaxed mb-6">
-                &ldquo;{t.quote}&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-ink flex items-center justify-center">
-                  <span className="text-white text-xs font-semibold">
-                    {t.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+              <div className="absolute inset-0 p-7 flex flex-col justify-between">
+                <div className="flex items-start justify-between">
+                  <div
+                    className="w-12 h-12 rounded-2xl bg-white/85 backdrop-blur-sm flex items-center justify-center"
+                    style={{ color: s.accent }}
+                  >
+                    {s.icon}
+                  </div>
+                  <span
+                    className="text-[13px] font-bold uppercase tracking-[0.15em]"
+                    style={{ color: s.accent }}
+                  >
+                    Step {s.num}
                   </span>
                 </div>
+
                 <div>
-                  <p className="text-sm font-semibold text-ink">{t.name}</p>
-                  <p className="text-xs text-ink-muted">{t.role}</p>
+                  <h3
+                    className="text-[28px] lg:text-[32px] font-semibold tracking-[-0.01em] leading-tight mb-3"
+                    style={{ color: s.accent }}
+                  >
+                    {s.title}
+                  </h3>
+                  <p className="text-[14px] text-ink leading-relaxed">
+                    {s.desc}
+                  </p>
                 </div>
               </div>
             </div>

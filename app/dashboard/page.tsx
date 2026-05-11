@@ -21,8 +21,6 @@ import {
   Activity,
 } from "lucide-react";
 
-// --- helpers --------------------------------------------------------------
-
 function relativeTime(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   const m = Math.floor(ms / 60_000);
@@ -40,10 +38,15 @@ function countSince(items: { createdAt: string }[], days: number): number {
   return items.filter((i) => new Date(i.createdAt).getTime() >= since).length;
 }
 
-// --- page ----------------------------------------------------------------
+const TILE_FOR_LABEL: Record<string, string> = {
+  Generations: "tile-blue",
+  "Saved drafts": "tile-lilac",
+  Apps: "tile-mint",
+  "ASO Score": "tile-cream",
+};
 
 export default function DashboardPage() {
-  const { user, loading, apps, savedGenerations, history } = useAuth();
+  const { user, loading, apps, savedGenerations, history, audits } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -58,6 +61,9 @@ export default function DashboardPage() {
         return t >= Date.now() - 14 * 86_400_000 && t < Date.now() - 7 * 86_400_000;
       }).length;
     const delta = generationsThisWeek - generationsLastWeek;
+
+    const latestAudit = audits[0];
+    const auditsThisWeek = countSince(audits, 7);
 
     return [
       {
@@ -81,13 +87,15 @@ export default function DashboardPage() {
       },
       {
         label: "ASO Score",
-        value: "—",
-        sub: "Coming soon",
+        value: latestAudit ? latestAudit.score : "—",
+        sub: latestAudit
+          ? `Grade ${latestAudit.grade} · ${auditsThisWeek} audit${auditsThisWeek === 1 ? "" : "s"} this week`
+          : "Run your first audit",
         icon: Sparkles,
-        muted: true,
+        muted: !latestAudit,
       },
     ];
-  }, [history, savedGenerations, apps]);
+  }, [history, savedGenerations, apps, audits]);
 
   const recent = history.slice(0, 5);
 
@@ -95,40 +103,42 @@ export default function DashboardPage() {
 
   return (
     <AppShell
+      eyebrow="Workspace · Overview"
       title={`Hello, ${user.firstName || "there"}.`}
-      description="Here's what's happening across your apps and tools."
+      description="What's moving across your apps, variants, and tools today."
       actions={
         <Link
           href="/generator"
-          className="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-deep transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-white text-[14px] font-medium hover:bg-night-soft transition-colors"
         >
-          <Wand2 size={14} />
+          <Wand2 size={15} />
           New generation
         </Link>
       }
     >
       {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
+          const tile = TILE_FOR_LABEL[stat.label] ?? "tile-blue";
           return (
-            <div
-              key={stat.label}
-              className="p-5 rounded-xl bg-paper border border-line hover:border-ink-faint transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-ink-faint">
-                  {stat.label}
-                </p>
-                <Icon size={14} className="text-ink-faint" />
+            <div key={stat.label} className="card-soft p-6">
+              <div className="flex items-center justify-between mb-5">
+                <p className="eyebrow text-[11px] tracking-[0.15em]">{stat.label}</p>
+                <div className={`w-9 h-9 rounded-xl ${tile} flex items-center justify-center`}>
+                  <Icon size={16} strokeWidth={1.85} />
+                </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className={`text-2xl font-semibold tabular-nums ${stat.muted ? "text-ink-faint" : "text-ink"}`}>
+              <div className="flex items-baseline gap-2">
+                <span
+                  className={`text-[36px] font-semibold leading-none tracking-[-0.02em] tabular-nums ${stat.muted ? "text-ink-faint" : ""}`}
+                  style={!stat.muted ? { color: "#0B3D7A" } : undefined}
+                >
                   {stat.value}
                 </span>
                 {typeof stat.delta === "number" && stat.delta !== 0 && (
                   <span
-                    className={`text-[11px] font-medium tabular-nums ${
+                    className={`text-[12px] font-semibold tabular-nums ${
                       stat.delta > 0 ? "text-green" : "text-warn"
                     }`}
                   >
@@ -137,37 +147,40 @@ export default function DashboardPage() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-ink-muted mt-1">{stat.sub}</p>
+              <p className="text-[13px] text-ink-muted mt-2">{stat.sub}</p>
             </div>
           );
         })}
       </div>
 
       {/* Two-column: activity feed + quick actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
-        {/* Recent activity */}
-        <section className="lg:col-span-2 rounded-xl bg-paper border border-line">
-          <header className="flex items-center justify-between px-5 h-12 border-b border-line-soft">
-            <div className="flex items-center gap-2">
-              <Activity size={14} className="text-ink-faint" />
-              <h2 className="text-sm font-semibold text-ink">Recent activity</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+        <section className="lg:col-span-2 card-soft overflow-hidden">
+          <header className="flex items-center justify-between px-6 h-14 border-b border-line-soft">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg tile-lilac flex items-center justify-center">
+                <Activity size={13} strokeWidth={2} />
+              </div>
+              <h2 className="text-[15px] font-semibold text-ink">Recent activity</h2>
             </div>
             <Link
               href="/history"
-              className="text-xs text-ink-muted hover:text-ink transition-colors inline-flex items-center gap-1"
+              className="text-[12px] font-semibold text-ink-muted hover:text-ink transition-colors inline-flex items-center gap-1"
             >
               View all
-              <ArrowUpRight size={12} />
+              <ArrowUpRight size={13} />
             </Link>
           </header>
 
           {recent.length === 0 ? (
-            <div className="px-5 py-12 text-center">
-              <FileText size={20} className="text-ink-faint mx-auto mb-3" />
-              <p className="text-sm text-ink-muted mb-4">No activity yet — generate something to get started.</p>
+            <div className="px-5 py-14 text-center">
+              <div className="w-12 h-12 rounded-2xl tile-blue inline-flex items-center justify-center mb-4">
+                <FileText size={20} strokeWidth={1.85} />
+              </div>
+              <p className="text-[14px] text-ink-muted mb-5">No activity yet — generate something to get started.</p>
               <Link
                 href="/generator"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-ink hover:text-accent transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-white text-[14px] font-medium hover:bg-night-soft transition-colors"
               >
                 Open generator <ArrowRight size={13} />
               </Link>
@@ -183,24 +196,24 @@ export default function DashboardPage() {
                   <li key={gen.id}>
                     <Link
                       href={`/history/${gen.id}`}
-                      className="flex items-center gap-3 px-5 py-3.5 hover:bg-cream transition-colors group"
+                      className="flex items-center gap-4 px-6 py-4 hover:bg-cream transition-colors group"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-cream-deep border border-line flex items-center justify-center shrink-0">
-                        <FileText size={14} className="text-ink-faint" />
+                      <div className="w-10 h-10 rounded-xl tile-blue flex items-center justify-center shrink-0">
+                        <FileText size={15} strokeWidth={1.85} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ink truncate">
+                        <p className="text-[14px] font-semibold text-ink truncate">
                           {gen.input.appName}
                         </p>
-                        <p className="text-xs text-ink-faint truncate">
+                        <p className="text-[12px] text-ink-faint truncate mt-0.5">
                           {variantCount} variants · {platforms.join(" + ")} · {gen.input.tone}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-ink-faint tabular-nums shrink-0">
+                      <div className="flex items-center gap-1.5 text-[11px] text-ink-faint tabular-nums shrink-0">
                         <Clock size={11} />
                         {relativeTime(gen.createdAt)}
                       </div>
-                      <ArrowRight size={14} className="text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      <ArrowRight size={15} className="text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </Link>
                   </li>
                 );
@@ -209,48 +222,114 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* Quick actions */}
-        <aside className="rounded-xl bg-paper border border-line">
-          <header className="flex items-center px-5 h-12 border-b border-line-soft">
-            <h2 className="text-sm font-semibold text-ink">Quick actions</h2>
+        <aside className="card-soft overflow-hidden">
+          <header className="flex items-center px-6 h-14 border-b border-line-soft">
+            <h2 className="text-[15px] font-semibold text-ink">Quick actions</h2>
           </header>
           <div className="p-3 space-y-1">
-            <QuickAction href="/generator" icon={Wand2} label="Generate ASO copy" hint="Title + description" />
-            <QuickAction href="/library" icon={Bookmark} label="Open library" hint="Your saved drafts" />
-            <QuickAction href="/history" icon={Clock} label="View history" hint="Auto-saved generations" />
-            <QuickAction href="/score" icon={Sparkles} label="Score a listing" hint="Audit any app" />
+            <QuickAction href="/generator" icon={Wand2} label="Generate ASO copy" hint="Title + description" tile="tile-blue" />
+            <QuickAction href="/library" icon={Bookmark} label="Open library" hint="Your saved drafts" tile="tile-lilac" />
+            <QuickAction href="/history" icon={Clock} label="View history" hint="Auto-saved generations" tile="tile-mint" />
+            <QuickAction href="/score" icon={Sparkles} label="Score a listing" hint="Audit any app" tile="tile-cream" />
           </div>
         </aside>
       </div>
 
-      {/* Apps */}
-      <section className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-ink">Your apps</h2>
-          <span className="text-xs text-ink-faint tabular-nums">{apps.length}</span>
+      {/* Recent audits */}
+      <section className="mt-12">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[22px] font-semibold tracking-[-0.01em]" style={{ color: "#0B3D7A" }}>
+            Recent audits
+          </h2>
+          <span className="text-[13px] text-ink-faint tabular-nums">{audits.length}</span>
         </div>
-        {apps.length === 0 ? (
-          <div className="rounded-xl bg-paper border border-dashed border-line px-6 py-10 text-center">
-            <AppWindow size={20} className="text-ink-faint mx-auto mb-2" />
-            <p className="text-sm text-ink-muted">Apps you save generations for show up here.</p>
+        {audits.length === 0 ? (
+          <div className="rounded-2xl bg-cream-deep border border-dashed border-line px-6 py-12 text-center">
+            <div className="w-12 h-12 rounded-2xl tile-cream inline-flex items-center justify-center mb-3">
+              <Sparkles size={20} strokeWidth={1.85} />
+            </div>
+            <p className="text-[14px] text-ink-muted mb-5">
+              You haven&apos;t audited a listing yet. Run the Score Checker to see your first report.
+            </p>
+            <Link
+              href="/score"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors"
+            >
+              <Sparkles size={14} />
+              Score a listing
+            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {audits.slice(0, 6).map((a) => {
+              const reportHref = `/score/report?url=${encodeURIComponent(a.url)}`;
+              const gradeTile =
+                a.grade === "A" ? "tile-mint" :
+                a.grade === "B" ? "tile-blue" :
+                a.grade === "C" ? "tile-cream" :
+                a.grade === "D" ? "tile-rose" : "tile-peach";
+              return (
+                <Link key={a.id} href={reportHref} className="group card-soft p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`w-11 h-11 rounded-xl ${gradeTile} flex items-center justify-center font-bold text-[14px]`}>
+                      {a.grade}
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[26px] font-bold leading-none tabular-nums" style={{ color: "#0B3D7A" }}>
+                        {a.score}
+                      </span>
+                      <span className="text-[11px] text-ink-faint">/100</span>
+                    </div>
+                  </div>
+                  <p className="text-[14px] font-semibold text-ink truncate">
+                    {a.appName || a.source === "ios" ? "App Store listing" : a.source === "play" ? "Play Store listing" : "Listing"}
+                  </p>
+                  <p className="text-[11px] text-ink-faint truncate mt-1 font-mono">{a.url}</p>
+                  <div className="mt-3 pt-3 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint">
+                    <span className="capitalize">
+                      {a.source === "ios" ? "App Store" : a.source === "play" ? "Google Play" : "Unknown"}
+                    </span>
+                    <span className="tabular-nums">{relativeTime(a.createdAt)}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Apps */}
+      <section className="mt-12">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[22px] font-semibold tracking-[-0.01em]" style={{ color: "#0B3D7A" }}>
+            Your apps
+          </h2>
+          <span className="text-[13px] text-ink-faint tabular-nums">{apps.length}</span>
+        </div>
+        {apps.length === 0 ? (
+          <div className="rounded-2xl bg-cream-deep border border-dashed border-line px-6 py-12 text-center">
+            <div className="w-12 h-12 rounded-2xl tile-mint inline-flex items-center justify-center mb-3">
+              <AppWindow size={20} strokeWidth={1.85} />
+            </div>
+            <p className="text-[14px] text-ink-muted">Apps you save generations for show up here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {apps.map((app) => (
               <Link
                 key={app.id}
                 href={`/apps/${app.id}`}
-                className="group p-4 rounded-xl bg-paper border border-line hover:border-ink-faint transition-colors"
+                className="group card-soft p-5"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg shrink-0" style={{ background: app.icon }} />
+                  <div className="w-11 h-11 rounded-xl shrink-0" style={{ background: app.icon }} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-ink truncate">{app.name}</p>
+                    <p className="text-[14px] font-semibold text-ink truncate">{app.name}</p>
                     <p className="text-[11px] text-ink-faint">{app.category}</p>
                   </div>
-                  <ArrowUpRight size={14} className="text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowUpRight size={15} className="text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="mt-3 pt-3 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint tabular-nums">
+                <div className="mt-4 pt-4 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint tabular-nums">
                   <span>{app.generations.length} generation{app.generations.length === 1 ? "" : "s"}</span>
                   <span>{relativeTime(app.createdAt)}</span>
                 </div>
@@ -261,50 +340,52 @@ export default function DashboardPage() {
       </section>
 
       {/* Tools */}
-      <section className="mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-ink">Tools</h2>
-          <span className="text-xs text-ink-faint">2 live · 4 coming</span>
+      <section className="mt-12">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[22px] font-semibold tracking-[-0.01em]" style={{ color: "#0B3D7A" }}>
+            Tools
+          </h2>
+          <span className="text-[13px] text-ink-faint">2 live · 4 coming</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <ToolCard href="/generator" icon={Wand2} title="ASO Generator" desc="Three angle variants per platform from one brief." status="live" />
-          <ToolCard href="/score" icon={Sparkles} title="ASO Score" desc="Audit any listing against the ASO playbook." status="live" />
-          <ToolCard href="/features/screenshots" icon={ImageIcon} title="Screenshots" desc="Auto-generate store screenshots from your UI." status="soon" />
-          <ToolCard href="/features/reddit" icon={MessageSquare} title="Reddit Posts" desc="Subreddit-tuned launch posts that don't get nuked." status="soon" />
-          <ToolCard href="/features/competitor" icon={Target} title="Competitor Watch" desc="Track competitor listings, ratings, and updates." status="soon" />
-          <ToolCard href="/features/keywords" icon={Tag} title="Keyword Research" desc="Volume, difficulty, and competitor coverage." status="soon" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <ToolCard href="/generator" icon={Wand2} title="ASO Generator" desc="Three angle variants per platform from one brief." status="live" tile="tile-blue" />
+          <ToolCard href="/score" icon={Sparkles} title="ASO Score" desc="Audit any listing against the ASO playbook." status="live" tile="tile-lilac" />
+          <ToolCard href="/features/screenshots" icon={ImageIcon} title="Screenshots" desc="Auto-generate store screenshots from your UI." status="soon" tile="tile-mint" />
+          <ToolCard href="/features/reddit" icon={MessageSquare} title="Reddit Posts" desc="Subreddit-tuned launch posts that don't get nuked." status="soon" tile="tile-cream" />
+          <ToolCard href="/features/competitor" icon={Target} title="Competitor Watch" desc="Track competitor listings, ratings, and updates." status="soon" tile="tile-rose" />
+          <ToolCard href="/features/keywords" icon={Tag} title="Keyword Research" desc="Volume, difficulty, and competitor coverage." status="soon" tile="tile-peach" />
         </div>
       </section>
     </AppShell>
   );
 }
 
-// --- subcomponents -------------------------------------------------------
-
 function QuickAction({
   href,
   icon: Icon,
   label,
   hint,
+  tile,
 }: {
   href: string;
   icon: typeof Wand2;
   label: string;
   hint: string;
+  tile: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-cream transition-colors group"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-cream transition-colors group"
     >
-      <div className="w-8 h-8 rounded-lg bg-cream-deep border border-line flex items-center justify-center shrink-0">
-        <Icon size={14} className="text-ink" />
+      <div className={`w-9 h-9 rounded-xl ${tile} flex items-center justify-center shrink-0`}>
+        <Icon size={15} strokeWidth={1.85} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink truncate">{label}</p>
+        <p className="text-[14px] font-semibold text-ink truncate">{label}</p>
         <p className="text-[11px] text-ink-faint truncate">{hint}</p>
       </div>
-      <ArrowRight size={13} className="text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity" />
+      <ArrowRight size={14} className="text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity" />
     </Link>
   );
 }
@@ -315,38 +396,36 @@ function ToolCard({
   title,
   desc,
   status,
+  tile,
 }: {
   href: string;
   icon: typeof Wand2;
   title: string;
   desc: string;
   status: "live" | "soon";
+  tile: string;
 }) {
   const isSoon = status === "soon";
   return (
-    <Link
-      href={href}
-      className={`group p-4 rounded-xl bg-paper border transition-colors ${
-        isSoon ? "border-line hover:border-line" : "border-line hover:border-ink-faint"
-      }`}
-    >
-      <div className="flex items-start justify-between mb-2.5">
-        <div className="w-9 h-9 rounded-lg bg-cream-deep border border-line flex items-center justify-center">
-          <Icon size={16} className={isSoon ? "text-ink-faint" : "text-ink"} />
+    <Link href={href} className="group card-soft p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-11 h-11 rounded-xl ${tile} flex items-center justify-center`}>
+          <Icon size={18} strokeWidth={1.85} />
         </div>
         <span
-          className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase tracking-wider ${
-            isSoon ? "bg-cream-deep text-ink-faint border border-line" : "bg-green/10 text-green"
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.1em] ${
+            isSoon ? "bg-cream-deep text-ink-faint" : "text-white"
           }`}
+          style={!isSoon ? { backgroundColor: "#10B981" } : undefined}
         >
           {isSoon ? "Soon" : "Live"}
         </span>
       </div>
-      <p className="text-sm font-semibold text-ink">{title}</p>
-      <p className="text-xs text-ink-muted mt-1 leading-relaxed">{desc}</p>
+      <p className="text-[15px] font-semibold text-ink">{title}</p>
+      <p className="text-[13px] text-ink-muted mt-1.5 leading-relaxed">{desc}</p>
       {!isSoon && (
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-ink mt-3 group-hover:text-accent transition-colors">
-          Open <ArrowRight size={12} />
+        <span className="inline-flex items-center gap-1 text-[13px] font-semibold mt-4" style={{ color: "#0B3D7A" }}>
+          Open <ArrowRight size={13} />
         </span>
       )}
     </Link>

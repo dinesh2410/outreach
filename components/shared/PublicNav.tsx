@@ -4,12 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { FeaturesMenu } from "./FeaturesMenu";
-import { Menu, X } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { Globe, LayoutDashboard, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { FEATURES } from "@/lib/features";
 
-// Desktop nav links other than the Features dropdown.
-// Keep this short — the Features menu now houses the per-feature pages.
 const NAV_LINKS = [
   { href: "/score", label: "Score Checker" },
   { href: "/about", label: "About" },
@@ -17,69 +16,90 @@ const NAV_LINKS = [
 
 export function PublicNav() {
   const pathname = usePathname();
+  const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
+  const isAuthed = !!user && !loading;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 bg-cream/30 backdrop-blur-[6px]">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Logo />
+    <nav className="absolute top-0 left-0 right-0 z-40">
+      <div className="max-w-[1400px] mx-auto px-8 h-20 flex items-center justify-between">
+        <div className="flex items-center gap-10">
+          <Logo />
 
-        {/* Desktop centered nav */}
-        <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-          <FeaturesMenu />
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-medium transition-colors ${
-                pathname === link.href
-                  ? "text-ink"
-                  : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          <div className="hidden lg:flex items-center gap-8">
+            <FeaturesMenu />
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`text-[15px] font-medium transition-colors ${
+                  pathname === link.href
+                    ? "text-ink"
+                    : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
 
-        {/* Right CTA */}
-        <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/auth"
-            className="text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+        <div className="hidden lg:flex items-center gap-5">
+          <button
+            aria-label="Language"
+            className="text-ink hover:opacity-70 transition-opacity"
           >
-            Sign in
-          </Link>
-          <Link href="/auth" className="btn-pill-dark !py-2 !pl-4 !pr-4 text-sm">
-            Get Started
-          </Link>
+            <Globe size={20} strokeWidth={1.75} />
+          </button>
+          {isAuthed ? (
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors"
+            >
+              <LayoutDashboard size={15} strokeWidth={2} />
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/auth"
+                className="text-[15px] font-medium text-ink underline underline-offset-4 hover:opacity-70 transition-opacity"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/auth"
+                className="px-5 py-2.5 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
-        {/* Mobile toggle */}
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden p-2 text-ink"
+          className="lg:hidden p-2 text-ink"
           aria-label="Toggle menu"
         >
-          {open ? <X size={20} /> : <Menu size={20} />}
+          {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
       {open && (
-        <div className="md:hidden bg-cream border-t border-line-soft px-6 py-4 space-y-3">
-          {/* Features list flattened into the mobile drawer */}
+        <div className="lg:hidden bg-white border-t border-line-soft px-6 py-5 space-y-4">
           <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-1">
             Features
           </p>
-          {FEATURES.map((feature) => (
+          {FEATURES.map((f) => (
             <Link
-              key={feature.slug}
-              href={feature.href}
+              key={f.slug}
+              href={f.href}
               onClick={() => setOpen(false)}
               className="flex items-center justify-between text-sm font-medium text-ink-muted hover:text-ink"
             >
-              <span>{feature.name}</span>
-              {feature.status === "soon" && (
+              <span>{f.name}</span>
+              {f.status === "soon" && (
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gold/10 text-gold uppercase">
                   Soon
                 </span>
@@ -94,7 +114,7 @@ export function PublicNav() {
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className={`block text-sm font-medium ${
+              className={`block text-[15px] font-medium ${
                 pathname === link.href ? "text-ink" : "text-ink-muted"
               }`}
             >
@@ -102,13 +122,35 @@ export function PublicNav() {
             </Link>
           ))}
 
-          <Link
-            href="/auth"
-            onClick={() => setOpen(false)}
-            className="btn-pill-dark w-full justify-center !py-2.5"
-          >
-            Get Started
-          </Link>
+          <div className="pt-3 border-t border-line-soft flex flex-col gap-3">
+            {isAuthed ? (
+              <Link
+                href="/dashboard"
+                onClick={() => setOpen(false)}
+                className="px-5 py-2.5 rounded-full bg-ink text-white text-[15px] font-medium text-center inline-flex items-center justify-center gap-2"
+              >
+                <LayoutDashboard size={15} strokeWidth={2} />
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth"
+                  onClick={() => setOpen(false)}
+                  className="px-5 py-2.5 rounded-full border-[1.5px] border-ink text-[15px] font-medium text-ink text-center"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/auth"
+                  onClick={() => setOpen(false)}
+                  className="px-5 py-2.5 rounded-full bg-ink text-white text-[15px] font-medium text-center"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       )}
     </nav>

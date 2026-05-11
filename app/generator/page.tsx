@@ -88,8 +88,9 @@ export default function GeneratorPage() {
   const isResults = stage === "results" && result;
   return (
     <AppShell
-      title={isResults ? result.input.appName : "ASO Generator"}
-      description={isResults ? "Review, edit, and save your variants." : "Three angle variants per platform — generated from one brief."}
+      eyebrow={isResults ? "Variants · Ready to review" : "Tools · ASO Generator"}
+      title={isResults ? result.input.appName : "Ship a sharper listing"}
+      description={isResults ? "Review, edit, and save the angle that fits the launch." : "One brief in, three angle variants out per platform — conversion, brand, discovery."}
     >
       {stage === "input" && <GeneratorInputForm onGenerate={handleStart} />}
       {stage === "loading-questions" && <GeneratingState />}

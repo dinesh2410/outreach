@@ -1,39 +1,40 @@
 "use client";
 
-import { CountUp } from "../shared/CountUp";
-import { useInView } from "@/lib/useInView";
+import { Code2, Heart, Lock, Sparkles, Zap, MessageCircle } from "lucide-react";
 
-const STATS = [
-  { value: 40000, suffix: "+", label: "Apps shipped" },
-  { value: 10000, suffix: "+", label: "Developers" },
-  { value: 30, suffix: "+", label: "Categories" },
-  { value: 60, suffix: "s", label: "Avg time to a draft" },
+const BADGES = [
+  { icon: <Heart size={22} strokeWidth={1.75} />,         label: "Built in public",   tile: "#FCE8EC", text: "#B0274F" },
+  { icon: <Sparkles size={22} strokeWidth={1.75} />,      label: "Free first listing", tile: "#E8DEFF", text: "#5B3FB8" },
+  { icon: <Zap size={22} strokeWidth={1.75} />,           label: "Variants in <60s",  tile: "#D7E5FB", text: "#0B3D7A" },
+  { icon: <Code2 size={22} strokeWidth={1.75} />,         label: "Open changelog",    tile: "#F2EFE7", text: "#5C4A1A" },
+  { icon: <Lock size={22} strokeWidth={1.75} />,          label: "Your data, yours",  tile: "#D8F2E3", text: "#0F6F44" },
+  { icon: <MessageCircle size={22} strokeWidth={1.75} />, label: "Maker community",   tile: "#FFE9D6", text: "#9E4A0F" },
 ];
 
 export function Stats() {
-  const { ref, inView } = useInView();
-
   return (
-    <section className="py-24 md:py-32 bg-cream-deep" ref={ref}>
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-semibold text-ink tracking-tight">
-            Built to scale, proven to perform.
+    <section className="bg-white">
+      <div className="max-w-[1400px] mx-auto px-8 py-16">
+        <div className="rounded-3xl px-8 lg:px-16 py-14 lg:py-20" style={{ backgroundColor: "#FFF6E0" }}>
+          <h2 className="text-center text-[28px] lg:text-[36px] font-semibold text-ink leading-snug tracking-[-0.01em] max-w-2xl mx-auto">
+            Made for makers — not marketing teams
           </h2>
-        </div>
-        <div className={`grid grid-cols-2 md:grid-cols-4 gap-8 ${inView ? "animate-fade-up" : "opacity-0"}`}>
-          {STATS.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-5xl md:text-6xl font-semibold text-ink tracking-tight">
-                {inView ? (
-                  <CountUp target={stat.value} suffix={stat.suffix} />
-                ) : (
-                  `0${stat.suffix}`
-                )}
+
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {BADGES.map((b) => (
+              <div key={b.label} className="flex flex-col items-center text-center gap-3">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: b.tile, color: b.text }}
+                >
+                  {b.icon}
+                </div>
+                <div className="text-[13px] font-semibold text-ink leading-snug max-w-[120px]">
+                  {b.label}
+                </div>
               </div>
-              <p className="mt-3 text-sm text-ink-muted">{stat.label}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>

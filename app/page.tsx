@@ -20,11 +20,11 @@ export default function Home() {
         <Hero />
         <TrustedBy />
         <FeatureShowcase />
-        <BentoTools />
         <Capabilities />
-        <Stats />
-        <ScoreChecker />
+        <BentoTools />
         <WhyUs />
+        <ScoreChecker />
+        <Stats />
         <Testimonials />
         <FAQ />
         <FinalCTA />

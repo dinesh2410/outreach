@@ -71,11 +71,13 @@ const NAV_GROUPS: NavGroup[] = [
 // --- shell ---------------------------------------------------------------
 
 export function AppShell({
+  eyebrow,
   title,
   description,
   actions,
   children,
 }: {
+  eyebrow?: string;
   title?: string;
   description?: string;
   actions?: ReactNode;
@@ -88,16 +90,16 @@ export function AppShell({
   const userEmail = user?.email ?? "";
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-white">
       {/* Mobile header */}
-      <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-cream/90 backdrop-blur-md border-b border-line-soft">
+      <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-16 bg-white border-b border-line-soft">
         <Logo />
         <button
           onClick={() => setMobileOpen(true)}
-          className="p-2 text-ink-muted"
+          className="p-2 text-ink"
           aria-label="Open menu"
         >
-          <Menu size={20} />
+          <Menu size={22} />
         </button>
       </div>
 
@@ -105,13 +107,13 @@ export function AppShell({
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-night/40" onClick={() => setMobileOpen(false)}>
           <aside
-            className="absolute left-0 top-0 h-full w-[280px] bg-paper border-r border-line flex flex-col"
+            className="absolute left-0 top-0 h-full w-[300px] bg-white flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 h-14 border-b border-line-soft">
+            <div className="flex items-center justify-between px-6 h-16 border-b border-line-soft">
               <Logo />
-              <button onClick={() => setMobileOpen(false)} className="p-2 text-ink-muted">
-                <X size={20} />
+              <button onClick={() => setMobileOpen(false)} className="p-2 text-ink">
+                <X size={22} />
               </button>
             </div>
             <SidebarBody onNavigate={() => setMobileOpen(false)} initials={initials} userName={userName} userEmail={userEmail} signOut={signOut} />
@@ -121,8 +123,8 @@ export function AppShell({
 
       <div className="md:flex">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex md:flex-col md:w-[244px] md:shrink-0 md:h-screen md:sticky md:top-0 bg-paper border-r border-line">
-          <div className="px-5 h-14 flex items-center border-b border-line-soft">
+        <aside className="hidden md:flex md:flex-col md:w-[260px] md:shrink-0 md:h-screen md:sticky md:top-0 bg-white border-r border-line-soft">
+          <div className="px-6 h-20 flex items-center">
             <Logo />
           </div>
           <SidebarBody initials={initials} userName={userName} userEmail={userEmail} signOut={signOut} />
@@ -131,13 +133,13 @@ export function AppShell({
         {/* Main column */}
         <div className="flex-1 min-w-0">
           {/* Desktop top bar */}
-          <header className="hidden md:flex sticky top-0 z-30 h-14 items-center justify-between gap-4 px-8 bg-cream/85 backdrop-blur-md border-b border-line-soft">
-            <div className="flex items-center gap-2 text-sm text-ink-muted">
-              <span className="font-medium text-ink">outreach</span>
+          <header className="hidden md:flex sticky top-0 z-30 h-20 items-center justify-between gap-4 px-10 bg-white border-b border-line-soft">
+            <div className="flex items-center gap-2.5 text-[14px]">
+              <span className="font-medium text-ink-faint">outreach</span>
               {title && (
                 <>
                   <span className="text-ink-faint">/</span>
-                  <span className="text-ink">{title}</span>
+                  <span className="text-ink font-semibold">{title}</span>
                 </>
               )}
             </div>
@@ -146,18 +148,30 @@ export function AppShell({
 
           {/* Page header */}
           {(title || actions) && (
-            <div className="px-6 md:px-8 pt-8 pb-6 border-b border-line-soft">
-              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                <div className="min-w-0">
-                  {title && <h1 className="text-2xl md:text-3xl font-semibold text-ink tracking-tight">{title}</h1>}
-                  {description && <p className="text-sm text-ink-muted mt-1.5">{description}</p>}
+            <div className="px-6 md:px-10 pt-12 pb-10">
+              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                <div className="min-w-0 max-w-3xl">
+                  {eyebrow && <p className="eyebrow mb-4">{eyebrow}</p>}
+                  {title && (
+                    <h1
+                      className="text-[36px] lg:text-[48px] font-semibold leading-[1.05] tracking-[-0.02em]"
+                      style={{ color: "#0B3D7A" }}
+                    >
+                      {title}
+                    </h1>
+                  )}
+                  {description && (
+                    <p className="text-[15px] lg:text-[16px] text-ink-muted mt-4 max-w-2xl leading-relaxed">
+                      {description}
+                    </p>
+                  )}
                 </div>
                 {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
               </div>
             </div>
           )}
 
-          <main className="px-6 md:px-8 py-8">{children}</main>
+          <main className="px-6 md:px-10 pb-16">{children}</main>
         </div>
       </div>
     </div>
@@ -183,11 +197,10 @@ function SidebarBody({
 
   return (
     <>
-      {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+      <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-7">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-1">
+            <p className="px-3 text-[11px] font-bold uppercase tracking-[0.15em] text-ink-faint mb-2">
               {group.label}
             </p>
             <ul className="space-y-0.5">
@@ -199,16 +212,16 @@ function SidebarBody({
                     <Link
                       href={link.href}
                       onClick={onNavigate}
-                      className={`flex items-center gap-2.5 px-3 h-9 rounded-lg text-[13px] transition-colors ${
+                      className={`flex items-center gap-3 px-3 h-10 rounded-xl text-[14px] transition-colors ${
                         active
-                          ? "bg-cream-deep text-ink font-medium"
+                          ? "tile-blue font-semibold"
                           : "text-ink-muted hover:text-ink hover:bg-cream"
                       }`}
                     >
-                      <Icon size={15} className="shrink-0" />
+                      <Icon size={16} className="shrink-0" strokeWidth={active ? 2.25 : 1.85} />
                       <span className="flex-1 truncate">{link.label}</span>
                       {link.status === "soon" && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-cream-deep text-ink-faint border border-line">
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-cream-deep text-ink-faint">
                           Soon
                         </span>
                       )}
@@ -222,22 +235,25 @@ function SidebarBody({
       </nav>
 
       {/* User card */}
-      <div className="px-3 py-3 border-t border-line-soft">
-        <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg">
-          <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-[10px] font-semibold text-white shrink-0">
+      <div className="px-4 py-4 border-t border-line-soft">
+        <div className="flex items-center gap-3 px-2 py-2 rounded-xl">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
+            style={{ backgroundColor: "#0B3D7A" }}
+          >
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium text-ink truncate leading-tight">{userName || "—"}</p>
+            <p className="text-[13px] font-semibold text-ink truncate leading-tight">{userName || "—"}</p>
             <p className="text-[11px] text-ink-faint truncate leading-tight">{userEmail}</p>
           </div>
           <button
             onClick={signOut}
-            className="p-1.5 rounded-md text-ink-faint hover:text-ink hover:bg-cream transition-colors shrink-0"
+            className="p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-cream-deep transition-colors shrink-0"
             title="Sign out"
             aria-label="Sign out"
           >
-            <LogOut size={13} />
+            <LogOut size={14} />
           </button>
         </div>
       </div>
@@ -321,12 +337,10 @@ function GlobalSearch() {
       .slice(0, 12);
   }, [q, allHits]);
 
-  // Reset highlight when results change
   useEffect(() => {
     setActiveIndex(0);
   }, [results.length]);
 
-  // Outside click closes
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
@@ -356,7 +370,6 @@ function GlobalSearch() {
     }
   }
 
-  // Group results by group label, preserving the original order
   const grouped = useMemo(() => {
     const map = new Map<SearchHit["group"], SearchHit[]>();
     results.forEach((h) => {
@@ -369,8 +382,8 @@ function GlobalSearch() {
 
   return (
     <div ref={wrapRef} className="relative hidden lg:block">
-      <div className="flex items-center gap-2 px-3 h-9 rounded-lg bg-surface border border-line focus-within:border-ink-faint transition-colors w-[320px]">
-        <Search size={13} className="text-ink-faint" />
+      <div className="flex items-center gap-2.5 px-4 h-11 rounded-full bg-cream-deep border border-transparent focus-within:border-ink-faint transition-colors w-[360px]">
+        <Search size={15} className="text-ink-faint" />
         <input
           type="text"
           value={q}
@@ -381,7 +394,7 @@ function GlobalSearch() {
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Search apps, history, library…"
-          className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-faint focus:outline-none"
+          className="flex-1 bg-transparent text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
         />
         {q && (
           <button
@@ -398,18 +411,18 @@ function GlobalSearch() {
       </div>
 
       {open && q && (
-        <div className="absolute right-0 top-[calc(100%+6px)] w-[420px] max-h-[440px] overflow-y-auto rounded-xl bg-paper border border-line shadow-xl">
+        <div className="absolute right-0 top-[calc(100%+8px)] w-[420px] max-h-[440px] overflow-y-auto rounded-2xl bg-white border border-line-soft shadow-xl">
           {results.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-ink-muted text-center">
+            <div className="px-5 py-8 text-[14px] text-ink-muted text-center">
               No matches for &ldquo;{q}&rdquo;.
             </div>
           ) : (
-            <div className="py-1.5">
+            <div className="py-2">
               {(() => {
                 let runningIndex = 0;
                 return grouped.map(([groupLabel, items]) => (
                   <div key={groupLabel} className="mb-1">
-                    <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+                    <p className="px-4 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint">
                       {groupLabel}
                     </p>
                     {items.map((hit) => {
@@ -421,15 +434,15 @@ function GlobalSearch() {
                           key={`${hit.group}-${hit.href}-${hit.title}-${myIndex}`}
                           onMouseEnter={() => setActiveIndex(myIndex)}
                           onClick={() => go(hit.href)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                            active ? "bg-cream" : ""
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                            active ? "bg-cream-deep" : ""
                           }`}
                         >
-                          <div className="w-7 h-7 rounded-md bg-cream-deep border border-line flex items-center justify-center shrink-0">
-                            <Icon size={13} className="text-ink-muted" />
+                          <div className="w-8 h-8 rounded-lg tile-blue flex items-center justify-center shrink-0">
+                            <Icon size={14} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-ink truncate">{hit.title}</p>
+                            <p className="text-[14px] font-medium text-ink truncate">{hit.title}</p>
                             <p className="text-[11px] text-ink-faint truncate">{hit.subtitle}</p>
                           </div>
                         </button>

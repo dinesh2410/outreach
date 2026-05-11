@@ -1,129 +1,118 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, Camera, MessageSquare, BarChart3, Key } from "lucide-react";
-import { MockASOResults } from "../mocks/MockASOResults";
-import { MockScreenshot } from "../mocks/MockScreenshot";
-import { MockRedditReply } from "../mocks/MockRedditReply";
-import { MockCompetitor } from "../mocks/MockCompetitor";
-import { MockKeywords } from "../mocks/MockKeywords";
-import { useInView } from "@/lib/useInView";
-
-// Adapted from 21st.dev's Hero 195 layout — tab bar + bordered product preview
-// with a beam border and faint vertical guide-lines in the background.
-// Uses the Outreach cream palette instead of shadcn's dark theme.
-
-const TABS = [
-  { id: "desc",   label: "Descriptions", Icon: FileText,       content: <MockASOResults /> },
-  { id: "shots",  label: "Screenshots",  Icon: Camera,         content: <MockScreenshot /> },
-  { id: "reddit", label: "Reddit",       Icon: MessageSquare,  content: <MockRedditReply /> },
-  { id: "comp",   label: "Competitor",   Icon: BarChart3,      content: <MockCompetitor /> },
-  { id: "kw",     label: "Keywords",     Icon: Key,            content: <MockKeywords /> },
-] as const;
+import Link from "next/link";
+import { ArrowRight, FileText, Image as ImageIcon, Sparkles } from "lucide-react";
 
 export function FeatureShowcase() {
-  const { ref, inView } = useInView();
-  const [active, setActive] = useState(0);
-
   return (
-    <section
-      ref={ref}
-      className="relative overflow-hidden py-24 md:py-32"
-    >
-      {/* Faint vertical guide lines, faded at top & bottom */}
-      <BackgroundLines />
-
-      <div className="relative max-w-6xl mx-auto px-6">
-        {/* Section header */}
-        <div className={`text-center mb-12 ${inView ? "animate-fade-up" : "opacity-0"}`}>
-          <h2 className="text-4xl md:text-5xl font-semibold text-ink tracking-tight max-w-2xl mx-auto leading-[1.1]">
-            From blank page to publish-ready in under a minute.
-          </h2>
-          <p className="mt-5 text-lg text-ink-muted max-w-xl mx-auto">
-            Five tools, one workflow. Switch tabs to see each one in action.
-          </p>
-        </div>
-
-        {/* Tab bar */}
-        <div className={`flex justify-center mb-10 ${inView ? "animate-fade-up delay-100" : "opacity-0"}`}>
-          <div
-            role="tablist"
-            aria-label="Feature preview"
-            className="inline-flex items-center gap-1 p-1.5 rounded-2xl bg-surface/80 backdrop-blur-sm border border-line-soft shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+    <section className="bg-white">
+      <div className="max-w-[1400px] mx-auto px-8 py-24 lg:py-32 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        {/* Left: workflow visual — phone with two output cards */}
+        <div className="relative h-[520px]">
+          {/* Connecting lines drawn behind */}
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 500 520"
+            fill="none"
+            preserveAspectRatio="none"
           >
-            {TABS.map((tab, i) => {
-              const Icon = tab.Icon;
-              const isActive = active === i;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setActive(i)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? "bg-ink text-white shadow-[0_2px_6px_rgba(0,0,0,0.15)]"
-                      : "text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  <Icon size={15} strokeWidth={isActive ? 2.25 : 2} />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              );
-            })}
+            <path d="M 90 130 L 250 260" stroke="#0B3D7A" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.25" />
+            <path d="M 410 380 L 250 280" stroke="#0B3D7A" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.25" />
+          </svg>
+
+          {/* Center phone mockup */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px] h-[440px] rounded-[2.5rem] bg-ink p-2 shadow-[0_30px_60px_-20px_rgba(11,61,122,0.4)]">
+            <div className="w-full h-full rounded-[2rem] bg-cream-warm overflow-hidden relative">
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 rounded-full bg-ink" />
+              <div className="pt-12 px-5">
+                <div className="w-14 h-14 rounded-xl mx-auto mb-3" style={{ backgroundColor: "#2563EB" }} />
+                <div className="text-center text-[15px] font-semibold text-ink">Your app</div>
+                <div className="text-center text-[11px] text-ink-muted mt-0.5">Store listing preview</div>
+                <div className="mt-5 space-y-1.5">
+                  <div className="h-1.5 rounded-full bg-ink/10 w-full" />
+                  <div className="h-1.5 rounded-full bg-ink/10 w-[88%]" />
+                  <div className="h-1.5 rounded-full bg-ink/10 w-[72%]" />
+                </div>
+                <div className="mt-4 px-3 py-2.5 rounded-xl bg-white text-[11px] font-medium text-center" style={{ color: "#2563EB" }}>
+                  Get the app
+                </div>
+                <div className="mt-3 px-3 py-2 rounded-xl border border-ink/10 text-[10px] text-center text-ink-muted">
+                  ★ ★ ★ ★ ★ &nbsp;ASO score · 87
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Animated bordered frame around the tab content */}
-        <div
-          className={`relative rounded-3xl overflow-hidden ${
-            inView ? "animate-fade-up delay-200" : "opacity-0"
-          }`}
-        >
-          {/* Rotating conic-gradient backing — creates the "comet" beam effect */}
-          <div
-            aria-hidden="true"
-            className="absolute -inset-[60%] animate-spin-slow opacity-70 pointer-events-none"
-            style={{
-              background:
-                "conic-gradient(from 0deg, transparent 0%, transparent 72%, rgba(255,122,155,0.55) 82%, rgba(168,85,247,0.55) 92%, transparent 100%)",
-            }}
-          />
+          {/* ASO Description node — top-left */}
+          <div className="absolute top-[10%] left-[2%] w-[220px] rounded-2xl bg-white shadow-[0_18px_36px_-16px_rgba(11,61,122,0.3)] border border-line-soft p-4 animate-node-float-1">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg tile-blue flex items-center justify-center">
+                <FileText size={15} strokeWidth={2} />
+              </div>
+              <span className="text-[12px] font-bold uppercase tracking-[0.1em]" style={{ color: "#0B3D7A" }}>
+                ASO Generator
+              </span>
+            </div>
+            <p className="text-[13px] font-semibold text-ink leading-snug mb-2">
+              Build habits that actually stick.
+            </p>
+            <div className="space-y-1">
+              <div className="h-1.5 rounded bg-cream-deep w-full" />
+              <div className="h-1.5 rounded bg-cream-deep w-[78%]" />
+            </div>
+          </div>
 
-          {/* Inner card sits inside the rotating layer with a 1px gap, leaving a thin animated edge visible */}
-          <div className="relative m-[1.5px] rounded-[calc(1.5rem-1.5px)] bg-surface border border-line-soft overflow-hidden">
-            <div
-              key={TABS[active].id}
-              className="p-6 md:p-10 animate-tab-content"
-              role="tabpanel"
-            >
-              {TABS[active].content}
+          {/* Screenshot Generator node — bottom-right */}
+          <div className="absolute bottom-[10%] right-[2%] w-[220px] rounded-2xl bg-white shadow-[0_18px_36px_-16px_rgba(11,61,122,0.3)] border border-line-soft p-4 animate-node-float-2">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg tile-lilac flex items-center justify-center">
+                <ImageIcon size={15} strokeWidth={2} />
+              </div>
+              <span className="text-[12px] font-bold uppercase tracking-[0.1em]" style={{ color: "#5B3FB8" }}>
+                Screenshot Generator
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <div className="aspect-[9/16] rounded-md" style={{ background: "linear-gradient(135deg, #D7E5FB, #A8C4F0)" }} />
+              <div className="aspect-[9/16] rounded-md" style={{ background: "linear-gradient(135deg, #E8DEFF, #C9B8F5)" }} />
+              <div className="aspect-[9/16] rounded-md" style={{ background: "linear-gradient(135deg, #D8F2E3, #A8DCC0)" }} />
+            </div>
+          </div>
+
+          {/* Small floating Sparkles indicator */}
+          <div className="absolute top-[40%] right-[8%] animate-drift">
+            <div className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center">
+              <Sparkles size={15} strokeWidth={2} style={{ color: "#2563EB" }} />
             </div>
           </div>
         </div>
+
+        {/* Right: copy */}
+        <div>
+          <div
+            className="text-[13px] font-bold uppercase tracking-[0.15em] mb-6"
+            style={{ color: "#0B3D7A" }}
+          >
+            Two tools · One workflow
+          </div>
+          <h2
+            className="text-[40px] lg:text-[56px] font-semibold leading-[1.05] tracking-[-0.02em]"
+            style={{ color: "#0B3D7A" }}
+          >
+            Everything your store listing needs
+          </h2>
+          <p className="mt-7 text-[17px] lg:text-[18px] text-ink leading-relaxed max-w-md">
+            Generate store-ready descriptions with the <strong className="font-semibold">ASO Generator</strong>,
+            then ship polished store screenshots with the <strong className="font-semibold">Screenshot Generator</strong>.
+            Both tuned for App Store and Play Store from one brief.
+          </p>
+
+          <Link href="/features" className="link-arrow mt-8 inline-flex">
+            Learn more
+            <ArrowRight size={18} strokeWidth={2.25} />
+          </Link>
+        </div>
       </div>
     </section>
-  );
-}
-
-// Vertical "rule" lines fading at top + bottom — frames the content width.
-function BackgroundLines() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 flex justify-center"
-    >
-      <div
-        className="w-full max-w-7xl h-full opacity-60"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(to right, transparent 0, transparent calc((100% / 6) - 1px), rgba(0,0,0,0.05) calc((100% / 6) - 1px), rgba(0,0,0,0.05) calc(100% / 6))",
-          maskImage:
-            "linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%)",
-        }}
-      />
-    </div>
   );
 }

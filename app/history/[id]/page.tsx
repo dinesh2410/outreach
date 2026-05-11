@@ -24,12 +24,17 @@ export default function HistoryDetailPage() {
 
   return (
     <AppShell
+      eyebrow="Workspace · History"
       title={gen ? gen.input.appName : "Not found"}
-      description={gen ? `Generated ${new Date(gen.createdAt).toLocaleString()} · ${gen.input.tone}` : undefined}
+      description={
+        gen
+          ? `Generated ${new Date(gen.createdAt).toLocaleString()} · ${gen.input.tone}`
+          : undefined
+      }
       actions={
         <Link
           href="/history"
-          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border border-line text-sm text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-line text-[13px] font-medium text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
         >
           <ArrowLeft size={14} />
           Back to history
@@ -37,8 +42,8 @@ export default function HistoryDetailPage() {
       }
     >
       {!gen ? (
-        <div className="p-12 rounded-xl bg-paper border border-line text-center">
-          <p className="text-sm text-ink-muted">
+        <div className="card-soft p-12 text-center">
+          <p className="text-[15px] text-ink-muted">
             That generation isn&apos;t in your history. It may have been deleted.
           </p>
         </div>

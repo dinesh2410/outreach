@@ -19,89 +19,96 @@ export default function HistoryPage() {
 
   return (
     <AppShell
-      title="History"
-      description="Every generation is auto-saved here. Open one to view, edit, or save it to your library."
+      eyebrow="Workspace · History"
+      title="Every variant, auto-saved"
+      description="Every generation lands here automatically. Open one to view, edit, or send it to your library."
     >
       {history.length === 0 ? (
-          <div className="p-12 rounded-3xl bg-surface border border-line text-center animate-fade-up">
-            <HistoryIcon size={28} className="text-ink-faint mx-auto mb-3" />
-            <p className="text-sm text-ink-muted mb-4">No generations yet.</p>
-            <Link
-              href="/generator"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white font-semibold rounded-xl hover:bg-accent-deep transition-colors text-sm"
-            >
-              Start a generation
-              <ArrowRight size={14} />
-            </Link>
+        <div className="card-soft p-14 text-center animate-fade-up">
+          <div className="w-14 h-14 rounded-2xl tile-blue inline-flex items-center justify-center mb-4">
+            <HistoryIcon size={22} strokeWidth={1.85} />
           </div>
-        ) : (
-          <div className="space-y-3">
-            {history.map((gen, i) => {
-              const variants = gen.android || gen.ios || [];
-              const platforms: string[] = [];
-              if (gen.android) platforms.push("Play Store");
-              if (gen.ios) platforms.push("App Store");
-              return (
-                <div
-                  key={gen.id}
-                  className="group p-5 rounded-2xl bg-surface border border-line hover:border-ink-faint transition-colors animate-fade-up"
-                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                >
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/history/${gen.id}`}
-                        className="text-base font-semibold text-ink hover:text-accent transition-colors"
-                      >
-                        {gen.input.appName}
-                      </Link>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-ink-faint">
-                        <span>{new Date(gen.createdAt).toLocaleString()}</span>
-                        <span>·</span>
-                        <span>{platforms.join(" + ")}</span>
-                        <span>·</span>
-                        <span className="capitalize">{gen.input.tone}</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => removeHistory(gen.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg text-ink-faint hover:text-warn hover:bg-warn/5"
-                      aria-label="Delete history entry"
-                      title="Delete from history"
+          <p className="text-[15px] text-ink-muted mb-6 max-w-sm mx-auto">
+            No generations yet. Drop a brief into the generator and we&apos;ll save the variants here.
+          </p>
+          <Link
+            href="/generator"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-ink text-white text-[14px] font-medium hover:bg-night-soft transition-colors"
+          >
+            Start a generation
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {history.map((gen, i) => {
+            const variants = gen.android || gen.ios || [];
+            const platforms: string[] = [];
+            if (gen.android) platforms.push("Play Store");
+            if (gen.ios) platforms.push("App Store");
+            return (
+              <div
+                key={gen.id}
+                className="group card-soft p-6 animate-fade-up"
+                style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+              >
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/history/${gen.id}`}
+                      className="text-[17px] font-semibold text-ink hover:opacity-70 transition-opacity"
                     >
-                      <Trash2 size={14} />
-                    </button>
+                      {gen.input.appName}
+                    </Link>
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[12px] text-ink-faint">
+                      <span>{new Date(gen.createdAt).toLocaleString()}</span>
+                      <span>·</span>
+                      <span>{platforms.join(" + ")}</span>
+                      <span>·</span>
+                      <span className="capitalize">{gen.input.tone}</span>
+                    </div>
                   </div>
-                  <Link href={`/history/${gen.id}`} className="block">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {variants.slice(0, 3).map((v) => (
+                  <button
+                    onClick={() => removeHistory(gen.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg text-ink-faint hover:text-warn hover:bg-warn/5"
+                    aria-label="Delete history entry"
+                    title="Delete from history"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <Link href={`/history/${gen.id}`} className="block">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {variants.slice(0, 3).map((v) => {
+                      const tile =
+                        v.approach === "keyword"
+                          ? "tile-blue"
+                          : v.approach === "conversion"
+                            ? "tile-cream"
+                            : "tile-mint";
+                      return (
                         <div
                           key={v.id}
-                          className="p-3 rounded-xl bg-paper border border-line-soft"
+                          className="p-4 rounded-xl bg-cream-deep"
                         >
                           <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                              v.approach === "keyword"
-                                ? "bg-accent/10 text-accent"
-                                : v.approach === "conversion"
-                                  ? "bg-gold/10 text-gold"
-                                  : "bg-green/10 text-green"
-                            }`}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.1em] ${tile}`}
                           >
                             {v.label}
                           </span>
-                          <p className="text-sm font-semibold text-ink mt-2 truncate">
+                          <p className="text-[13px] font-semibold text-ink mt-2.5 line-clamp-2 leading-snug">
                             {v.title}
                           </p>
                         </div>
-                      ))}
-                    </div>
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                      );
+                    })}
+                  </div>
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </AppShell>
   );
 }

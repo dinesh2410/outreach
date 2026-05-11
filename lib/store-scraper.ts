@@ -6,7 +6,14 @@
 //
 // The stores rate-limit aggressive scrapers and change layout periodically, so
 // every parse path is best-effort. If a field can't be extracted, it's omitted
-// rather than guessed. The generator falls back to behaving as if no URL was given.
+// rather than guessed.
+//
+// App Store: prefers the iTunes Lookup API (stable JSON endpoint), falls back
+// to HTML parsing if that fails.
+// Play Store: parses HTML — pulls the full description from the
+// `<div data-g-id="description">` block (depth-tracked so nested divs don't
+// truncate it), short description from <meta name="description">, and falls
+// back to JSON-LD if the layout changes.
 
 export type StoreSource = "play" | "ios";
 
@@ -42,9 +49,20 @@ export async function fetchStoreListing(url: string): Promise<StoreListing | nul
   const source = classifyStoreUrl(url);
   if (!source) return null;
 
+  if (source === "ios") {
+    // Try iTunes Lookup first — it's a stable JSON endpoint that returns the
+    // full description. Fall back to HTML scraping if it fails.
+    const fromApi = await fetchAppStoreViaLookup(url).catch(() => null);
+    if (fromApi) return fromApi;
+    return fetchAppStoreViaHtml(url).catch(() => null);
+  }
+
+  return fetchPlayStoreViaHtml(url).catch(() => null);
+}
+
+async function fetchHtml(url: string): Promise<string | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
   try {
     const res = await fetch(url, {
       headers: {
@@ -56,8 +74,7 @@ export async function fetchStoreListing(url: string): Promise<StoreListing | nul
       cache: "no-store",
     });
     if (!res.ok) return null;
-    const html = await res.text();
-    return source === "play" ? parsePlayStore(html, url) : parseAppStore(html, url);
+    return await res.text();
   } catch {
     return null;
   } finally {
@@ -65,7 +82,172 @@ export async function fetchStoreListing(url: string): Promise<StoreListing | nul
   }
 }
 
-// --- parsing helpers --------------------------------------------------------
+// --- Play Store -------------------------------------------------------------
+
+async function fetchPlayStoreViaHtml(url: string): Promise<StoreListing | null> {
+  const html = await fetchHtml(url);
+  if (!html) return null;
+  return parsePlayStore(html, url);
+}
+
+function parsePlayStore(html: string, url: string): StoreListing {
+  const blocks = jsonLdBlocks(html);
+  const ld = findInJsonLd(blocks, (o) => {
+    const t = o["@type"];
+    return t === "SoftwareApplication" || t === "MobileApplication";
+  });
+
+  const title =
+    (typeof ld?.name === "string" ? ld.name : undefined) ??
+    meta(html, "og:title")?.replace(/ - Apps on Google Play$/, "").trim();
+
+  // Short description: the meta name="description" tag is set to the 80-char
+  // Play "short description" field.
+  const shortDesc = meta(html, "description")?.trim();
+
+  // Full description: prefer the rendered <div data-g-id="description"> block.
+  // Walk depth-tracked closing div so nested elements don't truncate the body.
+  // Fall back to JSON-LD description only if it's clearly longer than the
+  // short — Google often puts the *short* description in JSON-LD.
+  const fromDom = extractMatchingDiv(html, /<div[^>]+data-g-id=["']description["'][^>]*>/i);
+  let fullDesc: string | undefined;
+  if (fromDom) {
+    fullDesc = decodeEntities(stripTags(fromDom)).trim();
+  }
+  if (!fullDesc && typeof ld?.description === "string") {
+    fullDesc = ld.description.trim();
+  }
+  // If the candidate "full" description is the same as (or shorter than) the
+  // short description, treat it as the short and leave full unset.
+  if (fullDesc && shortDesc && fullDesc.length <= shortDesc.length + 5) {
+    fullDesc = undefined;
+  }
+
+  return { source: "play", url, title, shortDesc, fullDesc };
+}
+
+// Find a tag matching `openRe` and return the substring between its opening
+// `>` and the matching `</tagName>`, respecting depth. Returns null if no
+// match or the close cannot be found within the document.
+function extractMatchingDiv(html: string, openRe: RegExp): string | null {
+  const m = openRe.exec(html);
+  if (!m) return null;
+  const tagMatch = m[0].match(/^<\s*([a-zA-Z]+)/);
+  if (!tagMatch) return null;
+  const tag = tagMatch[1].toLowerCase();
+  const openTagRe = new RegExp(`<${tag}\\b`, "gi");
+  const closeTagRe = new RegExp(`</${tag}\\s*>`, "gi");
+
+  const start = m.index + m[0].length;
+  let depth = 1;
+  let i = start;
+  while (i < html.length && depth > 0) {
+    openTagRe.lastIndex = i;
+    closeTagRe.lastIndex = i;
+    const o = openTagRe.exec(html);
+    const c = closeTagRe.exec(html);
+    if (!c) return null;
+    if (o && o.index < c.index) {
+      depth++;
+      i = o.index + o[0].length;
+    } else {
+      depth--;
+      if (depth === 0) {
+        return html.slice(start, c.index);
+      }
+      i = c.index + c[0].length;
+    }
+  }
+  return null;
+}
+
+// --- App Store --------------------------------------------------------------
+
+async function fetchAppStoreViaLookup(url: string): Promise<StoreListing | null> {
+  const ids = parseAppStoreIds(url);
+  if (!ids?.appId) return null;
+
+  const lookup = new URL("https://itunes.apple.com/lookup");
+  lookup.searchParams.set("id", ids.appId);
+  if (ids.country) lookup.searchParams.set("country", ids.country);
+  lookup.searchParams.set("entity", "software");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(lookup.toString(), {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const item = Array.isArray(data?.results) && data.results[0];
+    if (!item) return null;
+    const title = typeof item.trackName === "string" ? item.trackName : undefined;
+    const fullDesc = typeof item.description === "string" ? item.description : undefined;
+    return { source: "ios", url, title, fullDesc };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parseAppStoreIds(url: string): { appId?: string; country?: string } | null {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    const country = parts[0];
+    const idPart = parts.find((p) => p.startsWith("id"));
+    const appId = idPart?.slice(2);
+    return { appId, country };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAppStoreViaHtml(url: string): Promise<StoreListing | null> {
+  const html = await fetchHtml(url);
+  if (!html) return null;
+  return parseAppStore(html, url);
+}
+
+function parseAppStore(html: string, url: string): StoreListing {
+  const blocks = jsonLdBlocks(html);
+  const ld = findInJsonLd(blocks, (o) => {
+    const t = o["@type"];
+    return t === "SoftwareApplication" || t === "MobileApplication";
+  });
+
+  const title =
+    (typeof ld?.name === "string" ? ld.name : undefined) ??
+    meta(html, "og:title")?.replace(/ on the App Store$/, "").trim();
+
+  // Full description: try JSON-LD, then `.section__description`, then og.
+  let fullDesc: string | undefined;
+  if (typeof ld?.description === "string") {
+    fullDesc = ld.description.trim();
+  }
+  if (!fullDesc) {
+    const sec = extractMatchingDiv(html, /<section[^>]*class=["'][^"']*section__description[^"']*["'][^>]*>/i);
+    if (sec) fullDesc = decodeEntities(stripTags(sec)).trim();
+  }
+  if (!fullDesc) {
+    fullDesc = meta(html, "og:description")?.trim();
+  }
+
+  // Subtitle
+  let subtitle: string | undefined;
+  const subM = html.match(/<h2[^>]*class=["'][^"']*product-header__subtitle[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i);
+  if (subM) {
+    subtitle = decodeEntities(stripTags(subM[1])).trim() || undefined;
+  }
+
+  return { source: "ios", url, title, subtitle, fullDesc };
+}
+
+// --- shared helpers ---------------------------------------------------------
 
 function decodeEntities(s: string): string {
   return s
@@ -79,7 +261,6 @@ function decodeEntities(s: string): string {
 }
 
 function meta(html: string, key: string): string | undefined {
-  // Match either name= or property= forms.
   const re = new RegExp(
     `<meta[^>]+(?:name|property)=["']${escapeRe(key)}["'][^>]+content=["']([^"']*)["']`,
     "i"
@@ -137,76 +318,6 @@ function findInJsonLd(blocks: unknown[], pred: (o: Record<string, unknown>) => b
     if (found) return found;
   }
   return null;
-}
-
-// --- Play Store -------------------------------------------------------------
-
-function parsePlayStore(html: string, url: string): StoreListing {
-  const blocks = jsonLdBlocks(html);
-  const ld = findInJsonLd(blocks, (o) => {
-    const t = o["@type"];
-    return t === "SoftwareApplication" || t === "MobileApplication";
-  });
-
-  const title =
-    (typeof ld?.name === "string" ? ld.name : undefined) ??
-    meta(html, "og:title")?.replace(/ - Apps on Google Play$/, "").trim();
-
-  const shortDesc = meta(html, "description")?.trim();
-
-  // Full description lives in <div data-g-id="description"> ... </div> on current Play layout,
-  // and inside the JSON-LD `description` field.
-  let fullDesc: string | undefined;
-  if (typeof ld?.description === "string") {
-    fullDesc = ld.description.trim();
-  }
-  if (!fullDesc) {
-    const m = html.match(/<div[^>]+data-g-id=["']description["'][^>]*>([\s\S]*?)<\/div>/i);
-    if (m) {
-      fullDesc = decodeEntities(stripTags(m[1])).trim();
-    }
-  }
-
-  return { source: "play", url, title, shortDesc, fullDesc };
-}
-
-// --- App Store --------------------------------------------------------------
-
-function parseAppStore(html: string, url: string): StoreListing {
-  const blocks = jsonLdBlocks(html);
-  const ld = findInJsonLd(blocks, (o) => {
-    const t = o["@type"];
-    return t === "SoftwareApplication" || t === "MobileApplication";
-  });
-
-  const title =
-    (typeof ld?.name === "string" ? ld.name : undefined) ??
-    meta(html, "og:title")?.replace(/ on the App Store$/, "").trim();
-
-  // App Store uses og:description for a short blurb. The full description sits in
-  // the rendered HTML under `.section__description`. Fall back to og:description.
-  let fullDesc: string | undefined;
-  if (typeof ld?.description === "string") {
-    fullDesc = ld.description.trim();
-  }
-  if (!fullDesc) {
-    const m = html.match(/<section[^>]*class=["'][^"']*section__description[^"']*["'][^>]*>([\s\S]*?)<\/section>/i);
-    if (m) {
-      fullDesc = decodeEntities(stripTags(m[1])).trim();
-    }
-  }
-  if (!fullDesc) {
-    fullDesc = meta(html, "og:description")?.trim();
-  }
-
-  // Subtitle is sometimes in <h2 class="product-header__subtitle">.
-  let subtitle: string | undefined;
-  const subM = html.match(/<h2[^>]*class=["'][^"']*product-header__subtitle[^"']*["'][^>]*>([\s\S]*?)<\/h2>/i);
-  if (subM) {
-    subtitle = decodeEntities(stripTags(subM[1])).trim() || undefined;
-  }
-
-  return { source: "ios", url, title, subtitle, fullDesc };
 }
 
 function stripTags(s: string): string {
