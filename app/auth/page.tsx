@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
@@ -18,6 +18,14 @@ function safeNext(raw: string | null): string {
 }
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPageInner />
+    </Suspense>
+  );
+}
+
+function AuthPageInner() {
   const [mode, setMode] = useState<Mode>("signup");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

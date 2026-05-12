@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/shared/AppShell";
@@ -150,6 +150,14 @@ function priorityForCheck(check: ScoreCheck): "high" | "medium" | "low" {
 // ---- Page -----------------------------------------------------------------
 
 export default function ScoreReportPage() {
+  return (
+    <Suspense fallback={null}>
+      <ScoreReportInner />
+    </Suspense>
+  );
+}
+
+function ScoreReportInner() {
   const router = useRouter();
   const search = useSearchParams();
   const { user, loading, recordAudit } = useAuth();
