@@ -49,10 +49,14 @@ export async function POST(req: Request) {
   }
   const store = storeRaw as RankStore;
 
-  const country = (body.country ?? "us").toLowerCase();
+  const rawCountry = (body.country ?? "us").toLowerCase();
   const lang = (body.lang ?? "en").toLowerCase();
+  // "auto" → resolve from the user's edge-detected country (set by Vercel /
+  // Cloudflare). Falls back to US in local dev where those headers aren't
+  // populated. After resolution we still require a 2-letter code.
+  const country = rawCountry === "auto" ? (inferUserCountry(req) ?? "us") : rawCountry;
   if (!/^[a-z]{2}$/.test(country)) {
-    return NextResponse.json({ error: "country must be a 2-letter code" }, { status: 400 });
+    return NextResponse.json({ error: "country must be a 2-letter code or 'auto'" }, { status: 400 });
   }
   if (!/^[a-z]{2}$/.test(lang)) {
     return NextResponse.json({ error: "lang must be a 2-letter code" }, { status: 400 });
@@ -73,4 +77,18 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+// Pull the visitor's country from the edge headers Vercel / Cloudflare set.
+// Returns a lowercase 2-letter ISO code, or null when unavailable.
+function inferUserCountry(req: Request): string | null {
+  const headers = req.headers;
+  const raw =
+    headers.get("x-vercel-ip-country") ??
+    headers.get("cf-ipcountry") ??
+    headers.get("x-country") ??
+    null;
+  if (!raw) return null;
+  const code = raw.trim().toLowerCase();
+  return /^[a-z]{2}$/.test(code) ? code : null;
 }

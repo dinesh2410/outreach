@@ -44,6 +44,7 @@ function keywordRankIdFor(args: {
 }
 
 const COUNTRIES: { code: string; label: string }[] = [
+  { code: "auto", label: "Auto (your location)" },
   { code: "us", label: "United States" },
   { code: "in", label: "India" },
   { code: "gb", label: "United Kingdom" },
@@ -80,7 +81,7 @@ function KeywordsPageInner() {
   const { push } = useToast();
 
   const [keyword, setKeyword] = useState("");
-  const [country, setCountry] = useState("us");
+  const [country, setCountry] = useState("auto");
   const [lang, setLang] = useState("en");
   const [store, setStore] = useState<RankStore>("both");
   const [limit, setLimit] = useState(10);
@@ -389,7 +390,8 @@ function InputForm({
               ))}
             </select>
             <p className="text-[12px] text-ink-faint mt-2">
-              Rankings differ per country — pick the market you care about.
+              Rankings differ per country. &ldquo;Auto&rdquo; uses your own location
+              — pick a specific country to check that market instead.
             </p>
           </div>
 
