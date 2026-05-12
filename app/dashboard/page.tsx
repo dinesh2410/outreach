@@ -57,7 +57,17 @@ export default function DashboardPage() {
     if (!loading && !user) router.push("/auth");
   }, [user, loading, router]);
 
-  const stats = useMemo(() => {
+  type StatItem = {
+    label: string;
+    value: number | string;
+    sub: string;
+    delta?: number;
+    icon: LucideIcon;
+    muted?: boolean;
+    href?: string;
+  };
+
+  const { primaryStats, toolStats } = useMemo(() => {
     const generationsThisWeek = countSince(history, 7);
     const generationsLastWeek =
       history.filter((g) => {
@@ -71,15 +81,7 @@ export default function DashboardPage() {
     const competitorsThisWeek = countSince(competitors, 7);
     const keywordRanksThisWeek = countSince(keywordRanks, 7);
 
-    const items: {
-      label: string;
-      value: number | string;
-      sub: string;
-      delta?: number;
-      icon: LucideIcon;
-      muted?: boolean;
-      href?: string;
-    }[] = [
+    const primary: StatItem[] = [
       {
         label: "Generations",
         value: history.length,
@@ -111,6 +113,9 @@ export default function DashboardPage() {
         muted: !latestAudit,
         href: "/score",
       },
+    ];
+
+    const tools: StatItem[] = [
       {
         label: "Competitors",
         value: competitors.length,
@@ -134,7 +139,8 @@ export default function DashboardPage() {
         href: "/keywords",
       },
     ];
-    return items;
+
+    return { primaryStats: primary, toolStats: tools };
   }, [history, savedGenerations, apps, audits, competitors, keywordRanks]);
 
   const recent = history.slice(0, 5);
@@ -156,54 +162,18 @@ export default function DashboardPage() {
         </Link>
       }
     >
-      {/* Stats row — 6 cards: ASO Generator + Library + Apps + 3 tools */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          const tile = TILE_FOR_LABEL[stat.label] ?? "tile-blue";
-          const cardBody = (
-            <>
-              <div className="flex items-center justify-between mb-5">
-                <p className="eyebrow text-[11px] tracking-[0.15em]">{stat.label}</p>
-                <div className={`w-9 h-9 rounded-xl ${tile} flex items-center justify-center`}>
-                  <Icon size={16} strokeWidth={1.85} />
-                </div>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span
-                  className={`text-[36px] font-semibold leading-none tracking-[-0.02em] tabular-nums ${stat.muted ? "text-ink-faint" : ""}`}
-                  style={!stat.muted ? { color: "#0B3D7A" } : undefined}
-                >
-                  {stat.value}
-                </span>
-                {typeof stat.delta === "number" && stat.delta !== 0 && (
-                  <span
-                    className={`text-[12px] font-semibold tabular-nums ${
-                      stat.delta > 0 ? "text-green" : "text-warn"
-                    }`}
-                  >
-                    {stat.delta > 0 ? "+" : ""}
-                    {stat.delta}
-                  </span>
-                )}
-              </div>
-              <p className="text-[13px] text-ink-muted mt-2">{stat.sub}</p>
-            </>
-          );
-          return stat.href ? (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              className="card-soft p-6 hover:border-ink-faint transition-colors"
-            >
-              {cardBody}
-            </Link>
-          ) : (
-            <div key={stat.label} className="card-soft p-6">
-              {cardBody}
-            </div>
-          );
-        })}
+      {/* Primary stats row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {primaryStats.map((stat) => (
+          <StatCard key={stat.label} stat={stat} />
+        ))}
+      </div>
+
+      {/* Tool activity row — compact, sits just below the primary stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        {toolStats.map((stat) => (
+          <StatCard key={stat.label} stat={stat} compact />
+        ))}
       </div>
 
       {/* Two-column: activity feed + quick actions */}
@@ -539,6 +509,84 @@ export default function DashboardPage() {
         </div>
       </section>
     </AppShell>
+  );
+}
+
+function StatCard({
+  stat,
+  compact = false,
+}: {
+  stat: {
+    label: string;
+    value: number | string;
+    sub: string;
+    delta?: number;
+    icon: LucideIcon;
+    muted?: boolean;
+    href?: string;
+  };
+  compact?: boolean;
+}) {
+  const Icon = stat.icon;
+  const tile = TILE_FOR_LABEL[stat.label] ?? "tile-blue";
+  // Compact variant is a horizontal layout that fits the wider second-row
+  // cards better — keeps the same data without the empty whitespace a tall
+  // card would have at that width.
+  const body = compact ? (
+    <div className="flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-xl ${tile} flex items-center justify-center shrink-0`}>
+        <Icon size={18} strokeWidth={1.85} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="eyebrow text-[11px] tracking-[0.15em]">{stat.label}</p>
+        <div className="flex items-baseline gap-2 mt-1">
+          <span
+            className={`text-[28px] font-semibold leading-none tracking-[-0.02em] tabular-nums ${stat.muted ? "text-ink-faint" : ""}`}
+            style={!stat.muted ? { color: "#0B3D7A" } : undefined}
+          >
+            {stat.value}
+          </span>
+          <span className="text-[12px] text-ink-muted truncate">{stat.sub}</span>
+        </div>
+      </div>
+      {stat.href && <ArrowRight size={14} className="text-ink-faint shrink-0" />}
+    </div>
+  ) : (
+    <>
+      <div className="flex items-center justify-between mb-5">
+        <p className="eyebrow text-[11px] tracking-[0.15em]">{stat.label}</p>
+        <div className={`w-9 h-9 rounded-xl ${tile} flex items-center justify-center`}>
+          <Icon size={16} strokeWidth={1.85} />
+        </div>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span
+          className={`text-[36px] font-semibold leading-none tracking-[-0.02em] tabular-nums ${stat.muted ? "text-ink-faint" : ""}`}
+          style={!stat.muted ? { color: "#0B3D7A" } : undefined}
+        >
+          {stat.value}
+        </span>
+        {typeof stat.delta === "number" && stat.delta !== 0 && (
+          <span
+            className={`text-[12px] font-semibold tabular-nums ${
+              stat.delta > 0 ? "text-green" : "text-warn"
+            }`}
+          >
+            {stat.delta > 0 ? "+" : ""}
+            {stat.delta}
+          </span>
+        )}
+      </div>
+      <p className="text-[13px] text-ink-muted mt-2">{stat.sub}</p>
+    </>
+  );
+  const padding = compact ? "p-5" : "p-6";
+  return stat.href ? (
+    <Link href={stat.href} className={`card-soft ${padding} hover:border-ink-faint transition-colors group`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={`card-soft ${padding}`}>{body}</div>
   );
 }
 
