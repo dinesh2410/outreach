@@ -150,20 +150,27 @@ function CompetitorPageInner() {
   // snapshot over a fresh fetch (so the user sees the exact data they saved).
   // Only re-fetch when there's no snapshot. The Refresh button on the result
   // page kicks off a new live run when they want one.
+  //
+  // IMPORTANT: wait for `authLoading` to settle before deciding — otherwise
+  // the effect can fire while `competitors` is still empty (Firestore
+  // hydration in flight), find no match, run a live analysis, and overwrite
+  // the snapshot the user clicked from history.
   const replayedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!user) return;
+    if (!user || authLoading) return;
     const replay = search.get("url");
     if (!replay) return;
     const c = (search.get("country") ?? "auto").toLowerCase();
     const replayKey = `${replay}|${c}`;
     if (replayedRef.current === replayKey) return;
+
+    const id = competitorIdFor(replay, c);
+    const saved = competitors.find((r) => r.id === id);
+
     replayedRef.current = replayKey;
     setAppUrl(replay);
     setCountry(c);
 
-    const id = competitorIdFor(replay, c);
-    const saved = competitors.find((r) => r.id === id);
     if (saved?.snapshot) {
       // Restore the exact saved view; URL-driven sync from external state.
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -172,7 +179,7 @@ function CompetitorPageInner() {
       return;
     }
     runAnalysis(replay, [], stores, c);
-  }, [search, user, runAnalysis, stores, competitors]);
+  }, [search, user, authLoading, runAnalysis, stores, competitors]);
 
   if (authLoading || !user) return null;
 

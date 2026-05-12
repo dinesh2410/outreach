@@ -148,9 +148,14 @@ function KeywordsPageInner() {
   // saved snapshot when one exists (so the user sees the exact data they
   // saved), and only re-fetches live when there's no snapshot. The Refresh
   // button lets them pull fresh data when they're ready.
+  //
+  // IMPORTANT: we must wait for `authLoading` to settle before deciding —
+  // otherwise the effect can fire while `keywordRanks` is still empty
+  // (Firestore hydration in flight), find no match, fire a live fetch, and
+  // overwrite the snapshot the user clicked from history.
   const replayedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!user) return;
+    if (!user || authLoading) return;
     const kw = search.get("keyword");
     if (!kw) return;
     const c = (search.get("country") ?? "us").toLowerCase();
@@ -159,6 +164,10 @@ function KeywordsPageInner() {
     const lim = Number(search.get("limit") ?? 10);
     const key = [kw.trim().toLowerCase(), c, l, s, lim].join("|");
     if (replayedRef.current === key) return;
+
+    const id = keywordRankIdFor({ keyword: kw, country: c, lang: l, store: s });
+    const saved = keywordRanks.find((r) => r.id === id);
+
     replayedRef.current = key;
     setKeyword(kw);
     setCountry(c);
@@ -166,8 +175,6 @@ function KeywordsPageInner() {
     setStore(s);
     setLimit(LIMIT_OPTIONS.includes(lim) ? lim : 10);
 
-    const id = keywordRankIdFor({ keyword: kw, country: c, lang: l, store: s });
-    const saved = keywordRanks.find((r) => r.id === id);
     if (saved?.snapshot) {
       // Restore the exact saved view; URL-driven sync from external state.
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -176,7 +183,7 @@ function KeywordsPageInner() {
       return;
     }
     runCheck({ keyword: kw, country: c, lang: l, store: s, limit: lim });
-  }, [search, user, runCheck, keywordRanks]);
+  }, [search, user, authLoading, runCheck, keywordRanks]);
 
   if (authLoading || !user) return null;
 
