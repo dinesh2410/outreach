@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchStoreListing, classifyStoreUrl } from "@/lib/store-scraper";
 import { extractKeywords } from "@/lib/keywords";
 import { calculateScore } from "@/lib/score";
+import type { AuditPayload } from "@/lib/types";
 
 // POST /api/audit { url }
 // Returns a richer audit payload than the inline score on /score:
@@ -21,39 +22,9 @@ const LIMITS = {
   ios:  { title: 30, subtitle: 30, fullDesc: 4000 },
 } as const;
 
-export interface AuditResponse {
-  url: string;
-  source: "play" | "ios" | null;
-  scrape: {
-    ok: boolean;
-    title?: string;
-    subtitle?: string;
-    shortDesc?: string;
-    fullDesc?: string;
-  };
-  snapshot: {
-    appId?: string;
-    slug?: string;
-    country?: string;
-    locale?: string;
-    detectedCategory?: string;
-  };
-  keywords: {
-    primary?: { word: string; count: number };
-    secondary: { word: string; count: number }[];
-    totalUnique: number;
-  };
-  characterUsage: Array<{
-    field: string;
-    actual: number;
-    limit: number;
-    status: "ok" | "tight" | "over" | "missing";
-  }>;
-  score: {
-    score: number;
-    grade: string;
-  };
-}
+// AuditPayload is the canonical shape — re-exported here for callers that
+// import from the route file.
+export type AuditResponse = AuditPayload;
 
 export async function POST(req: Request) {
   let body: { url?: string };

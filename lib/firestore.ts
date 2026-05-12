@@ -40,6 +40,23 @@ interface UserDoc {
   updatedAt?: Timestamp;
 }
 
+// Firestore rejects writes that contain `undefined` anywhere in the tree.
+// Our scraped snapshots are full of optional fields (subtitle, iconUrl,
+// price, etc.) that may legitimately be missing. Recursively strip them
+// before passing to setDoc so the write succeeds.
+function stripUndefined<T>(value: T): T {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((v) => stripUndefined(v)) as unknown as T;
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v === undefined) continue;
+    out[k] = stripUndefined(v);
+  }
+  return out as T;
+}
+
 const userRef = (uid: string) => doc(firestore, "users", uid);
 const appsCol = (uid: string) => collection(firestore, "users", uid, "apps");
 const appRef = (uid: string, appId: string) => doc(firestore, "users", uid, "apps", appId);
@@ -163,7 +180,7 @@ export async function recordAuditForUser(
   uid: string,
   audit: AuditRecord
 ): Promise<void> {
-  await setDoc(auditRef(uid, audit.id), audit);
+  await setDoc(auditRef(uid, audit.id), stripUndefined(audit));
 }
 
 export async function fetchUserAudits(uid: string): Promise<AuditRecord[]> {
@@ -181,7 +198,7 @@ export async function recordCompetitorForUser(
   uid: string,
   record: CompetitorRecord
 ): Promise<void> {
-  await setDoc(competitorRef(uid, record.id), record);
+  await setDoc(competitorRef(uid, record.id), stripUndefined(record));
 }
 
 export async function fetchUserCompetitors(uid: string): Promise<CompetitorRecord[]> {
@@ -199,7 +216,7 @@ export async function recordKeywordRankForUser(
   uid: string,
   record: KeywordRankRecord
 ): Promise<void> {
-  await setDoc(keywordRankRef(uid, record.id), record);
+  await setDoc(keywordRankRef(uid, record.id), stripUndefined(record));
 }
 
 export async function fetchUserKeywordRanks(uid: string): Promise<KeywordRankRecord[]> {

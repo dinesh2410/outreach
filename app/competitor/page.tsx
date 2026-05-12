@@ -30,6 +30,8 @@ import {
   Sparkles,
   History,
   Trash2,
+  RefreshCw,
+  Archive,
 } from "lucide-react";
 
 type StoreFilter = "both" | "play" | "ios";
@@ -81,6 +83,9 @@ function CompetitorPageInner() {
   const [country, setCountry] = useState("auto");
   const [analysis, setAnalysis] = useState<CompetitorAnalysisResult | null>(null);
   const [running, setRunning] = useState(false);
+  // When showing a saved snapshot instead of a fresh fetch, this carries the
+  // timestamp so we can render a banner + a Refresh button.
+  const [snapshotAt, setSnapshotAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/auth?next=%2Fcompetitor");
@@ -97,6 +102,7 @@ function CompetitorPageInner() {
       if (!url.trim()) return;
       setRunning(true);
       setAnalysis(null);
+      setSnapshotAt(null);
       try {
         const res = await fetch("/api/competitor", {
           method: "POST",
@@ -115,7 +121,9 @@ function CompetitorPageInner() {
         const data = (await res.json()) as CompetitorAnalysisResult;
         setAnalysis(data);
 
-        // Auto-record summary so it shows up on the dashboard + recent list.
+        // Persist a full snapshot so re-opening this record from history shows
+        // the exact data we just produced (rankings drift, so a "frozen"
+        // record is more useful for over-time comparison).
         const record: CompetitorRecord = {
           id: competitorIdFor(url.trim(), countryFilter),
           targetUrl: url.trim(),
@@ -126,6 +134,7 @@ function CompetitorPageInner() {
           successfulCount: data.competitors.filter((c) => c.scrapeOk).length,
           discoveryMode: data.discoveryMode,
           createdAt: new Date().toISOString(),
+          snapshot: data,
         };
         recordCompetitor(record);
       } catch (err) {
@@ -137,8 +146,10 @@ function CompetitorPageInner() {
     [push, recordCompetitor]
   );
 
-  // Deep-link replay: if /competitor?url=... is loaded, pre-fill and auto-run.
-  // Use a ref so we only fire once per query value.
+  // Deep-link replay: if /competitor?url=... is loaded, prefer the saved
+  // snapshot over a fresh fetch (so the user sees the exact data they saved).
+  // Only re-fetch when there's no snapshot. The Refresh button on the result
+  // page kicks off a new live run when they want one.
   const replayedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!user) return;
@@ -150,8 +161,18 @@ function CompetitorPageInner() {
     replayedRef.current = replayKey;
     setAppUrl(replay);
     setCountry(c);
+
+    const id = competitorIdFor(replay, c);
+    const saved = competitors.find((r) => r.id === id);
+    if (saved?.snapshot) {
+      // Restore the exact saved view; URL-driven sync from external state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAnalysis(saved.snapshot);
+      setSnapshotAt(saved.createdAt);
+      return;
+    }
     runAnalysis(replay, [], stores, c);
-  }, [search, user, runAnalysis, stores]);
+  }, [search, user, runAnalysis, stores, competitors]);
 
   if (authLoading || !user) return null;
 
@@ -179,6 +200,13 @@ function CompetitorPageInner() {
     setAnalysis(null);
     setAppUrl("");
     setCompetitorUrls([""]);
+    setSnapshotAt(null);
+  }
+
+  async function handleRefresh() {
+    if (running || !appUrl.trim()) return;
+    const manual = competitorUrls.map((u) => u.trim()).filter(Boolean);
+    await runAnalysis(appUrl, manual, stores, country);
   }
 
   return (
@@ -187,17 +215,35 @@ function CompetitorPageInner() {
       title={analysis ? "Competitor analysis" : "Who are you up against?"}
       description={
         analysis
-          ? "Side-by-side comparison of your listing and your closest competitors."
+          ? snapshotAt
+            ? `Saved snapshot · captured ${relativeTime(snapshotAt)}.`
+            : "Side-by-side comparison of your listing and your closest competitors."
           : "Paste your app URL — we'll find the top competitors automatically. Or paste specific competitor URLs to compare against a curated list."
       }
       actions={
         analysis ? (
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-line text-[13px] font-medium text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
-          >
-            New analysis
-          </button>
+          <div className="flex items-center gap-2">
+            {snapshotAt && (
+              <button
+                onClick={handleRefresh}
+                disabled={running}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {running ? (
+                  <Loader2 size={13} className="animate-spin-slow" />
+                ) : (
+                  <RefreshCw size={13} strokeWidth={2} />
+                )}
+                {running ? "Refreshing…" : "Refresh data"}
+              </button>
+            )}
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-line text-[13px] font-medium text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
+            >
+              New analysis
+            </button>
+          </div>
         ) : undefined
       }
     >
@@ -225,9 +271,48 @@ function CompetitorPageInner() {
           )}
         </>
       ) : (
-        <Results analysis={analysis} />
+        <>
+          {snapshotAt && <SnapshotBanner savedAt={snapshotAt} onRefresh={handleRefresh} running={running} />}
+          <Results analysis={analysis} />
+        </>
       )}
     </AppShell>
+  );
+}
+
+function SnapshotBanner({
+  savedAt,
+  onRefresh,
+  running,
+}: {
+  savedAt: string;
+  onRefresh: () => void;
+  running: boolean;
+}) {
+  return (
+    <div
+      className="card-soft p-5 mb-6 flex items-center gap-4 flex-wrap"
+      style={{ background: "linear-gradient(135deg, #FFFFFF 0%, #F2ECFE 100%)" }}
+    >
+      <div className="w-10 h-10 rounded-xl tile-lilac flex items-center justify-center shrink-0">
+        <Archive size={16} strokeWidth={1.85} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="eyebrow">Saved snapshot</p>
+        <p className="text-[13px] text-ink-muted mt-1">
+          You&apos;re viewing data captured {relativeTime(savedAt)} ({new Date(savedAt).toLocaleString()}).
+          Competitors and listings drift — use Refresh to pull a fresh run.
+        </p>
+      </div>
+      <button
+        onClick={onRefresh}
+        disabled={running}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+      >
+        {running ? <Loader2 size={13} className="animate-spin-slow" /> : <RefreshCw size={13} strokeWidth={2} />}
+        {running ? "Refreshing…" : "Refresh data"}
+      </button>
+    </div>
   );
 }
 

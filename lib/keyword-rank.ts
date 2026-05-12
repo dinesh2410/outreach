@@ -18,33 +18,10 @@ import {
   searchPlayStore,
   type StoreListing,
 } from "./store-scraper";
+import type { RankedApp, KeywordRankResult } from "./types";
 
 export type RankStore = "play" | "ios" | "both";
-
-export interface RankedApp {
-  rank: number;
-  source: "play" | "ios";
-  url: string;
-  appId?: string;
-  title?: string;
-  developer?: string;
-  iconUrl?: string;
-  rating?: number;
-  ratingCount?: number;
-  genre?: string;
-  price?: string;
-}
-
-export interface KeywordRankResult {
-  keyword: string;
-  country: string;
-  lang: string;
-  store: RankStore;
-  limit: number;
-  apps: RankedApp[];
-  cachedAt: string;     // ISO timestamp the result was produced
-  fromCache: boolean;   // true if served from the in-memory cache
-}
+export type { RankedApp, KeywordRankResult };
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MAX_LIMIT = 30;

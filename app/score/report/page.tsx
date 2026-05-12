@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
 import { calculateScore } from "@/lib/score";
-import type { ScoreCheck, ScoreResult } from "@/lib/types";
+import type { AuditPayload, ScoreCheck, ScoreResult } from "@/lib/types";
 
 // Deterministic id from URL so re-running the same audit replaces the prior
 // record instead of duplicating in history.
@@ -34,40 +34,12 @@ import {
   Globe,
   Tag,
   Loader2,
+  RefreshCw,
+  Archive,
 } from "lucide-react";
 
-// ---- Audit API response shape (mirrors app/api/audit/route.ts) -------------
-
-interface AuditPayload {
-  url: string;
-  source: "play" | "ios" | null;
-  scrape: {
-    ok: boolean;
-    title?: string;
-    subtitle?: string;
-    shortDesc?: string;
-    fullDesc?: string;
-  };
-  snapshot: {
-    appId?: string;
-    slug?: string;
-    country?: string;
-    locale?: string;
-    detectedCategory?: string;
-  };
-  keywords: {
-    primary?: { word: string; count: number };
-    secondary: { word: string; count: number }[];
-    totalUnique: number;
-  };
-  characterUsage: Array<{
-    field: string;
-    actual: number;
-    limit: number;
-    status: "ok" | "tight" | "over" | "missing";
-  }>;
-  score: { score: number; grade: string };
-}
+// AuditPayload comes from lib/types so the audit record snapshot type and
+// the in-page audit type stay in sync.
 
 // ---- Per-check meta (weight, rationale, recommended fix) -------------------
 
@@ -160,7 +132,7 @@ export default function ScoreReportPage() {
 function ScoreReportInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const { user, loading, recordAudit } = useAuth();
+  const { user, loading, audits, recordAudit } = useAuth();
   const { push } = useToast();
   const rawUrl = search.get("url") ?? "";
   const [exporting, setExporting] = useState(false);
@@ -168,6 +140,9 @@ function ScoreReportInner() {
   const [audit, setAudit] = useState<AuditPayload | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
+  // Timestamp the data was originally captured, when we're showing a saved
+  // snapshot instead of a fresh live fetch. null when looking at live data.
+  const [snapshotAt, setSnapshotAt] = useState<string | null>(null);
 
   // Auth gate
   useEffect(() => {
@@ -177,50 +152,77 @@ function ScoreReportInner() {
     }
   }, [user, loading, rawUrl, router]);
 
-  // Fetch the rich audit (scrape + keywords + usage) once we have a URL and a user
+  // Fire a live audit fetch + persist with full snapshot. Pulled out so the
+  // Refresh button can re-trigger it without going through useEffect dance.
+  const runAudit = useCallback(
+    async (url: string) => {
+      setAuditLoading(true);
+      setAuditError(null);
+      setSnapshotAt(null);
+      try {
+        const r = await fetch("/api/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = (await r.json()) as AuditPayload;
+        setAudit(data);
+        // Persist the full payload so re-opening from history shows the same
+        // data without a re-scrape (useful for month-over-month comparison).
+        recordAudit({
+          id: auditIdFor(url),
+          url,
+          source: data.source,
+          appName: data.scrape.title,
+          score: data.score.score,
+          grade: data.score.grade,
+          createdAt: new Date().toISOString(),
+          snapshot: data,
+        });
+      } catch (err) {
+        setAuditError(err instanceof Error ? err.message : "Audit failed");
+      } finally {
+        setAuditLoading(false);
+      }
+    },
+    [recordAudit]
+  );
+
+  // First-load resolver: when audits are hydrated, prefer the saved snapshot
+  // for this URL over re-fetching. Only one of (snapshot load, live fetch)
+  // fires per (user, rawUrl).
+  const resolvedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!user || !rawUrl) return;
-    let cancelled = false;
-    setAuditLoading(true);
-    setAuditError(null);
-    fetch("/api/audit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: rawUrl }),
-    })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return (await r.json()) as AuditPayload;
-      })
-      .then((data) => {
-        if (!cancelled) {
-          setAudit(data);
-          // Persist this audit so the dashboard surfaces it as the latest score.
-          recordAudit({
-            id: auditIdFor(rawUrl),
-            url: rawUrl,
-            source: data.source,
-            appName: data.scrape.title,
-            score: data.score.score,
-            grade: data.score.grade,
-            createdAt: new Date().toISOString(),
-          });
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setAuditError(err instanceof Error ? err.message : "Audit failed");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setAuditLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [rawUrl, user]);
+    if (resolvedRef.current === rawUrl) return;
+    const id = auditIdFor(rawUrl);
+    const saved = audits.find((a) => a.id === id);
+    if (saved?.snapshot) {
+      resolvedRef.current = rawUrl;
+      // Restore the exact saved view; URL-driven sync from external state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAudit(saved.snapshot);
+      setSnapshotAt(saved.createdAt);
+      setAuditLoading(false);
+      return;
+    }
+    // No snapshot yet — only fire the live fetch once audits have finished
+    // hydrating, otherwise we'd unnecessarily re-scrape on every replay.
+    if (loading) return;
+    resolvedRef.current = rawUrl;
+    runAudit(rawUrl);
+  }, [rawUrl, user, audits, loading, runAudit]);
+
+  async function handleRefresh() {
+    if (auditLoading) return;
+    await runAudit(rawUrl);
+  }
 
   // The deterministic score result is the source of truth for the check list.
+  // When viewing a snapshot, use the score embedded in the snapshot so the
+  // grade matches what was saved (the deterministic score has no concept of
+  // history — it's a pure function of the URL).
   const result: ScoreResult | null = useMemo(() => {
     if (!rawUrl) return null;
     return calculateScore(rawUrl);
@@ -356,17 +358,45 @@ function ScoreReportInner() {
     <AppShell
       eyebrow="Score Checker · Detailed report"
       title={`Grade ${result.grade} · ${result.score}/100`}
-      description="Listing snapshot, keyword profile, per-check breakdown — and the exact fix to ship next."
+      description={
+        snapshotAt
+          ? `Saved snapshot · captured ${relativeTime(snapshotAt)}.`
+          : "Listing snapshot, keyword profile, per-check breakdown — and the exact fix to ship next."
+      }
       actions={
-        <Link
-          href="/score"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-line text-[13px] font-medium text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
-        >
-          <ArrowLeft size={14} />
-          Run another audit
-        </Link>
+        <div className="flex items-center gap-2">
+          {snapshotAt && (
+            <button
+              onClick={handleRefresh}
+              disabled={auditLoading}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {auditLoading ? (
+                <Loader2 size={13} className="animate-spin-slow" />
+              ) : (
+                <RefreshCw size={13} strokeWidth={2} />
+              )}
+              {auditLoading ? "Refreshing…" : "Refresh data"}
+            </button>
+          )}
+          <Link
+            href="/score"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-line text-[13px] font-medium text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
+          >
+            <ArrowLeft size={14} />
+            Run another audit
+          </Link>
+        </div>
       }
     >
+      {snapshotAt && (
+        <SnapshotBanner
+          savedAt={snapshotAt}
+          onRefresh={handleRefresh}
+          running={auditLoading}
+        />
+      )}
+
       {/* Audited URL strip */}
       <UrlStrip rawUrl={rawUrl} audit={audit} loading={auditLoading} />
 
@@ -581,6 +611,54 @@ function ScoreReportInner() {
 }
 
 // ---- Subcomponents --------------------------------------------------------
+
+function SnapshotBanner({
+  savedAt,
+  onRefresh,
+  running,
+}: {
+  savedAt: string;
+  onRefresh: () => void;
+  running: boolean;
+}) {
+  return (
+    <div
+      className="card-soft p-5 mb-5 flex items-center gap-4 flex-wrap"
+      style={{ background: "linear-gradient(135deg, #FFFFFF 0%, #F2ECFE 100%)" }}
+    >
+      <div className="w-10 h-10 rounded-xl tile-lilac flex items-center justify-center shrink-0">
+        <Archive size={16} strokeWidth={1.85} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="eyebrow">Saved snapshot</p>
+        <p className="text-[13px] text-ink-muted mt-1">
+          You&apos;re viewing data captured {relativeTime(savedAt)} ({new Date(savedAt).toLocaleString()}).
+          Listings drift over time — use Refresh to re-scrape and compare.
+        </p>
+      </div>
+      <button
+        onClick={onRefresh}
+        disabled={running}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+      >
+        {running ? <Loader2 size={13} className="animate-spin-slow" /> : <RefreshCw size={13} strokeWidth={2} />}
+        {running ? "Refreshing…" : "Refresh data"}
+      </button>
+    </div>
+  );
+}
+
+function relativeTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 function SectionHeader({ tile, icon, eyebrow, title }: { tile: string; icon: React.ReactNode; eyebrow: string; title: string }) {
   return (

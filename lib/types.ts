@@ -83,9 +83,43 @@ export interface ScoreCheck {
   note: string;
 }
 
+// Full /api/audit response — defined here so client code can hold it as a
+// stored snapshot without importing from the API route file.
+export interface AuditPayload {
+  url: string;
+  source: "play" | "ios" | null;
+  scrape: {
+    ok: boolean;
+    title?: string;
+    subtitle?: string;
+    shortDesc?: string;
+    fullDesc?: string;
+  };
+  snapshot: {
+    appId?: string;
+    slug?: string;
+    country?: string;
+    locale?: string;
+    detectedCategory?: string;
+  };
+  keywords: {
+    primary?: { word: string; count: number };
+    secondary: { word: string; count: number }[];
+    totalUnique: number;
+  };
+  characterUsage: Array<{
+    field: string;
+    actual: number;
+    limit: number;
+    status: "ok" | "tight" | "over" | "missing";
+  }>;
+  score: { score: number; grade: string };
+}
+
 // Persisted record of a Score Checker audit. Keyed by a hash of the URL so
 // re-running the audit for the same listing replaces the prior record rather
-// than duplicating history.
+// than duplicating history. `snapshot` carries the full audit payload at the
+// time of save so the history view can show the exact data without re-running.
 export interface AuditRecord {
   id: string;
   url: string;
@@ -94,6 +128,7 @@ export interface AuditRecord {
   score: number;
   grade: string;
   createdAt: string;
+  snapshot?: AuditPayload;
 }
 
 // Competitor Watch — analysis of one app + N competitors.
@@ -132,6 +167,34 @@ export interface CompetitorAnalysisResult {
   keywordOverlap: { word: string; competitorsCount: number; targetHas: boolean }[];
 }
 
+// Ranked app from a keyword search. Defined here (instead of in
+// lib/keyword-rank.ts, which is server-only) so client + Firestore both
+// share the shape.
+export interface RankedApp {
+  rank: number;
+  source: "play" | "ios";
+  url: string;
+  appId?: string;
+  title?: string;
+  developer?: string;
+  iconUrl?: string;
+  rating?: number;
+  ratingCount?: number;
+  genre?: string;
+  price?: string;
+}
+
+export interface KeywordRankResult {
+  keyword: string;
+  country: string;
+  lang: string;
+  store: "play" | "ios" | "both";
+  limit: number;
+  apps: RankedApp[];
+  cachedAt: string;
+  fromCache: boolean;
+}
+
 // Persisted summary of a Competitor Watch run. Keyed by hash of target URL so
 // re-running the same analysis updates rather than duplicates. We store only
 // the summary here; the full result is regenerated on view (competitor lists
@@ -146,6 +209,7 @@ export interface CompetitorRecord {
   successfulCount: number;
   discoveryMode: "manual" | "auto" | "mixed";
   createdAt: string;
+  snapshot?: CompetitorAnalysisResult;
 }
 
 // Persisted summary of a keyword rank check. Keyed by hash of the
@@ -162,6 +226,7 @@ export interface KeywordRankRecord {
   topResultsCount: number;
   topResultTitle?: string;
   createdAt: string;
+  snapshot?: KeywordRankResult;
 }
 
 export interface KeywordResult {

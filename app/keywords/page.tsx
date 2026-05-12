@@ -23,6 +23,8 @@ import {
   Trash2,
   History,
   Sparkles,
+  RefreshCw,
+  Archive,
 } from "lucide-react";
 
 // Deterministic id from query tuple so re-running the same check updates the
@@ -84,6 +86,10 @@ function KeywordsPageInner() {
   const [limit, setLimit] = useState(10);
   const [result, setResult] = useState<KeywordRankResult | null>(null);
   const [running, setRunning] = useState(false);
+  // When we load a saved snapshot from history instead of re-fetching live,
+  // we track the saved-at timestamp so the UI can show a "Snapshot from …"
+  // banner + offer a Refresh button. null = current/live data.
+  const [snapshotAt, setSnapshotAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/auth?next=%2Fkeywords");
@@ -100,6 +106,7 @@ function KeywordsPageInner() {
       if (!args.keyword.trim()) return;
       setRunning(true);
       setResult(null);
+      setSnapshotAt(null);
       try {
         const res = await fetch("/api/keyword-rank", {
           method: "POST",
@@ -113,7 +120,8 @@ function KeywordsPageInner() {
         const data = (await res.json()) as KeywordRankResult;
         setResult(data);
 
-        // Persist summary so it shows up on the dashboard + recent list.
+        // Persist a full snapshot so opening this record from history later
+        // shows the exact same data (useful for month-over-month comparison).
         const record: KeywordRankRecord = {
           id: keywordRankIdFor(args),
           keyword: args.keyword.trim(),
@@ -124,6 +132,7 @@ function KeywordsPageInner() {
           topResultsCount: data.apps.length,
           topResultTitle: data.apps[0]?.title,
           createdAt: new Date().toISOString(),
+          snapshot: data,
         };
         recordKeywordRank(record);
       } catch (err) {
@@ -135,8 +144,10 @@ function KeywordsPageInner() {
     [push, recordKeywordRank]
   );
 
-  // Deep-link replay: /keywords?keyword=...&country=...&store=... triggers
-  // an auto-run once the user is hydrated.
+  // Deep-link replay: /keywords?keyword=...&country=...&store=... loads the
+  // saved snapshot when one exists (so the user sees the exact data they
+  // saved), and only re-fetches live when there's no snapshot. The Refresh
+  // button lets them pull fresh data when they're ready.
   const replayedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!user) return;
@@ -154,8 +165,18 @@ function KeywordsPageInner() {
     setLang(l);
     setStore(s);
     setLimit(LIMIT_OPTIONS.includes(lim) ? lim : 10);
+
+    const id = keywordRankIdFor({ keyword: kw, country: c, lang: l, store: s });
+    const saved = keywordRanks.find((r) => r.id === id);
+    if (saved?.snapshot) {
+      // Restore the exact saved view; URL-driven sync from external state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setResult(saved.snapshot);
+      setSnapshotAt(saved.createdAt);
+      return;
+    }
     runCheck({ keyword: kw, country: c, lang: l, store: s, limit: lim });
-  }, [search, user, runCheck]);
+  }, [search, user, runCheck, keywordRanks]);
 
   if (authLoading || !user) return null;
 
@@ -167,6 +188,12 @@ function KeywordsPageInner() {
 
   function handleReset() {
     setResult(null);
+    setSnapshotAt(null);
+  }
+
+  async function handleRefresh() {
+    if (running) return;
+    await runCheck({ keyword, country, lang, store, limit });
   }
 
   return (
@@ -175,17 +202,35 @@ function KeywordsPageInner() {
       title={result ? `Top ${result.apps.length} for "${result.keyword}"` : "What ranks for this keyword?"}
       description={
         result
-          ? `${storeLabel(result.store)} · ${result.country.toUpperCase()} · pulled ${relativeTime(result.cachedAt)}${result.fromCache ? " (cached)" : ""}.`
+          ? snapshotAt
+            ? `Saved snapshot · ${storeLabel(result.store)} · ${result.country.toUpperCase()} · captured ${relativeTime(snapshotAt)}.`
+            : `${storeLabel(result.store)} · ${result.country.toUpperCase()} · pulled ${relativeTime(result.cachedAt)}${result.fromCache ? " (cached)" : ""}.`
           : "Type a keyword and we'll show you the live ranking on the App Store and Google Play. Use it to see where your app — or your competitors — surface today."
       }
       actions={
         result ? (
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-line text-[13px] font-medium text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
-          >
-            New rank check
-          </button>
+          <div className="flex items-center gap-2">
+            {snapshotAt && (
+              <button
+                onClick={handleRefresh}
+                disabled={running}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {running ? (
+                  <Loader2 size={13} className="animate-spin-slow" />
+                ) : (
+                  <RefreshCw size={13} strokeWidth={2} />
+                )}
+                {running ? "Refreshing…" : "Refresh data"}
+              </button>
+            )}
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-line text-[13px] font-medium text-ink-muted hover:text-ink hover:border-ink-faint transition-colors"
+            >
+              New rank check
+            </button>
+          </div>
         ) : undefined
       }
     >
@@ -208,9 +253,48 @@ function KeywordsPageInner() {
           )}
         </>
       ) : (
-        <Results result={result} />
+        <>
+          {snapshotAt && <SnapshotBanner savedAt={snapshotAt} onRefresh={handleRefresh} running={running} />}
+          <Results result={result} />
+        </>
       )}
     </AppShell>
+  );
+}
+
+function SnapshotBanner({
+  savedAt,
+  onRefresh,
+  running,
+}: {
+  savedAt: string;
+  onRefresh: () => void;
+  running: boolean;
+}) {
+  return (
+    <div
+      className="card-soft p-5 mb-6 flex items-center gap-4 flex-wrap"
+      style={{ background: "linear-gradient(135deg, #FFFFFF 0%, #F2ECFE 100%)" }}
+    >
+      <div className="w-10 h-10 rounded-xl tile-lilac flex items-center justify-center shrink-0">
+        <Archive size={16} strokeWidth={1.85} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="eyebrow">Saved snapshot</p>
+        <p className="text-[13px] text-ink-muted mt-1">
+          You&apos;re viewing data captured {relativeTime(savedAt)} ({new Date(savedAt).toLocaleString()}).
+          Store rankings drift — use Refresh to pull a fresh check.
+        </p>
+      </div>
+      <button
+        onClick={onRefresh}
+        disabled={running}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+      >
+        {running ? <Loader2 size={13} className="animate-spin-slow" /> : <RefreshCw size={13} strokeWidth={2} />}
+        {running ? "Refreshing…" : "Refresh data"}
+      </button>
+    </div>
   );
 }
 
