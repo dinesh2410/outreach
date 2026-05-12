@@ -19,6 +19,7 @@ import {
   Bookmark,
   Clock,
   Activity,
+  type LucideIcon,
 } from "lucide-react";
 
 function relativeTime(iso: string): string {
@@ -43,6 +44,8 @@ const TILE_FOR_LABEL: Record<string, string> = {
   "Saved drafts": "tile-lilac",
   Apps: "tile-mint",
   "ASO Score": "tile-cream",
+  Competitors: "tile-rose",
+  Keywords: "tile-peach",
 };
 
 export default function DashboardPage() {
@@ -65,20 +68,32 @@ export default function DashboardPage() {
 
     const latestAudit = audits[0];
     const auditsThisWeek = countSince(audits, 7);
+    const competitorsThisWeek = countSince(competitors, 7);
+    const keywordRanksThisWeek = countSince(keywordRanks, 7);
 
-    return [
+    const items: {
+      label: string;
+      value: number | string;
+      sub: string;
+      delta?: number;
+      icon: LucideIcon;
+      muted?: boolean;
+      href?: string;
+    }[] = [
       {
         label: "Generations",
         value: history.length,
         sub: `${generationsThisWeek} this week`,
         delta,
         icon: FileText,
+        href: "/history",
       },
       {
         label: "Saved drafts",
         value: savedGenerations.length,
         sub: `${countSince(savedGenerations, 7)} this week`,
         icon: Bookmark,
+        href: "/library",
       },
       {
         label: "Apps",
@@ -94,9 +109,33 @@ export default function DashboardPage() {
           : "Run your first audit",
         icon: Sparkles,
         muted: !latestAudit,
+        href: "/score",
+      },
+      {
+        label: "Competitors",
+        value: competitors.length,
+        sub:
+          competitors.length === 0
+            ? "Run your first analysis"
+            : `${competitorsThisWeek} this week`,
+        icon: Target,
+        muted: competitors.length === 0,
+        href: "/competitor",
+      },
+      {
+        label: "Keywords",
+        value: keywordRanks.length,
+        sub:
+          keywordRanks.length === 0
+            ? "Check your first keyword"
+            : `${keywordRanksThisWeek} this week`,
+        icon: Tag,
+        muted: keywordRanks.length === 0,
+        href: "/keywords",
       },
     ];
-  }, [history, savedGenerations, apps, audits]);
+    return items;
+  }, [history, savedGenerations, apps, audits, competitors, keywordRanks]);
 
   const recent = history.slice(0, 5);
 
@@ -117,13 +156,13 @@ export default function DashboardPage() {
         </Link>
       }
     >
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats row — 6 cards: ASO Generator + Library + Apps + 3 tools */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           const tile = TILE_FOR_LABEL[stat.label] ?? "tile-blue";
-          return (
-            <div key={stat.label} className="card-soft p-6">
+          const cardBody = (
+            <>
               <div className="flex items-center justify-between mb-5">
                 <p className="eyebrow text-[11px] tracking-[0.15em]">{stat.label}</p>
                 <div className={`w-9 h-9 rounded-xl ${tile} flex items-center justify-center`}>
@@ -149,6 +188,19 @@ export default function DashboardPage() {
                 )}
               </div>
               <p className="text-[13px] text-ink-muted mt-2">{stat.sub}</p>
+            </>
+          );
+          return stat.href ? (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="card-soft p-6 hover:border-ink-faint transition-colors"
+            >
+              {cardBody}
+            </Link>
+          ) : (
+            <div key={stat.label} className="card-soft p-6">
+              {cardBody}
             </div>
           );
         })}
