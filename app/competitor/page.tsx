@@ -37,7 +37,7 @@ import {
 type StoreFilter = "both" | "play" | "ios";
 
 const COUNTRIES: { code: string; label: string }[] = [
-  { code: "auto", label: "Auto (from URL)" },
+  { code: "auto", label: "Auto (your location)" },
   { code: "us", label: "United States" },
   { code: "in", label: "India" },
   { code: "gb", label: "United Kingdom" },
@@ -409,9 +409,9 @@ function InputForm({
           <label className="eyebrow mb-3 block">Country / region</label>
           <p className="text-[12px] text-ink-muted mb-3 leading-relaxed">
             Auto-discovery returns whichever apps rank in this market. &ldquo;Auto&rdquo;
-            uses the country embedded in your app URL (e.g. <code className="bg-cream-deep px-1.5 py-0.5 rounded text-[11px]">/in/app/...</code> →
-            India). Pick a specific country to override — e.g. running an
-            Indian-market analysis from a <code className="bg-cream-deep px-1.5 py-0.5 rounded text-[11px]">/us/app/...</code> URL.
+            uses your own location (detected from your IP) so you see the apps
+            ranking in your market. Pick a specific country to analyze a different
+            market — e.g. running a US-market analysis from India.
           </p>
           <select
             value={country}

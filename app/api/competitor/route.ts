@@ -49,7 +49,9 @@ export async function POST(req: Request) {
   const targetUrl = body.url?.trim();
   const stores: StoreFilter = body.stores ?? "both";
   // Explicit country always wins. "auto" / empty / undefined falls back to
-  // whatever country the URL itself encodes (US for /us/app/..., IN for ?gl=in).
+  // the user's own country, derived from the edge request headers (Vercel /
+  // Cloudflare populate these). When neither header is present (local dev),
+  // fall back to US.
   const explicitCountry =
     body.country && body.country !== "auto" ? body.country.toLowerCase() : null;
   if (explicitCountry && !/^[a-z]{2}$/.test(explicitCountry)) {
@@ -58,6 +60,7 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  const userCountry = inferUserCountry(req);
   if (!targetUrl) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });
   }
@@ -97,7 +100,7 @@ export async function POST(req: Request) {
     // (com.duolingo vs 570060128). We additionally filter by normalized
     // title so the user's own listing on the other store doesn't sneak in.
     if (targetPrimaryKw) {
-      const country = explicitCountry ?? inferCountry(targetUrl) ?? "us";
+      const country = explicitCountry ?? userCountry ?? "us";
       const targetAppId = targetListing?.appId;
       const targetSource = classifyStoreUrl(targetUrl);
       const targetTitleKey = normalizeTitle(targetListing?.title);
@@ -256,20 +259,21 @@ function normalizeTitle(title: string | undefined): string {
     .trim();
 }
 
-function inferCountry(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname.endsWith("apple.com")) {
-      const parts = u.pathname.split("/").filter(Boolean);
-      return parts[0] ?? null;
-    }
-    if (u.hostname === "play.google.com") {
-      return u.searchParams.get("gl");
-    }
-  } catch {
-    /* noop */
-  }
-  return null;
+// Pull the request's country from the edge headers Vercel / Cloudflare set.
+// Returns a lowercase 2-letter ISO code, or null when unavailable (local
+// dev). Useful for the "auto" country selection — analyses use the country
+// the user is browsing from rather than whatever country the target URL
+// happens to encode.
+function inferUserCountry(req: Request): string | null {
+  const headers = req.headers;
+  const raw =
+    headers.get("x-vercel-ip-country") ??
+    headers.get("cf-ipcountry") ??
+    headers.get("x-country") ??
+    null;
+  if (!raw) return null;
+  const code = raw.trim().toLowerCase();
+  return /^[a-z]{2}$/.test(code) ? code : null;
 }
 
 function buildInsights(
