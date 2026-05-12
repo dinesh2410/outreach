@@ -70,19 +70,26 @@ export async function rankKeyword(args: {
 
   // Fan out to whichever stores were requested. Each call is best-effort —
   // a failure on one store still yields results from the other when store=both.
+  //
+  // Over-fetch so we still end up with `limit` apps after filtering. iTunes
+  // Search occasionally returns items without a numeric trackId (bundles,
+  // in-app purchases) which get dropped downstream, and Play scrapes can
+  // miss a listing fetch. Capped at iTunes' max (200) and Play's practical
+  // ceiling so we don't hammer either.
   const wantPlay = store === "both" || store === "play";
   const wantIos = store === "both" || store === "ios";
+  const fetchLimit = Math.min(limit + 5, 50);
 
   const [playUrls, iosListings] = await Promise.all([
     wantPlay
-      ? searchPlayStore(keyword, { country, locale: lang, limit })
+      ? searchPlayStore(keyword, { country, locale: lang, limit: fetchLimit })
           .catch((err) => {
             console.warn("[keyword-rank] play search failed:", err);
             return [] as string[];
           })
       : Promise.resolve<string[]>([]),
     wantIos
-      ? searchAppStore(keyword, { country, limit })
+      ? searchAppStore(keyword, { country, limit: fetchLimit })
           .catch((err) => {
             console.warn("[keyword-rank] ios search failed:", err);
             return [] as StoreListing[];
