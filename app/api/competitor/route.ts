@@ -90,49 +90,128 @@ export async function POST(req: Request) {
   let discoveryMode: CompetitorAnalysisResult["discoveryMode"] =
     manualCompetitorUrls.length > 0 ? "manual" : "auto";
 
+  // When auto-discovery runs, we scrape candidate listings just to score
+  // relevance — pass them through so the downstream "scrape competitors"
+  // step doesn't refetch what we already have. Keyed by URL.
+  const prefetchedListings = new Map<string, StoreListing>();
+
   if (competitorUrls.length === 0) {
     // Auto-discover. Run only the searches the caller asked for. When stores
     // is "both" we mix — Play gets PLAY_QUOTA seats, App Store fills the
     // rest, with cross-store backfill. When stores is "play" or "ios", we
     // skip the other source entirely and fill the full slate from one store.
     //
-    // Cross-store self-match: same app on Play vs iOS has different IDs
-    // (com.duolingo vs 570060128). We additionally filter by normalized
-    // title so the user's own listing on the other store doesn't sneak in.
+    // Strategy: over-fetch a generous candidate pool from each store, then
+    // rank by RELEVANCE before picking the top N. A naive "first 5" ignores
+    // the long tail of the keyword search where the actual same-category
+    // competitors often live, surfacing tangential apps that just happen to
+    // contain the keyword. Scoring fixes that:
+    //   + genre match with target (same App Store category)
+    //   + how many of the target's top keywords appear in the candidate's
+    //     own copy (title, subtitle, descriptions)
+    //   − same developer as target (sibling apps, not competitors)
+    //   − tiny rating-count (likely abandoned / spam)
+    //
+    // Self-match: same app on Play vs iOS has different IDs, so we also
+    // filter by normalized title to keep the user's own listing out.
     if (targetPrimaryKw) {
       const country = explicitCountry ?? userCountry ?? "us";
       const targetAppId = targetListing?.appId;
       const targetSource = classifyStoreUrl(targetUrl);
       const targetTitleKey = normalizeTitle(targetListing?.title);
+      const targetGenre = targetListing?.genre?.toLowerCase();
+      const targetDeveloper = targetListing?.developer?.toLowerCase();
+      const targetKwSet = new Set(targetKeywords.map((k) => k.word));
 
       const wantIosSource = stores === "both" || stores === "ios";
       const wantPlaySource = stores === "both" || stores === "play";
 
+      // Pool sizes: large enough to surface long-tail relevant apps, but
+      // bounded so the Play scrape (one HTTP per URL) doesn't blow the
+      // 30s function budget.
+      const IOS_POOL = 20;
+      const PLAY_POOL = 15;
+
       const [iosCandidates, playRawUrls] = await Promise.all([
         wantIosSource
-          ? searchAppStore(targetPrimaryKw.word, { country, limit: MAX_COMPETITORS + 5 })
-          : Promise.resolve([]),
+          ? searchAppStore(targetPrimaryKw.word, { country, limit: IOS_POOL })
+          : Promise.resolve<StoreListing[]>([]),
         wantPlaySource
-          ? searchPlayStore(targetPrimaryKw.word, { country, limit: MAX_COMPETITORS + 5 })
+          ? searchPlayStore(targetPrimaryKw.word, { country, limit: PLAY_POOL })
           : Promise.resolve<string[]>([]),
       ]);
 
-      // For Play, we only have URLs from the search page — to title-filter
-      // we need to peek at each listing. Scrape them now (we'd scrape anyway
-      // downstream) so the filter has data, then keep the cache for reuse.
-      const playPeeks = await Promise.all(
-        playRawUrls.map(async (u) => ({ url: u, listing: await fetchStoreListing(u).catch(() => null) }))
+      // iTunes Search returns full listing data inline; we don't need a
+      // second lookup to score. Play's HTML scrape returns URLs only, so
+      // we fetch each candidate once and reuse the result downstream.
+      const playFetched = await Promise.all(
+        playRawUrls.map(async (u) => ({
+          url: u,
+          listing: await fetchStoreListing(u).catch(() => null),
+        }))
       );
 
-      const iosFiltered = iosCandidates
+      function relevanceScore(listing: StoreListing | null): number {
+        if (!listing) return -100; // failed scrape — always last
+        let score = 0;
+        // Same developer ⇒ likely a sibling app from the same studio, not a
+        // competitor. Push it well below any genuine match.
+        if (
+          targetDeveloper &&
+          listing.developer?.toLowerCase() === targetDeveloper
+        ) {
+          score -= 10;
+        }
+        // Genre / category alignment. Both stores normalize to human-readable
+        // names ("Productivity", "Games") so a case-insensitive equality
+        // check is reliable.
+        if (
+          targetGenre &&
+          listing.genre?.toLowerCase() === targetGenre
+        ) {
+          score += 3;
+        }
+        // Keyword overlap with the target's top-10 keywords. We use substring
+        // search rather than tokenization so multi-word target keywords also
+        // catch (extractKeywords yields single tokens today, but this is
+        // future-proof and cheap).
+        const corpus = [
+          listing.title,
+          listing.subtitle,
+          listing.shortDesc,
+          listing.fullDesc,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (corpus) {
+          for (const kw of targetKwSet) {
+            if (corpus.includes(kw)) score += 1;
+          }
+        }
+        // Tiny rating-count: probably abandoned, a spam clone, or a new
+        // launch — none of which the user gains insight from comparing to.
+        if (
+          typeof listing.ratingCount === "number" &&
+          listing.ratingCount < 50
+        ) {
+          score -= 3;
+        }
+        return score;
+      }
+
+      type Scored = { url: string; listing: StoreListing | null; score: number };
+
+      const iosScored: Scored[] = iosCandidates
         .filter((c) => {
           if (targetSource === "ios" && targetAppId && c.appId === targetAppId) return false;
           if (targetTitleKey && normalizeTitle(c.title) === targetTitleKey) return false;
           return true;
         })
-        .map((c) => c.url);
+        .map((c) => ({ url: c.url, listing: c, score: relevanceScore(c) }))
+        .sort((a, b) => b.score - a.score);
 
-      const playFiltered = playPeeks
+      const playScored: Scored[] = playFetched
         .filter(({ url, listing }) => {
           if (targetSource === "play" && targetAppId) {
             try {
@@ -144,39 +223,50 @@ export async function POST(req: Request) {
           if (targetTitleKey && normalizeTitle(listing?.title) === targetTitleKey) return false;
           return true;
         })
-        .map(({ url }) => url);
+        .map(({ url, listing }) => ({ url, listing, score: relevanceScore(listing) }))
+        .sort((a, b) => b.score - a.score);
 
-      let picks: string[] = [];
+      let picks: Scored[] = [];
       if (stores === "play") {
-        picks = playFiltered.slice(0, MAX_COMPETITORS);
+        picks = playScored.slice(0, MAX_COMPETITORS);
       } else if (stores === "ios") {
-        picks = iosFiltered.slice(0, MAX_COMPETITORS);
+        picks = iosScored.slice(0, MAX_COMPETITORS);
       } else {
         // "both" — quota mix with backfill from either side if one is short.
-        const wantPlay = Math.min(PLAY_QUOTA, playFiltered.length);
-        const wantIos = Math.min(MAX_COMPETITORS - wantPlay, iosFiltered.length);
+        const wantPlay = Math.min(PLAY_QUOTA, playScored.length);
+        const wantIos = Math.min(MAX_COMPETITORS - wantPlay, iosScored.length);
         picks = [
-          ...playFiltered.slice(0, wantPlay),
-          ...iosFiltered.slice(0, wantIos),
+          ...playScored.slice(0, wantPlay),
+          ...iosScored.slice(0, wantIos),
         ];
         if (picks.length < MAX_COMPETITORS) {
           const remainder = MAX_COMPETITORS - picks.length;
-          picks.push(...playFiltered.slice(wantPlay, wantPlay + remainder));
+          picks.push(...playScored.slice(wantPlay, wantPlay + remainder));
         }
         if (picks.length < MAX_COMPETITORS) {
           const remainder = MAX_COMPETITORS - picks.length;
-          picks.push(...iosFiltered.slice(wantIos, wantIos + remainder));
+          picks.push(...iosScored.slice(wantIos, wantIos + remainder));
         }
       }
-      competitorUrls = picks;
+
+      competitorUrls = picks.map((p) => p.url);
+      for (const p of picks) {
+        if (p.listing) prefetchedListings.set(p.url, p.listing);
+      }
     }
   } else if (manualCompetitorUrls.length > 0 && manualCompetitorUrls.length < MAX_COMPETITORS) {
     discoveryMode = "mixed";
   }
 
-  // Scrape competitors in parallel.
+  // Scrape competitors in parallel. Reuse the listings the auto-discovery
+  // step already fetched — for the manual path the prefetch map is empty so
+  // this just runs the scrape as before.
   const competitorListings = await Promise.all(
-    competitorUrls.map((u) => fetchStoreListing(u).catch(() => null))
+    competitorUrls.map(async (u) => {
+      const cached = prefetchedListings.get(u);
+      if (cached) return cached;
+      return fetchStoreListing(u).catch(() => null);
+    })
   );
 
   const target = listingToData(targetUrl, targetListing);
