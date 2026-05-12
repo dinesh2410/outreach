@@ -24,7 +24,13 @@ import {
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/lib/auth";
-import type { GenerationResult, AppEntry } from "@/lib/types";
+import type {
+  GenerationResult,
+  AppEntry,
+  AuditRecord,
+  CompetitorRecord,
+  KeywordRankRecord,
+} from "@/lib/types";
 
 // --- nav model -----------------------------------------------------------
 
@@ -267,11 +273,18 @@ type SearchHit = {
   href: string;
   title: string;
   subtitle: string;
-  group: "Apps" | "History" | "Library" | "Pages";
+  group: "Apps" | "History" | "Library" | "Audits" | "Competitors" | "Keywords" | "Pages";
   icon: typeof FileText;
 };
 
-function buildHits(history: GenerationResult[], saved: GenerationResult[], apps: AppEntry[]): SearchHit[] {
+function buildHits(
+  history: GenerationResult[],
+  saved: GenerationResult[],
+  apps: AppEntry[],
+  audits: AuditRecord[],
+  competitors: CompetitorRecord[],
+  keywordRanks: KeywordRankRecord[]
+): SearchHit[] {
   const hits: SearchHit[] = [];
 
   apps.forEach((a) =>
@@ -306,6 +319,38 @@ function buildHits(history: GenerationResult[], saved: GenerationResult[], apps:
     });
   });
 
+  audits.forEach((a) => {
+    hits.push({
+      href: `/score/report?url=${encodeURIComponent(a.url)}`,
+      title: a.appName || a.url,
+      subtitle: `Grade ${a.grade} · ${a.score}/100 · ${new Date(a.createdAt).toLocaleDateString()}`,
+      group: "Audits",
+      icon: Sparkles,
+    });
+  });
+
+  competitors.forEach((c) => {
+    hits.push({
+      href: `/competitor?url=${encodeURIComponent(c.targetUrl)}&country=${c.country ?? "auto"}`,
+      title: c.targetTitle || c.targetUrl,
+      subtitle: `${c.successfulCount}/${c.competitorCount} competitors · ${c.discoveryMode} · ${new Date(c.createdAt).toLocaleDateString()}`,
+      group: "Competitors",
+      icon: Target,
+    });
+  });
+
+  keywordRanks.forEach((r) => {
+    const storeLabel =
+      r.store === "play" ? "Play Store" : r.store === "ios" ? "App Store" : "Both stores";
+    hits.push({
+      href: `/keywords?keyword=${encodeURIComponent(r.keyword)}&country=${r.country}&lang=${r.lang}&store=${r.store}&limit=${r.limit}`,
+      title: r.keyword,
+      subtitle: `${storeLabel} · ${r.country.toUpperCase()} · ${new Date(r.createdAt).toLocaleDateString()}`,
+      group: "Keywords",
+      icon: Tag,
+    });
+  });
+
   ["Dashboard", "Generator", "History", "Library", "Settings"].forEach((label) => {
     hits.push({
       href: `/${label.toLowerCase()}`,
@@ -321,13 +366,16 @@ function buildHits(history: GenerationResult[], saved: GenerationResult[], apps:
 
 function GlobalSearch() {
   const router = useRouter();
-  const { history, savedGenerations, apps } = useAuth();
+  const { history, savedGenerations, apps, audits, competitors, keywordRanks } = useAuth();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const allHits = useMemo(() => buildHits(history, savedGenerations, apps), [history, savedGenerations, apps]);
+  const allHits = useMemo(
+    () => buildHits(history, savedGenerations, apps, audits, competitors, keywordRanks),
+    [history, savedGenerations, apps, audits, competitors, keywordRanks]
+  );
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -393,7 +441,7 @@ function GlobalSearch() {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Search apps, history, library…"
+          placeholder="Search apps, audits, competitors, keywords…"
           className="flex-1 bg-transparent text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
         />
         {q && (
