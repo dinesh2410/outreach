@@ -3,6 +3,7 @@ import {
   classifyStoreUrl,
   fetchStoreListing,
   searchAppStore,
+  searchPlayStore,
   type StoreListing,
 } from "@/lib/store-scraper";
 import { extractKeywords } from "@/lib/keywords";
@@ -25,9 +26,20 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const MAX_COMPETITORS = 5;
+// Target mix for auto-discovery: at least this many Play Store competitors,
+// remainder filled with App Store results. Caller-pasted URLs are still
+// honored as-is (no rebalancing).
+const PLAY_QUOTA = 3;
+
+type StoreFilter = "both" | "play" | "ios";
 
 export async function POST(req: Request) {
-  let body: { url?: string; competitors?: string[] };
+  let body: {
+    url?: string;
+    competitors?: string[];
+    stores?: StoreFilter;
+    country?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -35,6 +47,17 @@ export async function POST(req: Request) {
   }
 
   const targetUrl = body.url?.trim();
+  const stores: StoreFilter = body.stores ?? "both";
+  // Explicit country always wins. "auto" / empty / undefined falls back to
+  // whatever country the URL itself encodes (US for /us/app/..., IN for ?gl=in).
+  const explicitCountry =
+    body.country && body.country !== "auto" ? body.country.toLowerCase() : null;
+  if (explicitCountry && !/^[a-z]{2}$/.test(explicitCountry)) {
+    return NextResponse.json(
+      { error: "country must be a 2-letter code or 'auto'" },
+      { status: 400 }
+    );
+  }
   if (!targetUrl) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });
   }
@@ -65,20 +88,84 @@ export async function POST(req: Request) {
     manualCompetitorUrls.length > 0 ? "manual" : "auto";
 
   if (competitorUrls.length === 0) {
-    // Auto-discover. Works well for iOS; for Play we use the primary keyword too,
-    // but the discovered apps will be iOS listings (most apps are dual-platform).
+    // Auto-discover. Run only the searches the caller asked for. When stores
+    // is "both" we mix — Play gets PLAY_QUOTA seats, App Store fills the
+    // rest, with cross-store backfill. When stores is "play" or "ios", we
+    // skip the other source entirely and fill the full slate from one store.
+    //
+    // Cross-store self-match: same app on Play vs iOS has different IDs
+    // (com.duolingo vs 570060128). We additionally filter by normalized
+    // title so the user's own listing on the other store doesn't sneak in.
     if (targetPrimaryKw) {
-      const country = inferCountry(targetUrl) ?? "us";
-      const candidates = await searchAppStore(targetPrimaryKw.word, {
-        country,
-        limit: MAX_COMPETITORS + 5,
-      });
-      // Filter out the target itself by appId match.
+      const country = explicitCountry ?? inferCountry(targetUrl) ?? "us";
       const targetAppId = targetListing?.appId;
-      competitorUrls = candidates
-        .filter((c) => !targetAppId || c.appId !== targetAppId)
-        .slice(0, MAX_COMPETITORS)
+      const targetSource = classifyStoreUrl(targetUrl);
+      const targetTitleKey = normalizeTitle(targetListing?.title);
+
+      const wantIosSource = stores === "both" || stores === "ios";
+      const wantPlaySource = stores === "both" || stores === "play";
+
+      const [iosCandidates, playRawUrls] = await Promise.all([
+        wantIosSource
+          ? searchAppStore(targetPrimaryKw.word, { country, limit: MAX_COMPETITORS + 5 })
+          : Promise.resolve([]),
+        wantPlaySource
+          ? searchPlayStore(targetPrimaryKw.word, { country, limit: MAX_COMPETITORS + 5 })
+          : Promise.resolve<string[]>([]),
+      ]);
+
+      // For Play, we only have URLs from the search page — to title-filter
+      // we need to peek at each listing. Scrape them now (we'd scrape anyway
+      // downstream) so the filter has data, then keep the cache for reuse.
+      const playPeeks = await Promise.all(
+        playRawUrls.map(async (u) => ({ url: u, listing: await fetchStoreListing(u).catch(() => null) }))
+      );
+
+      const iosFiltered = iosCandidates
+        .filter((c) => {
+          if (targetSource === "ios" && targetAppId && c.appId === targetAppId) return false;
+          if (targetTitleKey && normalizeTitle(c.title) === targetTitleKey) return false;
+          return true;
+        })
         .map((c) => c.url);
+
+      const playFiltered = playPeeks
+        .filter(({ url, listing }) => {
+          if (targetSource === "play" && targetAppId) {
+            try {
+              if (new URL(url).searchParams.get("id") === targetAppId) return false;
+            } catch {
+              /* noop */
+            }
+          }
+          if (targetTitleKey && normalizeTitle(listing?.title) === targetTitleKey) return false;
+          return true;
+        })
+        .map(({ url }) => url);
+
+      let picks: string[] = [];
+      if (stores === "play") {
+        picks = playFiltered.slice(0, MAX_COMPETITORS);
+      } else if (stores === "ios") {
+        picks = iosFiltered.slice(0, MAX_COMPETITORS);
+      } else {
+        // "both" — quota mix with backfill from either side if one is short.
+        const wantPlay = Math.min(PLAY_QUOTA, playFiltered.length);
+        const wantIos = Math.min(MAX_COMPETITORS - wantPlay, iosFiltered.length);
+        picks = [
+          ...playFiltered.slice(0, wantPlay),
+          ...iosFiltered.slice(0, wantIos),
+        ];
+        if (picks.length < MAX_COMPETITORS) {
+          const remainder = MAX_COMPETITORS - picks.length;
+          picks.push(...playFiltered.slice(wantPlay, wantPlay + remainder));
+        }
+        if (picks.length < MAX_COMPETITORS) {
+          const remainder = MAX_COMPETITORS - picks.length;
+          picks.push(...iosFiltered.slice(wantIos, wantIos + remainder));
+        }
+      }
+      competitorUrls = picks;
     }
   } else if (manualCompetitorUrls.length > 0 && manualCompetitorUrls.length < MAX_COMPETITORS) {
     discoveryMode = "mixed";
@@ -149,6 +236,24 @@ function listingToData(url: string, l: StoreListing | null): CompetitorAppData {
     lastUpdated: l.lastUpdated,
     price: l.price,
   };
+}
+
+// Normalize an app title for cross-store self-match detection.
+// Lowercases, strips punctuation, and collapses whitespace — but keeps the
+// WHOLE title (no segment-splitting). Previous version split on ": " / " - "
+// and kept only the first segment, which over-filtered generic-name apps
+// (e.g. for target "12 Testers - Testers Community" → "12 testers", every
+// other competitor starting with "12 testers" would get wrongly dropped as
+// "same app on the other store"). Full-title equality still catches the
+// genuine cross-store case (e.g. both iOS and Play list "Duolingo: Language
+// Lessons" with that exact title).
+function normalizeTitle(title: string | undefined): string {
+  if (!title) return "";
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function inferCountry(url: string): string | null {

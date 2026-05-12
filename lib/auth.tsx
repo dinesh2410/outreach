@@ -20,20 +20,34 @@ import {
 import { firebaseAuth, googleAuthProvider } from "./firebase-client";
 import {
   deleteAuditEntry,
+  deleteCompetitorEntry,
   deleteHistoryEntry,
+  deleteKeywordRankEntry,
   ensureUserDoc,
   fetchUserApps,
   fetchUserAudits,
+  fetchUserCompetitors,
   fetchUserHistory,
+  fetchUserKeywordRanks,
   fetchUserSavedGenerations,
   recordAuditForUser,
+  recordCompetitorForUser,
   recordGenerationHistory,
+  recordKeywordRankForUser,
   saveAppForUser,
   saveGenerationForUser,
   updateUserDoc,
   upsertGenerationOnApp,
 } from "./firestore";
-import { User, AppEntry, AuditRecord, GenerationResult, Platform } from "./types";
+import {
+  User,
+  AppEntry,
+  AuditRecord,
+  CompetitorRecord,
+  GenerationResult,
+  KeywordRankRecord,
+  Platform,
+} from "./types";
 
 // Auth context — backed by Firebase Auth (Google + Email/Password) + Firestore.
 // Apps and saved generations persist to Firestore so they survive refresh and sync across devices.
@@ -62,6 +76,12 @@ interface AuthContextType {
   audits: AuditRecord[];
   recordAudit: (audit: AuditRecord) => void;
   removeAudit: (auditId: string) => void;
+  competitors: CompetitorRecord[];
+  recordCompetitor: (record: CompetitorRecord) => void;
+  removeCompetitor: (competitorId: string) => void;
+  keywordRanks: KeywordRankRecord[];
+  recordKeywordRank: (record: KeywordRankRecord) => void;
+  removeKeywordRank: (rankId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -109,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [savedGenerations, setSavedGenerations] = useState<GenerationResult[]>([]);
   const [history, setHistory] = useState<GenerationResult[]>([]);
   const [audits, setAudits] = useState<AuditRecord[]>([]);
+  const [competitors, setCompetitors] = useState<CompetitorRecord[]>([]);
+  const [keywordRanks, setKeywordRanks] = useState<KeywordRankRecord[]>([]);
 
   // Listen to auth state. On sign-in, hydrate apps + generations + history from Firestore.
   useEffect(() => {
@@ -119,22 +141,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSavedGenerations([]);
         setHistory([]);
         setAudits([]);
+        setCompetitors([]);
+        setKeywordRanks([]);
         setLoading(false);
         return;
       }
       try {
         const appUser = await firebaseUserToAppUser(fbUser);
         setUser(appUser);
-        const [userApps, userSaved, userHistory, userAudits] = await Promise.all([
-          fetchUserApps(fbUser.uid),
-          fetchUserSavedGenerations(fbUser.uid),
-          fetchUserHistory(fbUser.uid),
-          fetchUserAudits(fbUser.uid),
+
+        // Hydrate each collection independently — if one fails (e.g. firestore
+        // rules not yet published for a newly-added subcollection), it must
+        // not block the others. Each fetch falls back to its own empty list
+        // and logs the underlying error.
+        const safeFetch = async <T,>(
+          label: string,
+          fn: () => Promise<T[]>
+        ): Promise<T[]> => {
+          try {
+            return await fn();
+          } catch (err) {
+            console.warn(`[auth] ${label} fetch failed:`, err);
+            return [];
+          }
+        };
+
+        const [
+          userApps,
+          userSaved,
+          userHistory,
+          userAudits,
+          userCompetitors,
+          userKeywordRanks,
+        ] = await Promise.all([
+          safeFetch("apps", () => fetchUserApps(fbUser.uid)),
+          safeFetch("savedGenerations", () => fetchUserSavedGenerations(fbUser.uid)),
+          safeFetch("history", () => fetchUserHistory(fbUser.uid)),
+          safeFetch("audits", () => fetchUserAudits(fbUser.uid)),
+          safeFetch("competitors", () => fetchUserCompetitors(fbUser.uid)),
+          safeFetch("keywordRanks", () => fetchUserKeywordRanks(fbUser.uid)),
         ]);
         setApps(userApps);
         setSavedGenerations(userSaved);
         setHistory(userHistory);
         setAudits(userAudits);
+        setCompetitors(userCompetitors);
+        setKeywordRanks(userKeywordRanks);
       } catch (err) {
         console.error("[auth] failed to hydrate user data:", err);
       } finally {
@@ -304,6 +356,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const recordCompetitor = useCallback(
+    (record: CompetitorRecord) => {
+      setCompetitors((prev) => {
+        const without = prev.filter((c) => c.id !== record.id);
+        return [record, ...without];
+      });
+      if (user) {
+        recordCompetitorForUser(user.id, record).catch((err) =>
+          console.error("[auth] recordCompetitor persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeCompetitor = useCallback(
+    (competitorId: string) => {
+      setCompetitors((prev) => prev.filter((c) => c.id !== competitorId));
+      if (user) {
+        deleteCompetitorEntry(user.id, competitorId).catch((err) =>
+          console.error("[auth] removeCompetitor persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const recordKeywordRank = useCallback(
+    (record: KeywordRankRecord) => {
+      setKeywordRanks((prev) => {
+        const without = prev.filter((k) => k.id !== record.id);
+        return [record, ...without];
+      });
+      if (user) {
+        recordKeywordRankForUser(user.id, record).catch((err) =>
+          console.error("[auth] recordKeywordRank persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeKeywordRank = useCallback(
+    (rankId: string) => {
+      setKeywordRanks((prev) => prev.filter((k) => k.id !== rankId));
+      if (user) {
+        deleteKeywordRankEntry(user.id, rankId).catch((err) =>
+          console.error("[auth] removeKeywordRank persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -325,6 +431,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         audits,
         recordAudit,
         removeAudit,
+        competitors,
+        recordCompetitor,
+        removeCompetitor,
+        keywordRanks,
+        recordKeywordRank,
+        removeKeywordRank,
       }}
     >
       {children}

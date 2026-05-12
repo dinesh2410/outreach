@@ -29,6 +29,16 @@ service cloud.firestore {
       match /audits/{auditId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // Auto-recorded Competitor Watch analyses. Same owner-only rule.
+      match /competitors/{competitorId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Auto-recorded keyword rank checks. Same owner-only rule.
+      match /keywordRanks/{rankId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Default deny — anything not explicitly allowed above is rejected.

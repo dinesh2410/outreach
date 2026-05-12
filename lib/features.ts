@@ -88,13 +88,13 @@ export const FEATURES: Feature[] = [
   },
   {
     slug: "keywords",
-    name: "Keyword Research",
-    tagline: "Discover & track keywords",
+    name: "Keyword Rank Checker",
+    tagline: "Live App Store + Play rankings",
     description:
-      "Discover and track keywords for your category and your competitors.",
+      "Type a keyword and see which apps surface in the App Store and Play Store search ranking — with country selector, store toggle, and saved history.",
     icon: Key,
-    status: "soon",
-    href: "/features/keywords",
+    status: "live",
+    href: "/keywords",
   },
 ];
 

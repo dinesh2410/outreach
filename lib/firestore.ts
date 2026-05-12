@@ -20,7 +20,15 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { firestore } from "./firebase-client";
-import { AppEntry, AuditRecord, GenerationResult, Platform, User } from "./types";
+import {
+  AppEntry,
+  AuditRecord,
+  CompetitorRecord,
+  GenerationResult,
+  KeywordRankRecord,
+  Platform,
+  User,
+} from "./types";
 
 interface UserDoc {
   email: string;
@@ -44,6 +52,12 @@ const historyRef = (uid: string, genId: string) =>
 const auditsCol = (uid: string) => collection(firestore, "users", uid, "audits");
 const auditRef = (uid: string, auditId: string) =>
   doc(firestore, "users", uid, "audits", auditId);
+const competitorsCol = (uid: string) => collection(firestore, "users", uid, "competitors");
+const competitorRef = (uid: string, competitorId: string) =>
+  doc(firestore, "users", uid, "competitors", competitorId);
+const keywordRanksCol = (uid: string) => collection(firestore, "users", uid, "keywordRanks");
+const keywordRankRef = (uid: string, rankId: string) =>
+  doc(firestore, "users", uid, "keywordRanks", rankId);
 
 // Read the user doc; create with sensible defaults if it doesn't exist.
 // Returns the resolved fields (not the raw Firestore doc).
@@ -159,4 +173,40 @@ export async function fetchUserAudits(uid: string): Promise<AuditRecord[]> {
 
 export async function deleteAuditEntry(uid: string, auditId: string): Promise<void> {
   await deleteDoc(auditRef(uid, auditId));
+}
+
+// --- competitor analyses (Competitor Watch history) ----------------------
+
+export async function recordCompetitorForUser(
+  uid: string,
+  record: CompetitorRecord
+): Promise<void> {
+  await setDoc(competitorRef(uid, record.id), record);
+}
+
+export async function fetchUserCompetitors(uid: string): Promise<CompetitorRecord[]> {
+  const snap = await getDocs(query(competitorsCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as CompetitorRecord);
+}
+
+export async function deleteCompetitorEntry(uid: string, competitorId: string): Promise<void> {
+  await deleteDoc(competitorRef(uid, competitorId));
+}
+
+// --- keyword rank history -------------------------------------------------
+
+export async function recordKeywordRankForUser(
+  uid: string,
+  record: KeywordRankRecord
+): Promise<void> {
+  await setDoc(keywordRankRef(uid, record.id), record);
+}
+
+export async function fetchUserKeywordRanks(uid: string): Promise<KeywordRankRecord[]> {
+  const snap = await getDocs(query(keywordRanksCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as KeywordRankRecord);
+}
+
+export async function deleteKeywordRankEntry(uid: string, rankId: string): Promise<void> {
+  await deleteDoc(keywordRankRef(uid, rankId));
 }

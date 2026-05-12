@@ -141,10 +141,21 @@ function parsePlayStore(html: string, url: string): StoreListing {
     typeof ld?.applicationCategory === "string"
       ? humanizeGenre(ld.applicationCategory as string)
       : undefined;
-  const iconUrl =
+  // Play icon URLs from googleusercontent.com need an explicit size suffix
+  // (e.g. =w256-h256-rw) to serve as a proper image — without it the response
+  // is technically 200 but isn't reliably typed as image/webp.
+  //
+  // Some small / new Play listings don't expose `image` in JSON-LD at all.
+  // Fall back to the og:image meta tag in that case (the Play card preview
+  // uses the icon there), and finally to the og:image with size suffix.
+  let rawIcon =
     typeof ld?.image === "string"
       ? (ld.image as string)
       : (ld?.image as Record<string, unknown> | undefined)?.url as string | undefined;
+  if (!rawIcon) {
+    rawIcon = meta(html, "og:image");
+  }
+  const iconUrl = rawIcon ? appendPlayIconSize(rawIcon) : undefined;
 
   let appId: string | undefined;
   try {
@@ -166,6 +177,13 @@ function parsePlayStore(html: string, url: string): StoreListing {
     iconUrl,
     appId,
   };
+}
+
+function appendPlayIconSize(url: string): string {
+  if (!url.includes("googleusercontent.com")) return url;
+  // If a size suffix is already present (=wNN-hNN... or =sNN), leave it alone.
+  if (/=[ws]\d/.test(url)) return url;
+  return `${url}=w256-h256-rw`;
 }
 
 function humanizeGenre(raw: string): string {
@@ -280,6 +298,58 @@ function iTunesItemToListing(url: string, item: Record<string, unknown>): StoreL
     lastUpdated,
     price,
   };
+}
+
+// Play Store search — no public API, so we scrape the search HTML for app IDs.
+// Returns app URLs; caller should run each through fetchStoreListing to get
+// full data (scrape is intentionally lightweight here to keep the discovery
+// step fast).
+export async function searchPlayStore(
+  term: string,
+  options: { country?: string; locale?: string; limit?: number } = {}
+): Promise<string[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const search = new URL("https://play.google.com/store/search");
+    search.searchParams.set("q", term);
+    search.searchParams.set("c", "apps");
+    search.searchParams.set("hl", options.locale ?? "en");
+    search.searchParams.set("gl", options.country ?? "us");
+
+    const res = await fetch(search.toString(), {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const html = await res.text();
+
+    // App IDs appear in href="/store/apps/details?id=PACKAGE_NAME" patterns.
+    // Dedupe by package id and preserve order of first appearance.
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const re = /\/store\/apps\/details\?id=([a-zA-Z0-9._-]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      const pkg = m[1];
+      if (seen.has(pkg)) continue;
+      seen.add(pkg);
+      out.push(
+        `https://play.google.com/store/apps/details?id=${pkg}&hl=${options.locale ?? "en"}&gl=${options.country ?? "us"}`
+      );
+      if (out.length >= (options.limit ?? 10)) break;
+    }
+    return out;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // iTunes Search API — used for competitor auto-discovery.

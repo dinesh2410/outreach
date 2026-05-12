@@ -132,6 +132,38 @@ export interface CompetitorAnalysisResult {
   keywordOverlap: { word: string; competitorsCount: number; targetHas: boolean }[];
 }
 
+// Persisted summary of a Competitor Watch run. Keyed by hash of target URL so
+// re-running the same analysis updates rather than duplicates. We store only
+// the summary here; the full result is regenerated on view (competitor lists
+// drift over time anyway, so a fresh fetch is usually what the user wants).
+export interface CompetitorRecord {
+  id: string;
+  targetUrl: string;
+  targetTitle?: string;
+  targetSource: "play" | "ios" | null;
+  country: string;         // 2-letter ISO; "auto" means "use whatever the URL encodes"
+  competitorCount: number;
+  successfulCount: number;
+  discoveryMode: "manual" | "auto" | "mixed";
+  createdAt: string;
+}
+
+// Persisted summary of a keyword rank check. Keyed by hash of the
+// (keyword|country|lang|store) tuple so the same query overwrites instead of
+// duplicating in history. Like CompetitorRecord, we store just the summary —
+// the live ranking changes anyway so opening a record re-runs the query.
+export interface KeywordRankRecord {
+  id: string;
+  keyword: string;
+  country: string;
+  lang: string;
+  store: "play" | "ios" | "both";
+  limit: number;
+  topResultsCount: number;
+  topResultTitle?: string;
+  createdAt: string;
+}
+
 export interface KeywordResult {
   word: string;
   count: number;

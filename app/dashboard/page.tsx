@@ -46,7 +46,8 @@ const TILE_FOR_LABEL: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const { user, loading, apps, savedGenerations, history, audits } = useAuth();
+  const { user, loading, apps, savedGenerations, history, audits, competitors, keywordRanks } =
+    useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -298,6 +299,135 @@ export default function DashboardPage() {
         )}
       </section>
 
+      {/* Recent competitor analyses */}
+      <section className="mt-12">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[22px] font-semibold tracking-[-0.01em]" style={{ color: "#0B3D7A" }}>
+            Recent competitor analyses
+          </h2>
+          <span className="text-[13px] text-ink-faint tabular-nums">{competitors.length}</span>
+        </div>
+        {competitors.length === 0 ? (
+          <div className="rounded-2xl bg-cream-deep border border-dashed border-line px-6 py-12 text-center">
+            <div className="w-12 h-12 rounded-2xl tile-rose inline-flex items-center justify-center mb-3">
+              <Target size={20} strokeWidth={1.85} />
+            </div>
+            <p className="text-[14px] text-ink-muted mb-5">
+              No competitor analyses yet. Drop your app URL into Competitor Watch to find your closest peers.
+            </p>
+            <Link
+              href="/competitor"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors"
+            >
+              <Target size={14} />
+              Run an analysis
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {competitors.slice(0, 6).map((c) => {
+              const replayHref =
+                `/competitor?url=${encodeURIComponent(c.targetUrl)}` +
+                `&country=${c.country ?? "auto"}`;
+              const modeTile =
+                c.discoveryMode === "auto"
+                  ? "tile-lilac"
+                  : c.discoveryMode === "manual"
+                    ? "tile-mint"
+                    : "tile-cream";
+              return (
+                <Link key={c.id} href={replayHref} className="group card-soft p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`w-11 h-11 rounded-xl ${modeTile} flex items-center justify-center`}>
+                      <Target size={16} strokeWidth={1.85} />
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.1em] ${modeTile}`}
+                    >
+                      {c.discoveryMode}
+                    </span>
+                  </div>
+                  <p className="text-[14px] font-semibold text-ink truncate">
+                    {c.targetTitle ?? "Untitled listing"}
+                  </p>
+                  <p className="text-[11px] text-ink-faint truncate mt-1 font-mono">{c.targetUrl}</p>
+                  <div className="mt-3 pt-3 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint">
+                    <span>
+                      {c.successfulCount}/{c.competitorCount} scraped
+                    </span>
+                    <span className="tabular-nums">{relativeTime(c.createdAt)}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Recent keyword rank checks */}
+      <section className="mt-12">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[22px] font-semibold tracking-[-0.01em]" style={{ color: "#0B3D7A" }}>
+            Recent keyword ranks
+          </h2>
+          <span className="text-[13px] text-ink-faint tabular-nums">{keywordRanks.length}</span>
+        </div>
+        {keywordRanks.length === 0 ? (
+          <div className="rounded-2xl bg-cream-deep border border-dashed border-line px-6 py-12 text-center">
+            <div className="w-12 h-12 rounded-2xl tile-peach inline-flex items-center justify-center mb-3">
+              <Tag size={20} strokeWidth={1.85} />
+            </div>
+            <p className="text-[14px] text-ink-muted mb-5">
+              No keyword rank checks yet. Type a keyword and see what ranks where.
+            </p>
+            <Link
+              href="/keywords"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors"
+            >
+              <Tag size={14} />
+              Check a keyword
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {keywordRanks.slice(0, 6).map((r) => {
+              const replayHref =
+                `/keywords?keyword=${encodeURIComponent(r.keyword)}` +
+                `&country=${r.country}&lang=${r.lang}&store=${r.store}&limit=${r.limit}`;
+              const storeTile =
+                r.store === "play" ? "tile-mint" : r.store === "ios" ? "tile-lilac" : "tile-blue";
+              const storeLabel =
+                r.store === "play" ? "Play Store" : r.store === "ios" ? "App Store" : "Both stores";
+              return (
+                <Link key={r.id} href={replayHref} className="group card-soft p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`w-11 h-11 rounded-xl ${storeTile} flex items-center justify-center`}>
+                      <Tag size={16} strokeWidth={1.85} />
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[0.15em] font-bold text-ink-faint">
+                      {r.country.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-[14px] font-semibold text-ink truncate">{r.keyword}</p>
+                  <p className="text-[11px] text-ink-muted truncate mt-1">
+                    {storeLabel} · top {r.limit}
+                  </p>
+                  {r.topResultTitle && (
+                    <p className="text-[11px] text-ink-faint truncate mt-1">
+                      #1: {r.topResultTitle}
+                    </p>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint">
+                    <span>Re-run</span>
+                    <span className="tabular-nums">{relativeTime(r.createdAt)}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* Apps */}
       <section className="mt-12">
         <div className="flex items-center justify-between mb-5">
@@ -353,7 +483,7 @@ export default function DashboardPage() {
           <ToolCard href="/features/screenshots" icon={ImageIcon} title="Screenshots" desc="Auto-generate store screenshots from your UI." status="soon" tile="tile-mint" />
           <ToolCard href="/features/reddit" icon={MessageSquare} title="Reddit Posts" desc="Subreddit-tuned launch posts that don't get nuked." status="soon" tile="tile-cream" />
           <ToolCard href="/competitor" icon={Target} title="Competitor Watch" desc="Find competitors, compare ratings, keywords, and char usage." status="live" tile="tile-rose" />
-          <ToolCard href="/features/keywords" icon={Tag} title="Keyword Research" desc="Volume, difficulty, and competitor coverage." status="soon" tile="tile-peach" />
+          <ToolCard href="/keywords" icon={Tag} title="Keyword Rank Checker" desc="See which apps rank for any keyword — Play Store + App Store, per country." status="live" tile="tile-peach" />
         </div>
       </section>
     </AppShell>

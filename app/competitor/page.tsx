@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
+import { proxiedIcon } from "@/lib/icon-proxy";
 import { useToast } from "@/components/shared/ToastProvider";
 import type {
   CompetitorAnalysisResult,
   CompetitorAppData,
   CompetitorInsight,
+  CompetitorRecord,
 } from "@/lib/types";
 import {
   ArrowRight,
@@ -26,15 +28,57 @@ import {
   ExternalLink,
   Wand2,
   Sparkles,
+  History,
+  Trash2,
 } from "lucide-react";
 
+type StoreFilter = "both" | "play" | "ios";
+
+const COUNTRIES: { code: string; label: string }[] = [
+  { code: "auto", label: "Auto (from URL)" },
+  { code: "us", label: "United States" },
+  { code: "in", label: "India" },
+  { code: "gb", label: "United Kingdom" },
+  { code: "de", label: "Germany" },
+  { code: "fr", label: "France" },
+  { code: "br", label: "Brazil" },
+  { code: "jp", label: "Japan" },
+  { code: "kr", label: "South Korea" },
+  { code: "au", label: "Australia" },
+  { code: "ca", label: "Canada" },
+];
+
+// Deterministic id from (url, country) so re-running the same target in a
+// different country saves as a distinct record. Same target + same country
+// overwrites the prior record.
+function competitorIdFor(url: string, country: string): string {
+  const key = `${url}|${country}`;
+  let h = 5381;
+  for (let i = 0; i < key.length; i++) {
+    h = ((h << 5) + h + key.charCodeAt(i)) | 0;
+  }
+  return `cmp_${(h >>> 0).toString(36)}`;
+}
+
 export default function CompetitorPage() {
-  const { user, loading: authLoading } = useAuth();
+  return (
+    <Suspense fallback={null}>
+      <CompetitorPageInner />
+    </Suspense>
+  );
+}
+
+function CompetitorPageInner() {
+  const { user, loading: authLoading, competitors, recordCompetitor, removeCompetitor } =
+    useAuth();
   const router = useRouter();
+  const search = useSearchParams();
   const { push } = useToast();
 
   const [appUrl, setAppUrl] = useState("");
   const [competitorUrls, setCompetitorUrls] = useState<string[]>([""]);
+  const [stores, setStores] = useState<StoreFilter>("both");
+  const [country, setCountry] = useState("auto");
   const [analysis, setAnalysis] = useState<CompetitorAnalysisResult | null>(null);
   const [running, setRunning] = useState(false);
 
@@ -42,31 +86,80 @@ export default function CompetitorPage() {
     if (!authLoading && !user) router.push("/auth?next=%2Fcompetitor");
   }, [user, authLoading, router]);
 
+  // Core run helper — pulled out so deep-link replay (?url=) can reuse it.
+  const runAnalysis = useCallback(
+    async (
+      url: string,
+      manual: string[],
+      storeFilter: StoreFilter,
+      countryFilter: string
+    ) => {
+      if (!url.trim()) return;
+      setRunning(true);
+      setAnalysis(null);
+      try {
+        const res = await fetch("/api/competitor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: url.trim(),
+            competitors: manual,
+            stores: storeFilter,
+            country: countryFilter,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+        const data = (await res.json()) as CompetitorAnalysisResult;
+        setAnalysis(data);
+
+        // Auto-record summary so it shows up on the dashboard + recent list.
+        const record: CompetitorRecord = {
+          id: competitorIdFor(url.trim(), countryFilter),
+          targetUrl: url.trim(),
+          targetTitle: data.target.title,
+          targetSource: data.target.source,
+          country: countryFilter,
+          competitorCount: data.competitors.length,
+          successfulCount: data.competitors.filter((c) => c.scrapeOk).length,
+          discoveryMode: data.discoveryMode,
+          createdAt: new Date().toISOString(),
+        };
+        recordCompetitor(record);
+      } catch (err) {
+        push(err instanceof Error ? err.message : "Analysis failed");
+      } finally {
+        setRunning(false);
+      }
+    },
+    [push, recordCompetitor]
+  );
+
+  // Deep-link replay: if /competitor?url=... is loaded, pre-fill and auto-run.
+  // Use a ref so we only fire once per query value.
+  const replayedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    const replay = search.get("url");
+    if (!replay) return;
+    const c = (search.get("country") ?? "auto").toLowerCase();
+    const replayKey = `${replay}|${c}`;
+    if (replayedRef.current === replayKey) return;
+    replayedRef.current = replayKey;
+    setAppUrl(replay);
+    setCountry(c);
+    runAnalysis(replay, [], stores, c);
+  }, [search, user, runAnalysis, stores]);
+
   if (authLoading || !user) return null;
 
   async function handleRun(e: React.FormEvent) {
     e.preventDefault();
     if (running || !appUrl.trim()) return;
-    setRunning(true);
-    setAnalysis(null);
-    try {
-      const competitors = competitorUrls.map((u) => u.trim()).filter(Boolean);
-      const res = await fetch("/api/competitor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: appUrl.trim(), competitors }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${res.status}`);
-      }
-      const data = (await res.json()) as CompetitorAnalysisResult;
-      setAnalysis(data);
-    } catch (err) {
-      push(err instanceof Error ? err.message : "Analysis failed");
-    } finally {
-      setRunning(false);
-    }
+    const manual = competitorUrls.map((u) => u.trim()).filter(Boolean);
+    await runAnalysis(appUrl, manual, stores, country);
   }
 
   function addCompetitorField() {
@@ -78,7 +171,7 @@ export default function CompetitorPage() {
     setCompetitorUrls((arr) => arr.map((v, i) => (i === idx ? value : v)));
   }
 
-  function removeCompetitor(idx: number) {
+  function removeCompetitorField(idx: number) {
     setCompetitorUrls((arr) => (arr.length === 1 ? [""] : arr.filter((_, i) => i !== idx)));
   }
 
@@ -109,16 +202,28 @@ export default function CompetitorPage() {
       }
     >
       {!analysis ? (
-        <InputForm
-          appUrl={appUrl}
-          setAppUrl={setAppUrl}
-          competitorUrls={competitorUrls}
-          updateCompetitor={updateCompetitor}
-          removeCompetitor={removeCompetitor}
-          addCompetitorField={addCompetitorField}
-          onSubmit={handleRun}
-          running={running}
-        />
+        <>
+          <InputForm
+            appUrl={appUrl}
+            setAppUrl={setAppUrl}
+            competitorUrls={competitorUrls}
+            updateCompetitor={updateCompetitor}
+            removeCompetitor={removeCompetitorField}
+            addCompetitorField={addCompetitorField}
+            stores={stores}
+            setStores={setStores}
+            country={country}
+            setCountry={setCountry}
+            onSubmit={handleRun}
+            running={running}
+          />
+          {competitors.length > 0 && (
+            <RecentAnalyses
+              records={competitors}
+              onDelete={removeCompetitor}
+            />
+          )}
+        </>
       ) : (
         <Results analysis={analysis} />
       )}
@@ -133,6 +238,10 @@ function InputForm({
   updateCompetitor,
   removeCompetitor,
   addCompetitorField,
+  stores,
+  setStores,
+  country,
+  setCountry,
   onSubmit,
   running,
 }: {
@@ -142,10 +251,19 @@ function InputForm({
   updateCompetitor: (i: number, v: string) => void;
   removeCompetitor: (i: number) => void;
   addCompetitorField: () => void;
+  stores: StoreFilter;
+  setStores: (s: StoreFilter) => void;
+  country: string;
+  setCountry: (c: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   running: boolean;
 }) {
   const filledCompetitors = competitorUrls.filter((u) => u.trim()).length;
+  const STORE_OPTIONS: { id: StoreFilter; label: string; hint: string }[] = [
+    { id: "both", label: "Both stores", hint: "3 from Play + 2 from App Store" },
+    { id: "play", label: "Play Store only", hint: "All 5 from Google Play" },
+    { id: "ios", label: "App Store only", hint: "All 5 from iTunes Search" },
+  ];
 
   return (
     <div className="max-w-3xl">
@@ -163,6 +281,57 @@ function InputForm({
           <p className="text-[12px] text-ink-faint mt-2">
             We&apos;ll fetch your listing, then find or compare competitors.
           </p>
+        </div>
+
+        <div>
+          <label className="eyebrow mb-3 block">
+            Which stores should competitors come from?
+          </label>
+          <p className="text-[12px] text-ink-muted mb-3 leading-relaxed">
+            Only affects auto-discovery. Pasting specific competitor URLs below
+            always uses those URLs verbatim regardless of this setting.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {STORE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setStores(opt.id)}
+                className={`text-left px-4 py-3 rounded-2xl border transition-all ${
+                  stores === opt.id
+                    ? "border-transparent text-white"
+                    : "border-line bg-cream-deep text-ink hover:border-ink-faint"
+                }`}
+                style={stores === opt.id ? { backgroundColor: "#2563EB" } : undefined}
+              >
+                <div className="text-[13px] font-semibold">{opt.label}</div>
+                <div className={`text-[11px] mt-0.5 ${stores === opt.id ? "text-white/85" : "text-ink-muted"}`}>
+                  {opt.hint}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="eyebrow mb-3 block">Country / region</label>
+          <p className="text-[12px] text-ink-muted mb-3 leading-relaxed">
+            Auto-discovery returns whichever apps rank in this market. &ldquo;Auto&rdquo;
+            uses the country embedded in your app URL (e.g. <code className="bg-cream-deep px-1.5 py-0.5 rounded text-[11px]">/in/app/...</code> →
+            India). Pick a specific country to override — e.g. running an
+            Indian-market analysis from a <code className="bg-cream-deep px-1.5 py-0.5 rounded text-[11px]">/us/app/...</code> URL.
+          </p>
+          <select
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="w-full px-5 py-3.5 rounded-full bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink transition-colors appearance-none cursor-pointer"
+          >
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -255,6 +424,114 @@ function InputForm({
       </div>
     </div>
   );
+}
+
+function RecentAnalyses({
+  records,
+  onDelete,
+}: {
+  records: CompetitorRecord[];
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <section className="mt-10">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-10 h-10 rounded-xl tile-blue flex items-center justify-center">
+          <History size={16} strokeWidth={1.85} />
+        </div>
+        <div>
+          <p className="eyebrow">History</p>
+          <h2
+            className="text-[22px] font-semibold tracking-[-0.01em]"
+            style={{ color: "#0B3D7A" }}
+          >
+            Your recent analyses
+          </h2>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {records.slice(0, 9).map((r) => {
+          const replayHref =
+            `/competitor?url=${encodeURIComponent(r.targetUrl)}` +
+            `&country=${r.country ?? "auto"}`;
+          const modeTile =
+            r.discoveryMode === "auto"
+              ? "tile-lilac"
+              : r.discoveryMode === "manual"
+                ? "tile-mint"
+                : "tile-cream";
+          return (
+            <div key={r.id} className="card-soft p-5 group relative">
+              <Link href={replayHref} className="block">
+                <div className="flex items-start justify-between mb-3">
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-[0.1em] ${modeTile}`}
+                  >
+                    {r.discoveryMode}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] font-bold text-ink-faint">
+                    {r.targetSource === "ios" ? (
+                      <Apple size={11} strokeWidth={1.85} />
+                    ) : r.targetSource === "play" ? (
+                      <Smartphone size={11} strokeWidth={1.85} />
+                    ) : (
+                      <Globe size={11} strokeWidth={1.85} />
+                    )}
+                    {r.targetSource === "ios"
+                      ? "App Store"
+                      : r.targetSource === "play"
+                        ? "Play Store"
+                        : "Unknown"}
+                  </span>
+                </div>
+
+                <p className="text-[15px] font-semibold text-ink truncate">
+                  {r.targetTitle ?? "Untitled listing"}
+                </p>
+                <p className="text-[11px] text-ink-faint truncate mt-0.5 font-mono">
+                  {r.targetUrl}
+                </p>
+
+                <div className="mt-4 pt-3 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint">
+                  <span>
+                    {r.successfulCount}/{r.competitorCount} scraped
+                    {r.country && r.country !== "auto" && (
+                      <> · {r.country.toUpperCase()}</>
+                    )}
+                  </span>
+                  <span className="tabular-nums">{relativeTime(r.createdAt)}</span>
+                </div>
+              </Link>
+
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  onDelete(r.id);
+                }}
+                aria-label="Delete analysis"
+                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-ink-faint hover:text-warn hover:bg-warn/5"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function relativeTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
 }
 
 function BenefitTile({ tile, title, desc }: { tile: string; title: string; desc: string }) {
@@ -423,18 +700,22 @@ function StoreIcon({ source }: { source: CompetitorAppData["source"] }) {
 }
 
 function AppCard({ data, highlight }: { data: CompetitorAppData; highlight?: boolean }) {
+  const [iconBroken, setIconBroken] = useState(false);
+  const iconSrc = proxiedIcon(data.iconUrl);
+  const showIcon = iconSrc && !iconBroken;
   return (
     <div
       className={`card-soft p-6 ${highlight ? "ring-2" : ""}`}
       style={highlight ? { boxShadow: "0 0 0 2px #2563EB" } : undefined}
     >
       <div className="flex items-start gap-3 mb-4">
-        {data.iconUrl ? (
+        {showIcon ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={data.iconUrl}
-            alt={data.title || "app icon"}
-            className="w-12 h-12 rounded-xl shrink-0 bg-cream-deep"
+            src={iconSrc}
+            alt=""
+            onError={() => setIconBroken(true)}
+            className="w-12 h-12 rounded-xl shrink-0 bg-cream-deep object-cover"
           />
         ) : (
           <div className="w-12 h-12 rounded-xl tile-blue flex items-center justify-center shrink-0 font-bold text-[16px]">
