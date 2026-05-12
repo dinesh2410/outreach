@@ -5,12 +5,91 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PublicNav } from "@/components/shared/PublicNav";
 import { Footer } from "@/components/shared/Footer";
+import { AppShell } from "@/components/shared/AppShell";
 import { calculateScore } from "@/lib/score";
 import { useAuth } from "@/lib/auth";
 import type { ScoreResult } from "@/lib/types";
 import { ArrowRight, Sparkles, CheckCircle2, AlertCircle, RotateCcw, FileText } from "lucide-react";
 
+// Top-level dispatcher: signed-in visitors get the in-app shell (matches the
+// Competitor Watch / Keyword Research entry points); everyone else gets the
+// public marketing landing with PublicNav + hero + CTA. The audit form +
+// result card are identical between the two — only the chrome differs.
 export default function ScorePage() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <ScorePageAuthed /> : <ScorePagePublic />;
+}
+
+function ScorePageAuthed() {
+  const [url, setUrl] = useState("");
+  const [result, setResult] = useState<ScoreResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!url.trim() || submitting) return;
+    setSubmitting(true);
+    setTimeout(() => {
+      setResult(calculateScore(url.trim()));
+      setSubmitting(false);
+    }, 350);
+  }
+
+  function handleReset() {
+    setResult(null);
+    setUrl("");
+  }
+
+  return (
+    <AppShell
+      eyebrow="Tools · ASO Score"
+      title={result ? `Grade ${result.grade} · ${result.score}/100` : "Audit any listing"}
+      description={
+        result
+          ? "Quick check below. Open the detailed report for the full per-check breakdown, listing snapshot, and recommended fixes."
+          : "Drop your App Store or Play Store URL — we'll score it 0–100 against the ASO playbook and tell you exactly what to fix next."
+      }
+    >
+      <div className="max-w-3xl">
+        <form onSubmit={handleSubmit} className="card-soft p-7 mb-6">
+          <label className="eyebrow mb-3 block">Listing URL</label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              required
+              placeholder="https://apps.apple.com/… or https://play.google.com/store/apps/details?id=…"
+              className="flex-1 px-5 py-3.5 rounded-full bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-3.5 rounded-full bg-ink text-white text-[14px] font-medium hover:bg-night-soft transition-colors inline-flex items-center justify-center gap-2 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Scoring…" : "Score it"}
+              {!submitting && <ArrowRight size={14} />}
+            </button>
+          </div>
+          <p className="text-[12px] text-ink-faint mt-2">
+            Deterministic score based on the URL — same input always returns the same audit.
+          </p>
+        </form>
+
+        <div className="card-soft p-7">
+          {!result ? (
+            <EmptyAudit />
+          ) : (
+            <FilledAudit result={result} url={url} onReset={handleReset} />
+          )}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+function ScorePagePublic() {
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
