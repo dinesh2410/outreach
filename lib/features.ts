@@ -78,13 +78,13 @@ export const FEATURES: Feature[] = [
   },
   {
     slug: "competitor",
-    name: "Competitor Analysis",
-    tagline: "Side-by-side comparison",
+    name: "Competitor Watch",
+    tagline: "Find and analyze competitors",
     description:
-      "Paste your app and a competitor URL. Get a side-by-side comparison of listings.",
+      "Paste your app URL — we'll auto-discover competitors (or use the ones you list) and give you a side-by-side breakdown with ratings, primary keywords, and overlap.",
     icon: BarChart3,
-    status: "soon",
-    href: "/features/competitor",
+    status: "live",
+    href: "/competitor",
   },
   {
     slug: "keywords",

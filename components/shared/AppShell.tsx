@@ -56,7 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/score", label: "ASO Score", icon: Sparkles },
       { href: "/features/screenshots", label: "Screenshots", icon: ImageIcon, status: "soon" },
       { href: "/features/reddit", label: "Reddit Posts", icon: MessageSquare, status: "soon" },
-      { href: "/features/competitor", label: "Competitor Watch", icon: Target, status: "soon" },
+      { href: "/competitor", label: "Competitor Watch", icon: Target },
       { href: "/features/keywords", label: "Keyword Research", icon: Tag, status: "soon" },
     ],
   },

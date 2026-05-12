@@ -24,6 +24,16 @@ export interface StoreListing {
   shortDesc?: string;
   subtitle?: string;
   fullDesc?: string;
+  // Extended fields populated when available — best-effort only.
+  rating?: number;          // 0–5
+  ratingCount?: number;     // total ratings collected
+  developer?: string;
+  genre?: string;
+  iconUrl?: string;
+  screenshotUrls?: string[];
+  appId?: string;           // bundle id (Play) or trackId (iOS)
+  lastUpdated?: string;     // ISO date when available
+  price?: string;           // formatted price ("Free", "$2.99")
 }
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -101,14 +111,8 @@ function parsePlayStore(html: string, url: string): StoreListing {
     (typeof ld?.name === "string" ? ld.name : undefined) ??
     meta(html, "og:title")?.replace(/ - Apps on Google Play$/, "").trim();
 
-  // Short description: the meta name="description" tag is set to the 80-char
-  // Play "short description" field.
   const shortDesc = meta(html, "description")?.trim();
 
-  // Full description: prefer the rendered <div data-g-id="description"> block.
-  // Walk depth-tracked closing div so nested elements don't truncate the body.
-  // Fall back to JSON-LD description only if it's clearly longer than the
-  // short — Google often puts the *short* description in JSON-LD.
   const fromDom = extractMatchingDiv(html, /<div[^>]+data-g-id=["']description["'][^>]*>/i);
   let fullDesc: string | undefined;
   if (fromDom) {
@@ -117,13 +121,60 @@ function parsePlayStore(html: string, url: string): StoreListing {
   if (!fullDesc && typeof ld?.description === "string") {
     fullDesc = ld.description.trim();
   }
-  // If the candidate "full" description is the same as (or shorter than) the
-  // short description, treat it as the short and leave full unset.
   if (fullDesc && shortDesc && fullDesc.length <= shortDesc.length + 5) {
     fullDesc = undefined;
   }
 
-  return { source: "play", url, title, shortDesc, fullDesc };
+  // Extended fields from JSON-LD
+  let rating: number | undefined;
+  let ratingCount: number | undefined;
+  const agg = ld?.aggregateRating as Record<string, unknown> | undefined;
+  if (agg) {
+    const rv = Number(agg.ratingValue);
+    const rc = Number(agg.ratingCount ?? agg.reviewCount);
+    if (Number.isFinite(rv)) rating = rv;
+    if (Number.isFinite(rc)) ratingCount = rc;
+  }
+  const author = ld?.author as Record<string, unknown> | undefined;
+  const developer = typeof author?.name === "string" ? (author.name as string) : undefined;
+  const genre =
+    typeof ld?.applicationCategory === "string"
+      ? humanizeGenre(ld.applicationCategory as string)
+      : undefined;
+  const iconUrl =
+    typeof ld?.image === "string"
+      ? (ld.image as string)
+      : (ld?.image as Record<string, unknown> | undefined)?.url as string | undefined;
+
+  let appId: string | undefined;
+  try {
+    appId = new URL(url).searchParams.get("id") ?? undefined;
+  } catch {
+    /* noop */
+  }
+
+  return {
+    source: "play",
+    url,
+    title,
+    shortDesc,
+    fullDesc,
+    rating,
+    ratingCount,
+    developer,
+    genre,
+    iconUrl,
+    appId,
+  };
+}
+
+function humanizeGenre(raw: string): string {
+  // "EDUCATION" → "Education", "HEALTH_AND_FITNESS" → "Health and fitness"
+  return raw
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bAnd\b/g, "and");
 }
 
 // Find a tag matching `openRe` and return the substring between its opening
@@ -184,11 +235,87 @@ async function fetchAppStoreViaLookup(url: string): Promise<StoreListing | null>
     const data = await res.json();
     const item = Array.isArray(data?.results) && data.results[0];
     if (!item) return null;
-    const title = typeof item.trackName === "string" ? item.trackName : undefined;
-    const fullDesc = typeof item.description === "string" ? item.description : undefined;
-    return { source: "ios", url, title, fullDesc };
+    return iTunesItemToListing(url, item);
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function iTunesItemToListing(url: string, item: Record<string, unknown>): StoreListing {
+  const title = typeof item.trackName === "string" ? item.trackName : undefined;
+  const fullDesc = typeof item.description === "string" ? item.description : undefined;
+  const rating =
+    typeof item.averageUserRating === "number" ? Math.round(item.averageUserRating * 10) / 10 : undefined;
+  const ratingCount = typeof item.userRatingCount === "number" ? item.userRatingCount : undefined;
+  const developer = typeof item.artistName === "string" ? item.artistName : undefined;
+  const genre = typeof item.primaryGenreName === "string" ? item.primaryGenreName : undefined;
+  const iconUrl =
+    typeof item.artworkUrl512 === "string"
+      ? item.artworkUrl512
+      : typeof item.artworkUrl100 === "string"
+        ? item.artworkUrl100
+        : undefined;
+  const screenshotUrls = Array.isArray(item.screenshotUrls)
+    ? (item.screenshotUrls as string[])
+    : undefined;
+  const appId = typeof item.trackId === "number" ? String(item.trackId) : undefined;
+  const lastUpdated =
+    typeof item.currentVersionReleaseDate === "string" ? item.currentVersionReleaseDate : undefined;
+  const price = typeof item.formattedPrice === "string" ? item.formattedPrice : undefined;
+
+  return {
+    source: "ios",
+    url,
+    title,
+    fullDesc,
+    rating,
+    ratingCount,
+    developer,
+    genre,
+    iconUrl,
+    screenshotUrls,
+    appId,
+    lastUpdated,
+    price,
+  };
+}
+
+// iTunes Search API — used for competitor auto-discovery.
+// `https://itunes.apple.com/search?term={kw}&entity=software&country={cc}&limit=N`
+export async function searchAppStore(
+  term: string,
+  options: { country?: string; limit?: number; genreId?: string } = {}
+): Promise<StoreListing[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const search = new URL("https://itunes.apple.com/search");
+    search.searchParams.set("term", term);
+    search.searchParams.set("entity", "software");
+    search.searchParams.set("country", options.country ?? "us");
+    search.searchParams.set("limit", String(options.limit ?? 10));
+    if (options.genreId) search.searchParams.set("genreId", options.genreId);
+
+    const res = await fetch(search.toString(), {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items = Array.isArray(data?.results) ? data.results : [];
+    return items
+      .filter((item: Record<string, unknown>) => typeof item.trackId === "number")
+      .map((item: Record<string, unknown>) =>
+        iTunesItemToListing(
+          `https://apps.apple.com/${options.country ?? "us"}/app/id${item.trackId}`,
+          item
+        )
+      );
+  } catch {
+    return [];
   } finally {
     clearTimeout(timeout);
   }

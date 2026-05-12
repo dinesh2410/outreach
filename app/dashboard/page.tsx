@@ -352,7 +352,7 @@ export default function DashboardPage() {
           <ToolCard href="/score" icon={Sparkles} title="ASO Score" desc="Audit any listing against the ASO playbook." status="live" tile="tile-lilac" />
           <ToolCard href="/features/screenshots" icon={ImageIcon} title="Screenshots" desc="Auto-generate store screenshots from your UI." status="soon" tile="tile-mint" />
           <ToolCard href="/features/reddit" icon={MessageSquare} title="Reddit Posts" desc="Subreddit-tuned launch posts that don't get nuked." status="soon" tile="tile-cream" />
-          <ToolCard href="/features/competitor" icon={Target} title="Competitor Watch" desc="Track competitor listings, ratings, and updates." status="soon" tile="tile-rose" />
+          <ToolCard href="/competitor" icon={Target} title="Competitor Watch" desc="Find competitors, compare ratings, keywords, and char usage." status="live" tile="tile-rose" />
           <ToolCard href="/features/keywords" icon={Tag} title="Keyword Research" desc="Volume, difficulty, and competitor coverage." status="soon" tile="tile-peach" />
         </div>
       </section>

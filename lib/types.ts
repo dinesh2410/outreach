@@ -96,6 +96,42 @@ export interface AuditRecord {
   createdAt: string;
 }
 
+// Competitor Watch — analysis of one app + N competitors.
+export interface CompetitorAppData {
+  url: string;
+  source: "play" | "ios" | null;
+  scrapeOk: boolean;
+  title?: string;
+  developer?: string;
+  genre?: string;
+  iconUrl?: string;
+  rating?: number;
+  ratingCount?: number;
+  appId?: string;
+  primaryKeyword?: { word: string; count: number };
+  secondaryKeywords: { word: string; count: number }[];
+  titleLength: number;
+  shortDescLength: number;
+  fullDescLength: number;
+  shortDesc?: string;
+  lastUpdated?: string;
+  price?: string;
+}
+
+export interface CompetitorInsight {
+  label: string;
+  detail: string;
+  tone: "positive" | "warning" | "neutral";
+}
+
+export interface CompetitorAnalysisResult {
+  target: CompetitorAppData;
+  competitors: CompetitorAppData[];
+  insights: CompetitorInsight[];
+  discoveryMode: "manual" | "auto" | "mixed";
+  keywordOverlap: { word: string; competitorsCount: number; targetHas: boolean }[];
+}
+
 export interface KeywordResult {
   word: string;
   count: number;
