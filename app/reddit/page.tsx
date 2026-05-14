@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
@@ -67,7 +67,17 @@ const TAG_META = {
   },
 } as const;
 
+// Suspense boundary around the inner component so useSearchParams() doesn't
+// bail out static generation at build time. Same pattern as /keywords.
 export default function RedditPage() {
+  return (
+    <Suspense fallback={null}>
+      <RedditPageInner />
+    </Suspense>
+  );
+}
+
+function RedditPageInner() {
   const {
     user,
     loading: authLoading,
