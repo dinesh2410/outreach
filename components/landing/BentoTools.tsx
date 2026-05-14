@@ -135,28 +135,28 @@ type Mini = {
   color: string;
 };
 
-const ROADMAP: Mini[] = [
+const ALSO_LIVE: Mini[] = [
   {
     icon: MessageSquare,
-    title: "Reddit Replies",
-    desc: "Find threads in your category and draft contextual replies.",
-    href: "/features/reddit",
+    title: "Reddit Demand",
+    desc: "Check if people on Reddit are asking for your idea before you build.",
+    href: "/reddit",
     tile: "tile-cream",
     color: "#8A5A00",
   },
   {
     icon: BarChart3,
-    title: "Competitor Analysis",
-    desc: "Side-by-side comparison of any two store listings.",
-    href: "/features/competitor",
+    title: "Competitor Watch",
+    desc: "Auto-discover competitors and compare ratings, keywords, char usage.",
+    href: "/competitor",
     tile: "tile-rose",
     color: "#B0274F",
   },
   {
     icon: Key,
     title: "Keyword Research",
-    desc: "Discover and track keywords for your category.",
-    href: "/features/keywords",
+    desc: "Live Play Store + App Store rank for any keyword, per country.",
+    href: "/keywords",
     tile: "tile-peach",
     color: "#9E4A0F",
   },
@@ -232,11 +232,11 @@ export function BentoTools() {
           ))}
         </div>
 
-        {/* Roadmap row (smaller cards) */}
+        {/* Also-live row (smaller cards) — three tools that complement the two main ones */}
         <div className="mt-16">
-          <p className="eyebrow mb-6 text-center">Also on the roadmap</p>
+          <p className="eyebrow mb-6 text-center">Also in the workspace</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {ROADMAP.map((r) => {
+            {ALSO_LIVE.map((r) => {
               const Icon = r.icon;
               return (
                 <Link key={r.title} href={r.href} className="group card-soft p-5">
@@ -250,8 +250,11 @@ export function BentoTools() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="text-[14px] font-semibold text-ink">{r.title}</h4>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-[0.1em] bg-cream-deep text-ink-muted">
-                          Soon
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-[0.1em] text-white"
+                          style={{ backgroundColor: "#10B981" }}
+                        >
+                          Live
                         </span>
                       </div>
                     </div>

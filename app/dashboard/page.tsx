@@ -497,13 +497,13 @@ export default function DashboardPage() {
           <h2 className="text-[22px] font-semibold tracking-[-0.01em]" style={{ color: "#0B3D7A" }}>
             Tools
           </h2>
-          <span className="text-[13px] text-ink-faint">2 live · 4 coming</span>
+          <span className="text-[13px] text-ink-faint">5 live · 1 coming</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <ToolCard href="/generator" icon={Wand2} title="ASO Generator" desc="Three angle variants per platform from one brief." status="live" tile="tile-blue" />
           <ToolCard href="/score" icon={Sparkles} title="ASO Score" desc="Audit any listing against the ASO playbook." status="live" tile="tile-lilac" />
           <ToolCard href="/features/screenshots" icon={ImageIcon} title="Screenshots" desc="Auto-generate store screenshots from your UI." status="soon" tile="tile-mint" />
-          <ToolCard href="/features/reddit" icon={MessageSquare} title="Reddit Posts" desc="Subreddit-tuned launch posts that don't get nuked." status="soon" tile="tile-cream" />
+          <ToolCard href="/reddit" icon={MessageSquare} title="Reddit Demand" desc="Validate your idea against Reddit posts asking for it." status="live" tile="tile-cream" />
           <ToolCard href="/competitor" icon={Target} title="Competitor Watch" desc="Find competitors, compare ratings, keywords, and char usage." status="live" tile="tile-rose" />
           <ToolCard href="/keywords" icon={Tag} title="Keyword Rank Checker" desc="See which apps rank for any keyword — Play Store + App Store, per country." status="live" tile="tile-peach" />
         </div>

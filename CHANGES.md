@@ -199,6 +199,65 @@ Replaced the broken Upstash Redis auth with Firebase Auth + Firestore persistenc
 
 ---
 
+## Session — 2026-05-13 (ASO scorer + generator rewrite from top-app corpus)
+
+Replaced the fake `charSum%45` score in `lib/score.ts` with 17 listing-based checks driven by patterns extracted from 20 top Play Store apps (Google, Microsoft, Spotify, Duolingo, etc.).
+
+**New checks**: title length/format, shortDesc verb-lead, hook opener pattern (one of three), • bullet char, Title-Case section labels, paragraph ≤4 sentences, benefit keyword coverage, no Download-now closing, emoji/exclamation discipline, brand repetition 3–8×.
+
+`/api/audit` now passes the scraped listing to the scorer. Marketing `/score` page now calls `/api/audit` for real scores instead of URL hash.
+
+Generator prompt (`app/api/generate/prompt.ts`) rewritten: bullets forced to •, hook opener locked to one of three patterns, ALL-CAPS headers dropped in favor of Title-Case labels, fullDesc target reduced to 2000–3000 chars (median 2539), pain-question openers forbidden, benefit lexicon provided.
+
+**Sanity-checked**: Outlook scores 100/A, Gmail 95/A, Spotify 85/A, Chrome 64/C (correctly — Chrome has brand power, indie copying it would lose discoverability).
+
+---
+
+## Session — 2026-05-14 (Reddit Demand tool + hero dashboard pic + link audit)
+
+### Reddit Demand validation tool
+- New `/reddit` page in `AppShell`. User pastes an app idea → platform analyzes idea and surfaces Reddit posts where people are asking for, complaining about, or discussing that kind of app.
+- Two-stage Gemini flow:
+  1. **Plan** (`app/api/reddit/schema.ts`): extracts `problem`, `audience`, `primaryKeywords`, `subreddits`, `demandQueries` — each demand query is a Reddit-ready search string targeting demand signals ("is there an app", "wish there was", "alternative to", etc.).
+  2. **Rank**: feeds top ~40 engagement-sorted posts to Gemini → returns `brief`, `demandScore` (0–100), `demandLabel`, `topThemes`, and up to 20 tagged `selectedPosts` (request / complaint / discussion).
+- `lib/reddit.ts` — public JSON API client (`reddit.com/search.json`, no auth). Parallel multi-query, dedupes by post id, strips NSFW, tolerant of partial failure.
+- Persistence: `RedditAnalysisRecord` → `/users/{uid}/redditAnalyses/{id}`. Id is djb2 hash of the idea text so re-running the same idea updates rather than duplicates. Full payload saved as `snapshot` for replay.
+
+### Reddit page UI — Reddit-shaped, not report-shaped
+- First pass had a giant circular score ring + report-style stat cards + brief panel + themes strip + grouped "Why it matters" boxes + a "How we searched" 3-column grid. User feedback: "I don't want it like a report, I want it like Reddit posts."
+- Rewritten as a Reddit feed:
+  - One-line verdict header — colored score chip + label + post count, brief flows underneath as prose
+  - Sticky filter pills: All · Asking for it · Complaining · Talking about it (with counts)
+  - Reddit-style post tiles — vote arrow + count on left rail (Reddit-orange `#FF4500` for ≥1K upvotes), `r/sub · u/author · time-ago` meta, large title in dark with hover lift, 3-line body excerpt, italic margin-note insight with left border, footer with comment count + "Open on Reddit"
+  - Single-line footer: `Searched r/X, r/Y, r/Z using 6 demand queries.`
+
+### Hero — replaced fake mosaic with real dashboard
+- The old Hero right column was a hand-drawn mock (Generate/Library/Score sidebar with placeholder bars).
+- Captured the real signed-in `/dashboard` via headless Chrome over CDP (`scripts/grab-dashboard.mjs`). Hidden scrollbars with `Emulation.setScrollbarsHidden` + injected CSS so the gutter doesn't bake into the PNG.
+- Filename versioned as `public/hero/dashboard-v2.png` to bust the Next.js image-optimizer cache when re-grabbing.
+- Hero right column is now a rounded card with a mac-style chrome bar (`outreach / dashboard`) + the dashboard `<Image>` + a single floating ASO Score card overlapping the bottom-left for depth.
+
+### Link audit — fixed orphaned `/features/*` routes
+- `/features/[slug]` is a "Coming soon" stub route; `notFound()` fires when the feature's status is `live`. So any link pointing to `/features/competitor` or `/features/keywords` was already returning 404 (those tools are live at `/competitor` and `/keywords`).
+- Found and fixed:
+  - Dashboard `ToolCard` for Reddit was `Soon` → `/features/reddit`. Now `Live` → `/reddit`.
+  - `components/landing/BentoTools.tsx` `ROADMAP` row pointed all three items to `/features/*` stubs (which 404'd). Renamed to `ALSO_LIVE`, repointed to live routes, badges changed from "Soon" to "Live".
+  - `lib/features.ts` Reddit entry flipped to `status: "live"`, `href: "/reddit"`. Cascades through the nav `Features ▾` dropdown and `/features` index page.
+- Sidebar `Screenshots · Soon` entry kept as-is (still legitimately not built).
+- Verified zero remaining references to `/features/reddit`, `/features/competitor`, `/features/keywords` anywhere in the codebase. The 404s on those URLs are now intentional dead URLs.
+
+### Wiring extras
+- Reddit analyses added to history timeline (`/history`) with `tile-lilac` and new filter chip.
+- Global search (`AppShell.tsx`) indexes Reddit analyses → searchable by idea text + demand score.
+- Firestore rule for `/redditAnalyses/{analysisId}` added — **user must republish** via Firebase Console.
+
+### Smoke test
+- All page routes return 200 except the three intentionally-orphaned `/features/{reddit,competitor,keywords}` stubs (404 by design).
+- All API endpoints validate input (400 on bad payload, 200 on valid).
+- `POST /api/reddit` with ADHD habit tracker idea returned `demandScore: 75 · High`, 15 relevant posts, brief correctly identifying "rigid streak-based apps fail for ADHD".
+
+---
+
 ## Pending — from the design audit
 
 Not yet acted on. Listed in priority order so we can come back to them.
