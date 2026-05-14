@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Sparkles, FileText, TrendingUp, Search } from "lucide-react";
+import Image from "next/image";
+import { Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export function Hero() {
@@ -65,75 +66,32 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Right column — layered product UI mosaic */}
-        <div className="relative h-[480px] lg:h-[560px]">
-          {/* Base app shell card */}
+        {/* Right column — real product dashboard */}
+        <div className="relative">
           <div
-            className="absolute top-0 left-0 right-0 bottom-8 rounded-2xl bg-white shadow-[0_30px_60px_-30px_rgba(11,61,122,0.35)] border border-white animate-fade-up"
+            className="relative rounded-2xl bg-white shadow-[0_30px_60px_-30px_rgba(11,61,122,0.45)] border border-white overflow-hidden animate-fade-up"
             style={{ animationDelay: "0.4s" }}
           >
-            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-line-soft">
+            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-line-soft bg-white">
               <span className="w-2.5 h-2.5 rounded-full bg-line" />
               <span className="w-2.5 h-2.5 rounded-full bg-line" />
               <span className="w-2.5 h-2.5 rounded-full bg-line" />
+              <span className="ml-3 text-[11px] text-ink-faint truncate">outreach / dashboard</span>
             </div>
-            <div className="grid grid-cols-[140px_1fr] h-[calc(100%-44px)]">
-              <aside className="border-r border-line-soft p-4 space-y-1">
-                {[
-                  { i: <Sparkles size={14} />, l: "Generate", a: true },
-                  { i: <FileText size={14} />, l: "Library" },
-                  { i: <Search size={14} />, l: "Score" },
-                  { i: <TrendingUp size={14} />, l: "Insights" },
-                ].map((row, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] ${
-                      row.a ? "bg-accent-band text-accent-ink font-medium" : "text-ink-muted"
-                    }`}
-                  >
-                    {row.i}
-                    <span>{row.l}</span>
-                  </div>
-                ))}
-                <div className="mt-6 pt-4 border-t border-line-soft text-[10px] uppercase tracking-wider text-ink-faint">
-                  Recent
-                </div>
-                <div className="space-y-2 mt-2">
-                  {["Habit Tracker", "Snapnote", "Rivvy"].map((n) => (
-                    <div key={n} className="text-[12px] text-ink-muted truncate">
-                      {n}
-                    </div>
-                  ))}
-                </div>
-              </aside>
-              <main className="p-5">
-                <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#0B3D7A" }}>
-                  Generated · Conversion
-                </div>
-                <div className="mt-2 text-[18px] font-semibold text-ink leading-snug">
-                  Build habits that actually stick.
-                </div>
-                <div className="mt-3 space-y-1.5">
-                  <div className="h-2 rounded bg-line-soft w-[92%]" />
-                  <div className="h-2 rounded bg-line-soft w-[88%]" />
-                  <div className="h-2 rounded bg-line-soft w-[78%]" />
-                  <div className="h-2 rounded bg-line-soft w-[68%]" />
-                </div>
-                <div className="mt-5 flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-ink-faint">Score</span>
-                  <div className="flex-1 h-1.5 bg-line-soft rounded-full overflow-hidden">
-                    <div className="h-full rounded-full w-[82%]" style={{ backgroundColor: "#2563EB" }} />
-                  </div>
-                  <span className="text-[11px] font-semibold" style={{ color: "#0B3D7A" }}>82</span>
-                </div>
-              </main>
-            </div>
+            <Image
+              src="/hero/dashboard-v2.png"
+              alt="Outreach dashboard"
+              width={1600}
+              height={1000}
+              priority
+              className="block w-full h-auto"
+            />
           </div>
 
-          {/* Floating card 1 — Score ring */}
+          {/* Floating ASO Score accent */}
           <div
-            className="absolute top-4 -left-4 lg:left-4 w-[180px] rounded-2xl bg-white shadow-[0_20px_40px_-20px_rgba(11,61,122,0.4)] border border-white p-4 animate-drift"
-            style={{ animationDelay: "0.6s" }}
+            className="hidden sm:block absolute -bottom-6 -left-4 lg:-left-6 w-[180px] rounded-2xl bg-white shadow-[0_20px_40px_-20px_rgba(11,61,122,0.4)] border border-white p-4 animate-drift"
+            style={{ animationDelay: "0.7s" }}
           >
             <div className="flex items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg bg-lilac flex items-center justify-center">
@@ -148,72 +106,6 @@ export function Hero() {
             <div className="mt-3 h-1.5 bg-line-soft rounded-full overflow-hidden">
               <div className="h-full rounded-full w-[87%]" style={{ backgroundColor: "#2563EB" }} />
             </div>
-          </div>
-
-          {/* Floating card 2 — Keyword chip cluster */}
-          <div
-            className="absolute top-44 -right-6 lg:right-0 w-[220px] rounded-2xl bg-white shadow-[0_20px_40px_-20px_rgba(11,61,122,0.4)] border border-white p-4"
-            style={{ animation: "drift 7s ease-in-out infinite 0.5s" }}
-          >
-            <div className="text-[11px] uppercase tracking-wider text-ink-faint mb-2">
-              Trending keywords
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { l: "habit tracker", w: true },
-                { l: "daily streak", w: false },
-                { l: "minimalist", w: false },
-                { l: "offline", w: true },
-                { l: "widgets", w: false },
-              ].map((k) => (
-                <span
-                  key={k.l}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${
-                    k.w
-                      ? "text-white"
-                      : "bg-cream-deep text-ink"
-                  }`}
-                  style={k.w ? { backgroundColor: "#2563EB" } : undefined}
-                >
-                  {k.l}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Floating card 3 — Variant card */}
-          <div
-            className="absolute bottom-0 left-8 lg:left-24 w-[240px] rounded-2xl bg-white shadow-[0_20px_40px_-20px_rgba(11,61,122,0.4)] border border-white overflow-hidden"
-            style={{ animation: "drift 6.5s ease-in-out infinite 0.3s" }}
-          >
-            <div className="px-4 py-3 border-b border-line-soft flex items-center justify-between">
-              <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#0B3D7A" }}>
-                Brand variant
-              </span>
-              <span className="w-2 h-2 rounded-full animate-pulse-dot" style={{ backgroundColor: "#10B981" }} />
-            </div>
-            <div className="p-4">
-              <div className="text-[14px] font-semibold text-ink leading-snug">
-                Snapnote — capture, sort, forget.
-              </div>
-              <div className="mt-2 space-y-1">
-                <div className="h-1.5 rounded bg-line-soft w-full" />
-                <div className="h-1.5 rounded bg-line-soft w-[80%]" />
-                <div className="h-1.5 rounded bg-line-soft w-[60%]" />
-              </div>
-            </div>
-          </div>
-
-          {/* Floating card 4 — Cursor pointer */}
-          <div
-            className="absolute top-32 right-12 lg:right-24 animate-drift"
-            style={{ animationDelay: "0.8s" }}
-          >
-            <ArrowUpRight
-              size={18}
-              className="text-ink rotate-[200deg]"
-              strokeWidth={2.5}
-            />
           </div>
         </div>
       </div>
