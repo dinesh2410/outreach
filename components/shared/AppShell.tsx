@@ -30,6 +30,7 @@ import type {
   AuditRecord,
   CompetitorRecord,
   KeywordRankRecord,
+  RedditAnalysisRecord,
 } from "@/lib/types";
 
 // --- nav model -----------------------------------------------------------
@@ -61,7 +62,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/generator", label: "ASO Generator", icon: Wand2 },
       { href: "/score", label: "ASO Score", icon: Sparkles },
       { href: "/features/screenshots", label: "Screenshots", icon: ImageIcon, status: "soon" },
-      { href: "/features/reddit", label: "Reddit Posts", icon: MessageSquare, status: "soon" },
+      { href: "/reddit", label: "Reddit Demand", icon: MessageSquare },
       { href: "/competitor", label: "Competitor Watch", icon: Target },
       { href: "/keywords", label: "Keyword Research", icon: Tag },
     ],
@@ -273,7 +274,7 @@ type SearchHit = {
   href: string;
   title: string;
   subtitle: string;
-  group: "Apps" | "History" | "Library" | "Audits" | "Competitors" | "Keywords" | "Pages";
+  group: "Apps" | "History" | "Library" | "Audits" | "Competitors" | "Keywords" | "Reddit" | "Pages";
   icon: typeof FileText;
 };
 
@@ -283,7 +284,8 @@ function buildHits(
   apps: AppEntry[],
   audits: AuditRecord[],
   competitors: CompetitorRecord[],
-  keywordRanks: KeywordRankRecord[]
+  keywordRanks: KeywordRankRecord[],
+  redditAnalyses: RedditAnalysisRecord[]
 ): SearchHit[] {
   const hits: SearchHit[] = [];
 
@@ -351,6 +353,16 @@ function buildHits(
     });
   });
 
+  redditAnalyses.forEach((r) => {
+    hits.push({
+      href: `/reddit?id=${r.id}`,
+      title: r.ideaPreview,
+      subtitle: `Demand ${r.demandScore}/100 · ${r.demandLabel} · ${new Date(r.createdAt).toLocaleDateString()}`,
+      group: "Reddit",
+      icon: MessageSquare,
+    });
+  });
+
   ["Dashboard", "Generator", "History", "Library", "Settings"].forEach((label) => {
     hits.push({
       href: `/${label.toLowerCase()}`,
@@ -366,15 +378,16 @@ function buildHits(
 
 function GlobalSearch() {
   const router = useRouter();
-  const { history, savedGenerations, apps, audits, competitors, keywordRanks } = useAuth();
+  const { history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses } =
+    useAuth();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const allHits = useMemo(
-    () => buildHits(history, savedGenerations, apps, audits, competitors, keywordRanks),
-    [history, savedGenerations, apps, audits, competitors, keywordRanks]
+    () => buildHits(history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses),
+    [history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses]
   );
 
   const results = useMemo(() => {
@@ -441,7 +454,7 @@ function GlobalSearch() {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Search apps, audits, competitors, keywords…"
+          placeholder="Search apps, audits, competitors, keywords, Reddit…"
           className="flex-1 bg-transparent text-[14px] text-ink placeholder:text-ink-faint focus:outline-none"
         />
         {q && (

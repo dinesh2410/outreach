@@ -27,6 +27,7 @@ import {
   GenerationResult,
   KeywordRankRecord,
   Platform,
+  RedditAnalysisRecord,
   User,
 } from "./types";
 
@@ -75,6 +76,9 @@ const competitorRef = (uid: string, competitorId: string) =>
 const keywordRanksCol = (uid: string) => collection(firestore, "users", uid, "keywordRanks");
 const keywordRankRef = (uid: string, rankId: string) =>
   doc(firestore, "users", uid, "keywordRanks", rankId);
+const redditCol = (uid: string) => collection(firestore, "users", uid, "redditAnalyses");
+const redditRef = (uid: string, analysisId: string) =>
+  doc(firestore, "users", uid, "redditAnalyses", analysisId);
 
 // Read the user doc; create with sensible defaults if it doesn't exist.
 // Returns the resolved fields (not the raw Firestore doc).
@@ -226,4 +230,22 @@ export async function fetchUserKeywordRanks(uid: string): Promise<KeywordRankRec
 
 export async function deleteKeywordRankEntry(uid: string, rankId: string): Promise<void> {
   await deleteDoc(keywordRankRef(uid, rankId));
+}
+
+// --- reddit demand analyses ----------------------------------------------
+
+export async function recordRedditAnalysisForUser(
+  uid: string,
+  record: RedditAnalysisRecord
+): Promise<void> {
+  await setDoc(redditRef(uid, record.id), stripUndefined(record));
+}
+
+export async function fetchUserRedditAnalyses(uid: string): Promise<RedditAnalysisRecord[]> {
+  const snap = await getDocs(query(redditCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as RedditAnalysisRecord);
+}
+
+export async function deleteRedditAnalysisEntry(uid: string, analysisId: string): Promise<void> {
+  await deleteDoc(redditRef(uid, analysisId));
 }

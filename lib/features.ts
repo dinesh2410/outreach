@@ -68,13 +68,13 @@ export const FEATURES: Feature[] = [
   },
   {
     slug: "reddit",
-    name: "Reddit Replies",
-    tagline: "Find threads, draft responses",
+    name: "Reddit Demand",
+    tagline: "Validate demand before you build",
     description:
-      "Find relevant threads in your category and draft contextual, helpful responses.",
+      "Paste an app idea and we'll surface Reddit posts where people are asking for, complaining about, or discussing it — so you can gauge real demand before you ship.",
     icon: MessageSquare,
-    status: "soon",
-    href: "/features/reddit",
+    status: "live",
+    href: "/reddit",
   },
   {
     slug: "competitor",

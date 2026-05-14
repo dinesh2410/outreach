@@ -13,6 +13,7 @@ import {
   Sparkles,
   Target,
   Tag,
+  MessageSquare,
 } from "lucide-react";
 
 // History is a unified timeline of every activity the user has done across
@@ -21,7 +22,7 @@ import {
 // links back to its tool with the saved snapshot pre-loaded (where the tool
 // supports replay).
 
-type ActivityKind = "generation" | "audit" | "competitor" | "keyword";
+type ActivityKind = "generation" | "audit" | "competitor" | "keyword" | "reddit";
 
 type ActivityItem = {
   id: string;
@@ -39,6 +40,7 @@ const KIND_LABEL: Record<ActivityKind, string> = {
   audit: "Audit",
   competitor: "Competitor",
   keyword: "Keyword",
+  reddit: "Reddit",
 };
 
 const KIND_TILE: Record<ActivityKind, string> = {
@@ -46,6 +48,7 @@ const KIND_TILE: Record<ActivityKind, string> = {
   audit: "tile-cream",
   competitor: "tile-rose",
   keyword: "tile-peach",
+  reddit: "tile-lilac",
 };
 
 const KIND_ICON: Record<ActivityKind, typeof FileText> = {
@@ -53,6 +56,7 @@ const KIND_ICON: Record<ActivityKind, typeof FileText> = {
   audit: Sparkles,
   competitor: Target,
   keyword: Tag,
+  reddit: MessageSquare,
 };
 
 const FILTERS: { id: ActivityKind | "all"; label: string }[] = [
@@ -61,6 +65,7 @@ const FILTERS: { id: ActivityKind | "all"; label: string }[] = [
   { id: "audit", label: "Audits" },
   { id: "competitor", label: "Competitor" },
   { id: "keyword", label: "Keyword" },
+  { id: "reddit", label: "Reddit" },
 ];
 
 export default function HistoryPage() {
@@ -71,10 +76,12 @@ export default function HistoryPage() {
     audits,
     competitors,
     keywordRanks,
+    redditAnalyses,
     removeHistory,
     removeAudit,
     removeCompetitor,
     removeKeywordRank,
+    removeRedditAnalysis,
   } = useAuth();
   const router = useRouter();
   const [filter, setFilter] = useState<ActivityKind | "all">("all");
@@ -150,8 +157,32 @@ export default function HistoryPage() {
       });
     });
 
+    redditAnalyses.forEach((r) => {
+      all.push({
+        id: `rd-${r.id}`,
+        kind: "reddit",
+        title: r.ideaPreview,
+        subtitle: `Demand ${r.demandScore}/100 · ${r.demandLabel}`,
+        meta: [`${r.postCount} relevant posts`],
+        createdAt: r.createdAt,
+        href: `/reddit?id=${r.id}`,
+        onDelete: () => removeRedditAnalysis(r.id),
+      });
+    });
+
     return all.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  }, [history, audits, competitors, keywordRanks, removeHistory, removeAudit, removeCompetitor, removeKeywordRank]);
+  }, [
+    history,
+    audits,
+    competitors,
+    keywordRanks,
+    redditAnalyses,
+    removeHistory,
+    removeAudit,
+    removeCompetitor,
+    removeKeywordRank,
+    removeRedditAnalysis,
+  ]);
 
   const filtered = filter === "all" ? items : items.filter((i) => i.kind === filter);
 
@@ -163,6 +194,7 @@ export default function HistoryPage() {
       audit: 0,
       competitor: 0,
       keyword: 0,
+      reddit: 0,
     };
     items.forEach((i) => {
       c[i.kind] += 1;

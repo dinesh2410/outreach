@@ -23,17 +23,20 @@ import {
   deleteCompetitorEntry,
   deleteHistoryEntry,
   deleteKeywordRankEntry,
+  deleteRedditAnalysisEntry,
   ensureUserDoc,
   fetchUserApps,
   fetchUserAudits,
   fetchUserCompetitors,
   fetchUserHistory,
   fetchUserKeywordRanks,
+  fetchUserRedditAnalyses,
   fetchUserSavedGenerations,
   recordAuditForUser,
   recordCompetitorForUser,
   recordGenerationHistory,
   recordKeywordRankForUser,
+  recordRedditAnalysisForUser,
   saveAppForUser,
   saveGenerationForUser,
   updateUserDoc,
@@ -47,6 +50,7 @@ import {
   GenerationResult,
   KeywordRankRecord,
   Platform,
+  RedditAnalysisRecord,
 } from "./types";
 
 // Auth context — backed by Firebase Auth (Google + Email/Password) + Firestore.
@@ -82,6 +86,9 @@ interface AuthContextType {
   keywordRanks: KeywordRankRecord[];
   recordKeywordRank: (record: KeywordRankRecord) => void;
   removeKeywordRank: (rankId: string) => void;
+  redditAnalyses: RedditAnalysisRecord[];
+  recordRedditAnalysis: (record: RedditAnalysisRecord) => void;
+  removeRedditAnalysis: (analysisId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -131,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [audits, setAudits] = useState<AuditRecord[]>([]);
   const [competitors, setCompetitors] = useState<CompetitorRecord[]>([]);
   const [keywordRanks, setKeywordRanks] = useState<KeywordRankRecord[]>([]);
+  const [redditAnalyses, setRedditAnalyses] = useState<RedditAnalysisRecord[]>([]);
 
   // Listen to auth state. On sign-in, hydrate apps + generations + history from Firestore.
   useEffect(() => {
@@ -143,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAudits([]);
         setCompetitors([]);
         setKeywordRanks([]);
+        setRedditAnalyses([]);
         setLoading(false);
         return;
       }
@@ -173,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userAudits,
           userCompetitors,
           userKeywordRanks,
+          userRedditAnalyses,
         ] = await Promise.all([
           safeFetch("apps", () => fetchUserApps(fbUser.uid)),
           safeFetch("savedGenerations", () => fetchUserSavedGenerations(fbUser.uid)),
@@ -180,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           safeFetch("audits", () => fetchUserAudits(fbUser.uid)),
           safeFetch("competitors", () => fetchUserCompetitors(fbUser.uid)),
           safeFetch("keywordRanks", () => fetchUserKeywordRanks(fbUser.uid)),
+          safeFetch("redditAnalyses", () => fetchUserRedditAnalyses(fbUser.uid)),
         ]);
         setApps(userApps);
         setSavedGenerations(userSaved);
@@ -187,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAudits(userAudits);
         setCompetitors(userCompetitors);
         setKeywordRanks(userKeywordRanks);
+        setRedditAnalyses(userRedditAnalyses);
       } catch (err) {
         console.error("[auth] failed to hydrate user data:", err);
       } finally {
@@ -410,6 +422,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const recordRedditAnalysis = useCallback(
+    (record: RedditAnalysisRecord) => {
+      setRedditAnalyses((prev) => {
+        const without = prev.filter((r) => r.id !== record.id);
+        return [record, ...without];
+      });
+      if (user) {
+        recordRedditAnalysisForUser(user.id, record).catch((err) =>
+          console.error("[auth] recordRedditAnalysis persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeRedditAnalysis = useCallback(
+    (analysisId: string) => {
+      setRedditAnalyses((prev) => prev.filter((r) => r.id !== analysisId));
+      if (user) {
+        deleteRedditAnalysisEntry(user.id, analysisId).catch((err) =>
+          console.error("[auth] removeRedditAnalysis persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -437,6 +476,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         keywordRanks,
         recordKeywordRank,
         removeKeywordRank,
+        redditAnalyses,
+        recordRedditAnalysis,
+        removeRedditAnalysis,
       }}
     >
       {children}

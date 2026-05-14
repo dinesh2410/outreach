@@ -39,6 +39,11 @@ service cloud.firestore {
       match /keywordRanks/{rankId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // Auto-recorded Reddit demand analyses. Same owner-only rule.
+      match /redditAnalyses/{analysisId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // Default deny — anything not explicitly allowed above is rejected.
