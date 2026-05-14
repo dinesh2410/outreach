@@ -8,8 +8,26 @@ import { Footer } from "@/components/shared/Footer";
 import { AppShell } from "@/components/shared/AppShell";
 import { calculateScore } from "@/lib/score";
 import { useAuth } from "@/lib/auth";
-import type { ScoreResult } from "@/lib/types";
+import type { AuditPayload, ScoreResult } from "@/lib/types";
 import { ArrowRight, Sparkles, CheckCircle2, AlertCircle, RotateCcw, FileText } from "lucide-react";
+
+// Fetches the live audit (real scrape + listing-based checks) and converts it
+// into a ScoreResult the audit card can render. Falls back to the URL-only
+// preview when the audit endpoint is unreachable.
+async function runLiveAudit(url: string): Promise<ScoreResult> {
+  try {
+    const r = await fetch("/api/audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = (await r.json()) as AuditPayload;
+    return calculateScore(url, data.scrape ?? null);
+  } catch {
+    return calculateScore(url, null);
+  }
+}
 
 // Top-level dispatcher: signed-in visitors get the in-app shell (matches the
 // Competitor Watch / Keyword Research entry points); everyone else gets the
@@ -26,14 +44,13 @@ function ScorePageAuthed() {
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim() || submitting) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setResult(calculateScore(url.trim()));
-      setSubmitting(false);
-    }, 350);
+    const r = await runLiveAudit(url.trim());
+    setResult(r);
+    setSubmitting(false);
   }
 
   function handleReset() {
@@ -73,7 +90,7 @@ function ScorePageAuthed() {
             </button>
           </div>
           <p className="text-[12px] text-ink-faint mt-2">
-            Deterministic score based on the URL — same input always returns the same audit.
+            We fetch your live listing and score it against the patterns of 20+ top Play Store apps.
           </p>
         </form>
 
@@ -94,15 +111,13 @@ function ScorePagePublic() {
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim() || submitting) return;
     setSubmitting(true);
-    // Tiny artificial latency so the "audit in progress" feedback is visible.
-    setTimeout(() => {
-      setResult(calculateScore(url.trim()));
-      setSubmitting(false);
-    }, 350);
+    const r = await runLiveAudit(url.trim());
+    setResult(r);
+    setSubmitting(false);
   }
 
   function handleReset() {
@@ -150,7 +165,7 @@ function ScorePagePublic() {
                 </button>
               </form>
               <p className="mt-3 text-[12px] text-ink-muted">
-                Deterministic score based on the URL — same input always returns the same audit.
+                We fetch your live listing and score it against the patterns of 20+ top Play Store apps.
               </p>
             </div>
 
@@ -183,12 +198,12 @@ function ScorePagePublic() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
                 {[
-                  "Title uses primary keyword",
-                  "Short description under 80 chars",
-                  "Full description is keyword-balanced",
-                  "Description leads with a hook",
-                  "Uses bullet points for features",
-                  "Mentions target audience",
+                  "Title length & format",
+                  "Short description leads with action",
+                  "Hook anchors the brand name",
+                  "Body split into labelled sections",
+                  "Uses the right bullet character (•)",
+                  "Hits core benefit keywords",
                 ].map((label, i) => (
                   <div key={label} className="card-soft p-6 flex items-start gap-4">
                     <div

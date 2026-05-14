@@ -50,60 +50,184 @@ type CheckMeta = {
   fixedNote: string;
 };
 
+// Each check's weight + rationale comes from the top-app pattern analysis
+// (see CHANGES.md). The numbers here mirror lib/score.ts so the audit display
+// and the underlying score stay aligned.
 const CHECK_META: Record<string, CheckMeta> = {
-  "Title uses primary keyword": {
-    weight: 20,
+  "Title length within range": {
+    weight: 3,
     rationale:
-      "Stores index the title most heavily. A title without your primary keyword caps discoverability before anything else can help.",
-    fix: "Place your primary keyword in the first 30 characters of the title. Lead with the category or use-case the user is searching for.",
-    fixedNote:
-      "Your title carries the primary keyword in a high-weight position — keep this through any rewrites.",
+      "Top apps median title length is 16 chars; only 1/20 uses the 30-char cap. Comma-stuffed titles look amateur and convert worse.",
+    fix: "Aim for 12–26 chars. Use 'Brand: Descriptor' if the brand isn't yet recognisable; just the brand if it is.",
+    fixedNote: "Title length sits in the band top apps use — clean and uncrowded.",
   },
-  "Short description under 80 chars": {
-    weight: 15,
+  "Title format is clean": {
+    weight: 3,
     rationale:
-      "On Play, the 80-char short description is the second thing a user sees after the title — and it gets indexed.",
-    fix: "Trim to 80 characters max. Lead with the single biggest benefit, not features. One claim, one verb, no filler.",
-    fixedNote:
-      "Short description fits inside the 80-char limit and won't get truncated on the Play listing.",
+      "When top apps add a descriptor, they use ' - ' or ': ' after the brand. Zero top apps comma-chain keywords like 'App, Tracker, Planner'.",
+    fix: "Replace commas with a single colon or dash. Pick the strongest descriptor and drop the rest.",
+    fixedNote: "Title format follows the brand + separator + descriptor pattern.",
   },
-  "Full description is keyword-balanced": {
-    weight: 18,
+  "Short description uses available space": {
+    weight: 4,
     rationale:
-      "Repeating keywords in only the first paragraph hurts ranking signal across the listing. The whole description should reinforce them.",
-    fix: "Spread your 3–5 priority keywords evenly across opening, features, and closing paragraphs. Don't stuff — repeat naturally.",
-    fixedNote:
-      "Keywords are distributed across the body. Re-check whenever you change the description.",
+      "11/19 top apps use ≥70 of the 80 short-desc chars. Under-using this slot wastes prime real estate above the fold.",
+    fix: "Expand to 60–80 chars. Lead with what the app does for the user; end as a complete clause.",
+    fixedNote: "Short description uses the available space without overflowing the 80-char cap.",
   },
-  "Description leads with a hook": {
-    weight: 17,
+  "Short description leads with action": {
+    weight: 3,
     rationale:
-      "The first sentence is shown above the fold on every device. Generic openings (\"Welcome to…\") cost you the read.",
-    fix: "Open with a benefit-led sentence. Tell the reader what's different about your app in one line, then expand.",
-    fixedNote:
-      "Your opening sentence pulls weight — keep it punchy and specific in future edits.",
+      "10/19 top apps open the short description with a verb (Make, Stay, Create, Listen…). Verb-led copy reads as confident and direct.",
+    fix: "Rewrite to start with a strong verb or imperative. Avoid leading with the app name — the user already sees it.",
+    fixedNote: "Short description opens with a verb — top-app pattern.",
   },
-  "Uses bullet points for features": {
-    weight: 15,
+  "Full description hits target length": {
+    weight: 4,
     rationale:
-      "Bullets scan in 2 seconds; paragraphs don't. Stores reward scannable feature sections with longer reads and more conversions.",
-    fix: "Convert your features paragraph into 4–6 bullet points. One feature per line, verb-first, under 12 words each.",
-    fixedNote:
-      "Feature section is scannable. Keep bullets short and consistent when adding new features.",
+      "Top-app median is 2539 chars; the band is 1800–3600. Below 1800 reads as under-developed; near 4000 reads as bloated.",
+    fix: "Aim for ~2500 chars. Add a section if you're short; consolidate if you're long.",
+    fixedNote: "Full description hits the 1800–3600 band where top apps cluster.",
   },
-  "Mentions target audience": {
-    weight: 15,
+  "Hook paragraph length": {
+    weight: 4,
     rationale:
-      "Audience-specific copy converts higher than generic copy. \"For runners training under 6:00/km\" beats \"for anyone who exercises\".",
-    fix: "Add one explicit audience line near the top: who this app is built for, and what they're trying to do.",
-    fixedNote:
-      "Audience is clearly named in the listing — the right people self-identify when scrolling.",
+      "The hook is the only thing most users read. Top apps land it in 150–400 chars — one positioning sentence + one capability sentence.",
+    fix: "Trim or expand the first paragraph to ~250 chars. Sentence 1: brand + outcome. Sentence 2: capability/proof.",
+    fixedNote: "Hook fits the 150–400 char band — punchy enough to read above the fold.",
+  },
+  "Hook anchors the brand name": {
+    weight: 4,
+    rationale:
+      "14/20 top apps put the brand in the first sentence. Heavy brand anchoring builds recognition signal across the listing.",
+    fix: "Open with '[Brand] is/lets/helps [outcome]' or 'Use [Brand] to…'. The brand should appear in the first 10 words.",
+    fixedNote: "Hook anchors the brand — readers know exactly what they're looking at.",
+  },
+  "Hook uses a proven opener pattern": {
+    weight: 3,
+    rationale:
+      "17/20 top apps use one of three openers: '[Brand] is/lets/helps…', imperative verb, or scenario ('Whether you're…'). Pain-question openers ('Tired of…?') appear in zero top apps.",
+    fix: "Switch to one of: '[Brand] is/lets/helps [outcome]', 'Use/Get/Explore [Brand] to…', or 'Whether you're [scenario]…'. Drop any question opener.",
+    fixedNote: "Hook uses one of the three opener patterns top apps converge on.",
+  },
+  "Uses a consistent bullet character": {
+    weight: 5,
+    rationale:
+      "14/20 top apps use • (U+2022); 2/20 use dashes (Instagram, Netflix). Both are valid. What's wrong is mixing chars or using ▶/◉/→ — those don't appear in any top app.",
+    fix: "Pick one bullet character (• preferred, - and * also valid) and use it consistently. Avoid ▶, ◉, →, or other ASCII-arrow shapes.",
+    fixedNote: "Bullet character is consistent — matches the discipline of top apps.",
+  },
+  "Body is split into scannable sections": {
+    weight: 5,
+    rationale:
+      "17/20 top apps chunk the body — either via Title-Case labels + bullet lists OR by ending the hook with ':' and following with a long bullet list (the Google productivity-suite pattern).",
+    fix: "Either add Title-Case labels above each bullet group (e.g. 'Sync everywhere', 'Built for privacy'), or end your hook with ':' so the bullets read as one labelled section.",
+    fixedNote: "Body is chunked into scannable sections — the eye finds the structure.",
+  },
+  "Paragraphs stay short": {
+    weight: 4,
+    rationale:
+      "15/20 top apps keep paragraphs ≤2 sentences. Long paragraphs drop completion rates on the listing.",
+    fix: "Split any paragraph longer than 4 sentences into bullets or two shorter paragraphs.",
+    fixedNote: "Paragraphs stay short — the body scans cleanly.",
+  },
+  "Section count is balanced": {
+    weight: 2,
+    rationale:
+      "Top apps median is 10 paragraph blocks; the band is 5–14. Too few = under-structured; too many = fragmented.",
+    fix: "Consolidate or split until you have 6–12 sections. Each one should cover a single capability area.",
+    fixedNote: "Section count sits in the balanced range.",
+  },
+  "Hits core benefit keywords": {
+    weight: 3,
+    rationale:
+      "Top apps hit 4–5 of: privacy/secure, free, easy/simple, share, anywhere/offline, help. These map to the dominant user-search vocabulary.",
+    fix: "Work at least 3 of these benefit terms into the body naturally — typically one per feature section.",
+    fixedNote: "Core benefit vocabulary is well-covered across the body.",
+  },
+  "Closing avoids store-CTA clichés": {
+    weight: 2,
+    rationale:
+      "Only 1/20 top apps close with 'Download now' energy. The cliché caps how mature the listing reads.",
+    fix: "Replace any store-CTA line with a soft sign-off ('Start your free trial today') or move it to a links/legal footer.",
+    fixedNote: "Closing avoids 'Download now' clichés — reads mature, not aggressive.",
+  },
+  "Emoji usage is restrained": {
+    weight: 2,
+    rationale:
+      "Only 2/20 top apps use emoji. Emoji-heavy bodies read as amateur copy on a professional platform.",
+    fix: "Cap emoji at 2–3 across the whole description, and only where they earn their place (rating snippets, section dividers).",
+    fixedNote: "Emoji usage is restrained — matches the discipline of top apps.",
+  },
+  "Exclamation marks stay restrained": {
+    weight: 2,
+    rationale:
+      "Top apps run 0–2 exclamation marks in a 2500-char description. Heavy '!' use reads as hype.",
+    fix: "Replace exclamation marks with periods. Reserve them for the one moment in the body that genuinely calls for it.",
+    fixedNote: "Exclamation discipline is tight — body doesn't read as hype.",
+  },
+  "Brand name repeats across body": {
+    weight: 2,
+    rationale:
+      "Top apps repeat the brand 3–8 times across the body. Heavy anchoring builds recognition and reinforces the search term.",
+    fix: "Sprinkle the brand into section labels and bullet lead-ins. Avoid repeating it inside every sentence (that reads as stuffing).",
+    fixedNote: "Brand is well-anchored across the body without overstuffing.",
+  },
+  "Listing preview only": {
+    weight: 1,
+    rationale:
+      "We haven't fetched the live listing yet. This row reflects the placeholder score on the marketing teaser; the detailed report runs real checks.",
+    fix: "Open the detailed report (or refresh) to fetch the live listing and run the full audit.",
+    fixedNote: "Live listing available.",
+  },
+  // Ranking-signal checks (added 2026-05-13).
+  "Primary keyword appears in title": {
+    weight: 5,
+    rationale:
+      "Title is the heaviest-indexed field on Play and the strongest factor in iOS search ranking. Industry research (Phiture, AppTweak) consistently rates it as the single highest-leverage edit.",
+    fix: "Add the primary keyword as a short descriptor after the brand (e.g. 'Brand: Keyword Tool'). Keep the title under 30 chars and avoid keyword-stuffing.",
+    fixedNote: "Primary keyword is in the title — the highest-impact ranking position.",
+  },
+  "Primary keyword appears in short description": {
+    weight: 4,
+    rationale:
+      "Google Play indexes the 80-char short description for ranking. Missing the primary keyword here forfeits ranking signal Apple/Play both reward.",
+    fix: "Work the primary keyword naturally into the short description — ideally near the start. Don't stuff; one occurrence is enough.",
+    fixedNote: "Primary keyword sits in the short description — Play indexes this field.",
+  },
+  "Average rating": {
+    weight: 5,
+    rationale:
+      "Rating is the single biggest ranking signal we can measure from outside Play Console / App Store Connect. Apple requires 4.0+ for many shelf placements; Play weights it heavily in category rankings and search.",
+    fix: "If under 4.0, pause copy work and focus on the 1-star themes. Add an in-app rating prompt after a positive moment (not on launch) — fresh ratings count more than old ones.",
+    fixedNote: "Average rating clears the 4.0 ranking floor.",
+  },
+  "Rating volume": {
+    weight: 3,
+    rationale:
+      "Rating count signals credibility to users and feeds ranking. Under ~100 reads as 'too new to evaluate'; 1K+ starts to feel established.",
+    fix: "Add a rating prompt to your onboarding completion / first-success flow. Avoid prompting too early — it tanks the rating.",
+    fixedNote: "Rating volume is past the credibility threshold.",
+  },
+  "Listing freshness": {
+    weight: 3,
+    rationale:
+      "Both stores down-rank listings that haven't shipped in 6+ months and prefer recently-updated apps in search results. Freshness is a maintenance signal both stores explicitly weight.",
+    fix: "Ship a small version bump every 6–8 weeks with a refreshed What's New note. Even a copy refresh resets the freshness signal.",
+    fixedNote: "Listing was updated recently — freshness signal is good.",
+  },
+  "Screenshot coverage": {
+    weight: 4,
+    rationale:
+      "Screenshots drive conversion rate, which feeds install velocity (a ranking signal). Top-3 screenshots are critical — they're the only ones visible in most search results.",
+    fix: "Upload at least 5 screenshots. Lead with the most install-worthy frames; treat the first 3 as the 'hero trio' and A/B test them.",
+    fixedNote: "Screenshot coverage matches the slots top apps fill.",
   },
 };
 
 const FALLBACK_META: CheckMeta = {
-  weight: 10,
-  rationale: "Contributes to the overall ASO score against the store's ranking signals.",
+  weight: 2,
+  rationale: "Contributes to the overall ASO score against patterns from top-app listings.",
   fix: "Review this check against the recommended action and update your listing.",
   fixedNote: "This check is passing — keep it on your review checklist.",
 };
@@ -114,8 +238,8 @@ function getMeta(label: string): CheckMeta {
 
 function priorityForCheck(check: ScoreCheck): "high" | "medium" | "low" {
   const w = getMeta(check.label).weight;
-  if (w >= 18) return "high";
-  if (w >= 15) return "medium";
+  if (w >= 4) return "high";
+  if (w >= 3) return "medium";
   return "low";
 }
 
@@ -219,14 +343,13 @@ function ScoreReportInner() {
     await runAudit(rawUrl);
   }
 
-  // The deterministic score result is the source of truth for the check list.
-  // When viewing a snapshot, use the score embedded in the snapshot so the
-  // grade matches what was saved (the deterministic score has no concept of
-  // history — it's a pure function of the URL).
+  // The score is computed from the scraped listing once /api/audit returns it.
+  // Before the audit lands (or if the scrape failed), we fall back to the
+  // URL-only preview so the page can render something.
   const result: ScoreResult | null = useMemo(() => {
     if (!rawUrl) return null;
-    return calculateScore(rawUrl);
-  }, [rawUrl]);
+    return calculateScore(rawUrl, audit?.scrape ?? null);
+  }, [rawUrl, audit]);
 
   if (loading || !user) return null;
 
@@ -557,6 +680,46 @@ function ScoreReportInner() {
           })}
         </div>
       </section>
+
+      {/* Strategic advice — non-scored ASO guidance the scrape can't measure */}
+      {audit?.advisories && audit.advisories.length > 0 && (
+        <section className="mb-10">
+          <SectionHeader
+            tile="tile-lilac"
+            icon={<Sparkles size={16} strokeWidth={1.85} />}
+            eyebrow="What we can't see from outside"
+            title="Beyond the listing copy"
+          />
+          <p className="text-[14px] text-ink-muted leading-relaxed mb-6 max-w-2xl">
+            These are the biggest ASO levers we can&apos;t measure from a public scrape — the signals you track in Play Console and App Store Connect. They typically move ranking more than copy tweaks.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {audit.advisories.map((a) => {
+              const categoryStyle: Record<string, { bg: string; color: string; label: string }> = {
+                ranking:    { bg: "#FFF6E0", color: "#8A5A00", label: "Ranking" },
+                conversion: { bg: "#D8F2E3", color: "#0F6F44", label: "Conversion" },
+                maintenance:{ bg: "#E7E0FA", color: "#4B2C99", label: "Maintenance" },
+                expansion:  { bg: "#FCE3EA", color: "#9E0048", label: "Expansion" },
+              };
+              const cs = categoryStyle[a.category] ?? categoryStyle.ranking;
+              return (
+                <div key={a.label} className="card-soft p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: cs.bg, color: cs.color }}
+                    >
+                      {cs.label}
+                    </span>
+                  </div>
+                  <h3 className="text-[16px] font-semibold text-ink mb-2 tracking-[-0.01em]">{a.label}</h3>
+                  <p className="text-[13px] text-ink-muted leading-relaxed">{a.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Next step + export */}
       <section className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-5">

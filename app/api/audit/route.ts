@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchStoreListing, classifyStoreUrl } from "@/lib/store-scraper";
 import { extractKeywords } from "@/lib/keywords";
-import { calculateScore } from "@/lib/score";
+import { calculateScore, strategicAdvisoriesFor } from "@/lib/score";
 import type { AuditPayload } from "@/lib/types";
 
 // POST /api/audit { url }
@@ -41,11 +41,32 @@ export async function POST(req: Request) {
 
   const source = classifyStoreUrl(url);
   const snapshot = extractSnapshot(url);
-  const score = calculateScore(url);
 
   // Try to fetch the live listing. We treat any failure as "scrape unavailable"
   // rather than 500'ing — the report still has useful content without it.
   const listing = source ? await fetchStoreListing(url).catch(() => null) : null;
+
+  // Score against the listing when we have one; falls back to a URL-only
+  // preview when the scrape fails.
+  const score = calculateScore(
+    url,
+    listing
+      ? {
+          title: listing.title,
+          shortDesc: listing.shortDesc,
+          subtitle: listing.subtitle,
+          fullDesc: listing.fullDesc,
+          rating: listing.rating,
+          ratingCount: listing.ratingCount,
+          screenshotUrls: listing.screenshotUrls,
+          lastUpdated: listing.lastUpdated,
+          source: listing.source,
+        }
+      : null
+  );
+
+  // Strategic ASO advice — non-scored guidance for what we can't measure.
+  const advisories = listing ? strategicAdvisoriesFor(listing) : undefined;
 
   const corpus = [
     listing?.title ?? "",
@@ -68,7 +89,14 @@ export async function POST(req: Request) {
       subtitle: listing?.subtitle,
       shortDesc: listing?.shortDesc,
       fullDesc: listing?.fullDesc,
+      rating: listing?.rating,
+      ratingCount: listing?.ratingCount,
+      screenshotUrls: listing?.screenshotUrls,
+      lastUpdated: listing?.lastUpdated,
+      developer: listing?.developer,
+      genre: listing?.genre,
     },
+    advisories,
     snapshot,
     keywords: {
       primary: allKeywords[0],

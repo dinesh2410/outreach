@@ -94,7 +94,24 @@ export interface AuditPayload {
     subtitle?: string;
     shortDesc?: string;
     fullDesc?: string;
+    // Ranking-signal fields scraped from the store. Optional — present only
+    // when the scraper found them, used by the scorer when available.
+    rating?: number;
+    ratingCount?: number;
+    screenshotUrls?: string[];
+    lastUpdated?: string;
+    developer?: string;
+    genre?: string;
   };
+  // Strategic ASO recommendations that can't be scored from a public scrape
+  // (review velocity, install rate, A/B tests, localization, etc.) but matter
+  // more than most copy fixes. Shown to the user as a separate section so they
+  // know what to track in Play Console / App Store Connect.
+  advisories?: Array<{
+    label: string;
+    detail: string;
+    category: "ranking" | "conversion" | "maintenance" | "expansion";
+  }>;
   snapshot: {
     appId?: string;
     slug?: string;
@@ -227,6 +244,64 @@ export interface KeywordRankRecord {
   topResultTitle?: string;
   createdAt: string;
   snapshot?: KeywordRankResult;
+}
+
+// Reddit demand-validation analysis. The user submits an idea; we search
+// Reddit for posts where people are asking for / complaining about that kind
+// of app, and surface a demand score + brief + tagged post list.
+export interface RedditPostSummary {
+  id: string;
+  title: string;
+  body: string;
+  subreddit: string;
+  score: number;
+  numComments: number;
+  createdAt: string;
+  permalink: string;
+  author: string;
+}
+
+export interface RedditPlan {
+  problem: string;
+  audience: string;
+  primaryKeywords: string[];
+  subreddits: string[];
+  demandQueries: string[];
+}
+
+export interface RedditSelectedPost {
+  id: string;
+  tag: "request" | "complaint" | "discussion";
+  insight: string;
+}
+
+export interface RedditRank {
+  brief: string;
+  demandScore: number;
+  demandLabel: "Low" | "Moderate" | "High" | "Very high";
+  topThemes: string[];
+  selectedPosts: RedditSelectedPost[];
+}
+
+export interface RedditAnalysisPayload {
+  idea: string;
+  plan: RedditPlan;
+  posts: RedditPostSummary[];
+  rank: RedditRank;
+  createdAt: string;
+}
+
+// Persisted summary of one Reddit demand analysis. Keyed by hash of the idea
+// text so re-running the same idea updates rather than duplicates.
+export interface RedditAnalysisRecord {
+  id: string;
+  idea: string;
+  ideaPreview: string;      // first ~80 chars for list display
+  demandScore: number;
+  demandLabel: "Low" | "Moderate" | "High" | "Very high";
+  postCount: number;        // selected post count
+  createdAt: string;
+  snapshot?: RedditAnalysisPayload;
 }
 
 export interface KeywordResult {
