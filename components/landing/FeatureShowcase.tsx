@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FileText, Image as ImageIcon, Sparkles } from "lucide-react";
+import { ArrowRight, FileText, Image as ImageIcon, Sparkles } from "@/components/shared/Icon";
 
 export function FeatureShowcase() {
   return (
     <section className="bg-white">
-      <div className="max-w-[1400px] mx-auto px-8 py-24 lg:py-32 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-8 section-pad grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
         {/* Left: workflow visual — phone with two output cards */}
-        <div className="relative h-[520px]">
+        <div className="relative h-[400px] lg:h-[520px] hidden md:block overflow-hidden">
           {/* Connecting lines drawn behind */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
@@ -25,7 +25,7 @@ export function FeatureShowcase() {
             <div className="w-full h-full rounded-[2rem] bg-cream-warm overflow-hidden relative">
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 rounded-full bg-ink" />
               <div className="pt-12 px-5">
-                <div className="w-14 h-14 rounded-xl mx-auto mb-3" style={{ backgroundColor: "#2563EB" }} />
+                <div className="w-14 h-14 rounded-xl mx-auto mb-3 bg-accent" />
                 <div className="text-center text-[15px] font-semibold text-ink">Your app</div>
                 <div className="text-center text-[11px] text-ink-muted mt-0.5">Store listing preview</div>
                 <div className="mt-5 space-y-1.5">
@@ -33,7 +33,7 @@ export function FeatureShowcase() {
                   <div className="h-1.5 rounded-full bg-ink/10 w-[88%]" />
                   <div className="h-1.5 rounded-full bg-ink/10 w-[72%]" />
                 </div>
-                <div className="mt-4 px-3 py-2.5 rounded-xl bg-white text-[11px] font-medium text-center" style={{ color: "#2563EB" }}>
+                <div className="mt-4 px-3 py-2.5 rounded-xl bg-white text-[11px] font-medium text-center text-accent">
                   Get the app
                 </div>
                 <div className="mt-3 px-3 py-2 rounded-xl border border-ink/10 text-[10px] text-center text-ink-muted">
@@ -49,7 +49,7 @@ export function FeatureShowcase() {
               <div className="w-8 h-8 rounded-lg tile-blue flex items-center justify-center">
                 <FileText size={15} strokeWidth={2} />
               </div>
-              <span className="text-[12px] font-bold uppercase tracking-[0.1em]" style={{ color: "#0B3D7A" }}>
+              <span className="text-[12px] font-bold uppercase tracking-[0.1em] text-accent-ink">
                 ASO Generator
               </span>
             </div>
@@ -82,7 +82,7 @@ export function FeatureShowcase() {
           {/* Small floating Sparkles indicator */}
           <div className="absolute top-[40%] right-[8%] animate-drift">
             <div className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center">
-              <Sparkles size={15} strokeWidth={2} style={{ color: "#2563EB" }} />
+              <Sparkles size={15} strokeWidth={2} className="text-accent" />
             </div>
           </div>
         </div>
@@ -90,21 +90,19 @@ export function FeatureShowcase() {
         {/* Right: copy */}
         <div>
           <div
-            className="text-[13px] font-bold uppercase tracking-[0.15em] mb-6"
-            style={{ color: "#0B3D7A" }}
+            className="text-[12px] sm:text-[13px] font-bold uppercase tracking-[0.15em] mb-4 sm:mb-6 text-accent-ink"
           >
             Two tools · One workflow
           </div>
           <h2
-            className="text-[40px] lg:text-[56px] font-semibold leading-[1.05] tracking-[-0.02em]"
-            style={{ color: "#0B3D7A" }}
+            className="text-[28px] sm:text-[36px] lg:text-[48px] font-semibold leading-[1.1] sm:leading-[1.05] tracking-[-0.02em] text-accent-ink"
           >
             Everything your store listing needs
           </h2>
-          <p className="mt-7 text-[17px] lg:text-[18px] text-ink leading-relaxed max-w-md">
-            Generate store-ready descriptions with the <strong className="font-semibold">ASO Generator</strong>,
+          <p className="mt-5 sm:mt-7 text-[15px] sm:text-[17px] lg:text-[18px] text-ink leading-relaxed max-w-md">
+            Generate keyword-optimized descriptions with the <strong className="font-semibold">ASO Generator</strong>,
             then ship polished store screenshots with the <strong className="font-semibold">Screenshot Generator</strong>.
-            Both tuned for App Store and Play Store from one brief.
+            Both tuned for App Store and Play Store.
           </p>
 
           <Link href="/features" className="link-arrow mt-8 inline-flex">

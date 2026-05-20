@@ -1,5 +1,5 @@
 {
-  "name": "outreach",
+  "name": "reachfront",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.67",
+    "@phosphor-icons/react": "^2.1.10",
     "ai": "^6.0.174",
     "firebase": "^12.12.1",
     "firebase-admin": "^13.8.0",

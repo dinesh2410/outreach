@@ -5,7 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   LayoutDashboard,
+  AsoGenerator,
+  AsoScore,
   Wand2,
+  Sparkles,
   History,
   BookOpen,
   Settings,
@@ -15,15 +18,18 @@ import {
   MessageSquare,
   Target,
   Tag,
-  Sparkles,
   Menu,
   X,
   FileText,
   AppWindow,
   Bookmark,
-} from "lucide-react";
+  Gauge,
+  Smartphone,
+  ChartBar,
+} from "@/components/shared/Icon";
 import { Logo } from "./Logo";
 import { useAuth } from "@/lib/auth";
+import { isAdmin } from "@/lib/admins";
 import type {
   GenerationResult,
   AppEntry,
@@ -31,6 +37,7 @@ import type {
   CompetitorRecord,
   KeywordRankRecord,
   RedditAnalysisRecord,
+  ReviewIntelligenceRecord,
 } from "@/lib/types";
 
 // --- nav model -----------------------------------------------------------
@@ -52,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Workspace",
     links: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/apps", label: "Your apps", icon: Smartphone },
       { href: "/history", label: "History", icon: History },
       { href: "/library", label: "Library", icon: BookOpen },
     ],
@@ -59,8 +67,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Tools",
     links: [
-      { href: "/generator", label: "ASO Generator", icon: Wand2 },
-      { href: "/score", label: "ASO Score", icon: Sparkles },
+      { href: "/generator", label: "ASO Generator", icon: AsoGenerator },
+      { href: "/score", label: "ASO Score", icon: AsoScore },
       { href: "/features/screenshots", label: "Screenshots", icon: ImageIcon, status: "soon" },
       { href: "/reddit", label: "Reddit Demand", icon: MessageSquare },
       { href: "/competitor", label: "Competitor Watch", icon: Target },
@@ -74,6 +82,15 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+// Email-gated nav group. Only rendered for admins (see lib/admins.ts); the
+// route + Firestore rules also enforce admin-only access independently.
+const ADMIN_NAV_GROUP: NavGroup = {
+  label: "Admin",
+  links: [
+    { href: "/admin/usage", label: "Usage & cost", icon: Gauge },
+  ],
+};
 
 // --- shell ---------------------------------------------------------------
 
@@ -99,14 +116,14 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-white">
       {/* Mobile header */}
-      <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-16 bg-white border-b border-line-soft">
+      <div className="md:hidden sticky top-0 z-40 flex items-center justify-between px-5 h-14 bg-white border-b border-line-soft">
         <Logo />
         <button
           onClick={() => setMobileOpen(true)}
-          className="p-2 text-ink"
+          className="-mr-2 w-11 h-11 inline-flex items-center justify-center text-ink"
           aria-label="Open menu"
         >
-          <Menu size={22} />
+          <Menu size={24} />
         </button>
       </div>
 
@@ -142,7 +159,7 @@ export function AppShell({
           {/* Desktop top bar */}
           <header className="hidden md:flex sticky top-0 z-30 h-20 items-center justify-between gap-4 px-10 bg-white border-b border-line-soft">
             <div className="flex items-center gap-2.5 text-[14px]">
-              <span className="font-medium text-ink-faint">outreach</span>
+              <span className="font-medium text-ink-faint">reachfront</span>
               {title && (
                 <>
                   <span className="text-ink-faint">/</span>
@@ -155,30 +172,31 @@ export function AppShell({
 
           {/* Page header */}
           {(title || actions) && (
-            <div className="px-6 md:px-10 pt-12 pb-10">
-              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="px-5 md:px-10 pt-7 pb-6 md:pt-12 md:pb-10">
+              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 md:gap-6">
                 <div className="min-w-0 max-w-3xl">
-                  {eyebrow && <p className="eyebrow mb-4">{eyebrow}</p>}
+                  {eyebrow && <p className="eyebrow mb-3 md:mb-4">{eyebrow}</p>}
                   {title && (
                     <h1
-                      className="text-[36px] lg:text-[48px] font-semibold leading-[1.05] tracking-[-0.02em]"
-                      style={{ color: "#0B3D7A" }}
+                      className="text-[28px] md:text-[36px] lg:text-[48px] font-semibold leading-[1.1] md:leading-[1.05] tracking-[-0.02em] text-accent-ink"
                     >
                       {title}
                     </h1>
                   )}
                   {description && (
-                    <p className="text-[15px] lg:text-[16px] text-ink-muted mt-4 max-w-2xl leading-relaxed">
+                    <p className="text-[15px] md:text-[15px] lg:text-[16px] text-ink-muted mt-3 md:mt-4 max-w-2xl leading-relaxed">
                       {description}
                     </p>
                   )}
                 </div>
-                {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+                {actions && (
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>
+                )}
               </div>
             </div>
           )}
 
-          <main className="px-6 md:px-10 pb-16">{children}</main>
+          <main className="px-5 md:px-10 pb-12 md:pb-16">{children}</main>
         </div>
       </div>
     </div>
@@ -201,11 +219,14 @@ function SidebarBody({
   signOut: () => void;
 }) {
   const pathname = usePathname();
+  const navGroups = isAdmin(userEmail)
+    ? [...NAV_GROUPS, ADMIN_NAV_GROUP]
+    : NAV_GROUPS;
 
   return (
     <>
       <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-7">
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.label}>
             <p className="px-3 text-[11px] font-bold uppercase tracking-[0.15em] text-ink-faint mb-2">
               {group.label}
@@ -228,7 +249,7 @@ function SidebarBody({
                       <Icon size={16} className="shrink-0" strokeWidth={active ? 2.25 : 1.85} />
                       <span className="flex-1 truncate">{link.label}</span>
                       {link.status === "soon" && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-cream-deep text-ink-faint">
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gold/10 text-gold">
                           Soon
                         </span>
                       )}
@@ -245,8 +266,7 @@ function SidebarBody({
       <div className="px-4 py-4 border-t border-line-soft">
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl">
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
-            style={{ backgroundColor: "#0B3D7A" }}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0 bg-accent-ink"
           >
             {initials}
           </div>
@@ -274,7 +294,7 @@ type SearchHit = {
   href: string;
   title: string;
   subtitle: string;
-  group: "Apps" | "History" | "Library" | "Audits" | "Competitors" | "Keywords" | "Reddit" | "Pages";
+  group: "Apps" | "History" | "Library" | "Audits" | "Competitors" | "Reviews" | "Keywords" | "Reddit" | "Pages";
   icon: typeof FileText;
 };
 
@@ -285,7 +305,8 @@ function buildHits(
   audits: AuditRecord[],
   competitors: CompetitorRecord[],
   keywordRanks: KeywordRankRecord[],
-  redditAnalyses: RedditAnalysisRecord[]
+  redditAnalyses: RedditAnalysisRecord[],
+  reviewIntelligence: ReviewIntelligenceRecord[]
 ): SearchHit[] {
   const hits: SearchHit[] = [];
 
@@ -363,6 +384,16 @@ function buildHits(
     });
   });
 
+  reviewIntelligence.forEach((r) => {
+    hits.push({
+      href: `/competitor/reviews?url=${encodeURIComponent(r.appUrl)}`,
+      title: r.appTitle || r.appUrl,
+      subtitle: `${r.reviewCount} reviews · ${r.avgRating.toFixed(1)}★ · ${r.opportunityCount} opportunities · ${new Date(r.createdAt).toLocaleDateString()}`,
+      group: "Reviews",
+      icon: ChartBar,
+    });
+  });
+
   ["Dashboard", "Generator", "History", "Library", "Settings"].forEach((label) => {
     hits.push({
       href: `/${label.toLowerCase()}`,
@@ -378,7 +409,7 @@ function buildHits(
 
 function GlobalSearch() {
   const router = useRouter();
-  const { history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses } =
+  const { history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses, reviewIntelligence } =
     useAuth();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -386,8 +417,8 @@ function GlobalSearch() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const allHits = useMemo(
-    () => buildHits(history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses),
-    [history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses]
+    () => buildHits(history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses, reviewIntelligence),
+    [history, savedGenerations, apps, audits, competitors, keywordRanks, redditAnalyses, reviewIntelligence]
   );
 
   const results = useMemo(() => {
@@ -442,7 +473,7 @@ function GlobalSearch() {
   }, [results]);
 
   return (
-    <div ref={wrapRef} className="relative hidden lg:block">
+    <div ref={wrapRef} className="relative hidden md:block">
       <div className="flex items-center gap-2.5 px-4 h-11 rounded-full bg-cream-deep border border-transparent focus-within:border-ink-faint transition-colors w-[360px]">
         <Search size={15} className="text-ink-faint" />
         <input

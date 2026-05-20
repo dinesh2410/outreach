@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { Toast } from "@/lib/types";
-import { Check } from "lucide-react";
+import { Check } from "@/components/shared/Icon";
 
 interface ToastContextType {
   push: (message: string, type?: Toast["type"]) => void;

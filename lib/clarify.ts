@@ -1,8 +1,21 @@
-import { GeneratorInput, ClarifyingQuestion } from "./types";
+import { GeneratorInput, ClarifyingQuestion, KeywordCandidates, UsageCall } from "./types";
+
+export interface ClarifyResponse {
+  questions: ClarifyingQuestion[];
+  keywordCandidates: KeywordCandidates;
+  usage?: {
+    calls: UsageCall[];
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+    elapsedMs: number;
+  };
+}
 
 export async function fetchClarifyingQuestions(
   input: GeneratorInput
-): Promise<ClarifyingQuestion[]> {
+): Promise<ClarifyResponse> {
   const res = await fetch("/api/clarify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -20,6 +33,10 @@ export async function fetchClarifyingQuestions(
     throw new Error(message);
   }
 
-  const data = (await res.json()) as { questions: ClarifyingQuestion[] };
-  return data.questions;
+  const data = (await res.json()) as ClarifyResponse;
+  return {
+    questions: data.questions,
+    keywordCandidates: data.keywordCandidates,
+    usage: data.usage,
+  };
 }

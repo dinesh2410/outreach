@@ -1,0 +1,3594 @@
+{
+  "generatedAt": "2026-05-15T06:54:53.461Z",
+  "totalApps": 400,
+  "categories": [
+    "business",
+    "education",
+    "entertainment",
+    "finance",
+    "health_fitness",
+    "lifestyle",
+    "photo_video",
+    "productivity",
+    "social",
+    "utilities"
+  ],
+  "benchmarks": {
+    "business": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 3,
+        "p25": 11,
+        "p50": 16,
+        "p75": 26,
+        "p90": 30,
+        "max": 30,
+        "mean": 16.68
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 23,
+        "p25": 43,
+        "p50": 73,
+        "p75": 78,
+        "p90": 80,
+        "max": 80,
+        "mean": 60.9
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 228,
+        "p25": 1375,
+        "p50": 2017,
+        "p75": 3064,
+        "p90": 3650,
+        "max": 3875,
+        "mean": 2021.55
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 14,
+        "p25": 98,
+        "p50": 210,
+        "p75": 343,
+        "p90": 643,
+        "max": 1464,
+        "mean": 273.85
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 1,
+        "p25": 6,
+        "p50": 8,
+        "p75": 13,
+        "p90": 17,
+        "max": 25,
+        "mean": 9.18
+      },
+      "rating": {
+        "n": 40,
+        "min": 3.7200000286102295,
+        "p25": 4.51,
+        "p50": 4.66,
+        "p75": 4.71,
+        "p90": 4.8,
+        "max": 4.87575,
+        "mean": 4.55
+      },
+      "ratingCountP50": 620282,
+      "screenshotCount": {
+        "n": 34,
+        "min": 4,
+        "p25": 7,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 9.74
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 0,
+        "p90": 1,
+        "max": 2,
+        "mean": 0.18
+      },
+      "dominantBullet": "•",
+      "bulletCharFrequency": {
+        "•": 309,
+        "◦": 0,
+        "●": 0,
+        "-": 45,
+        "*": 19,
+        "▶": 0,
+        "◉": 0,
+        "►": 0,
+        "→": 0
+      },
+      "listingsWithBullets": 26,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 10,
+        "imperative": 4,
+        "scenario": 3,
+        "question": 0,
+        "other": 23
+      },
+      "emojiBodiesShare": 0.08,
+      "exclamationBodiesShare": 0.33,
+      "benefitLexiconHits": {
+        "privacy": 14,
+        "private": 1,
+        "secure": 19,
+        "encryption": 0,
+        "encrypted": 3,
+        "free": 16,
+        "easy": 20,
+        "easily": 11,
+        "simple": 8,
+        "quick": 19,
+        "fast": 9,
+        "share": 15,
+        "shared": 6,
+        "anywhere": 12,
+        "offline": 1,
+        "sync": 4,
+        "help": 24,
+        "built-in": 4,
+        "automatic": 6,
+        "automatically": 6,
+        "one place": 9
+      },
+      "shortDescOpenerVerbs": {
+        "chat": 1,
+        "make": 2,
+        "get": 1,
+        "build": 1,
+        "find": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "work",
+            "count": 70
+          },
+          {
+            "word": "business",
+            "count": 55
+          },
+          {
+            "word": "access",
+            "count": 51
+          },
+          {
+            "word": "job",
+            "count": 50
+          },
+          {
+            "word": "mobile",
+            "count": 49
+          },
+          {
+            "word": "time",
+            "count": 48
+          },
+          {
+            "word": "available",
+            "count": 41
+          },
+          {
+            "word": "find",
+            "count": 39
+          },
+          {
+            "word": "manage",
+            "count": 36
+          },
+          {
+            "word": "features",
+            "count": 36
+          },
+          {
+            "word": "view",
+            "count": 36
+          },
+          {
+            "word": "information",
+            "count": 35
+          },
+          {
+            "word": "pdf",
+            "count": 34
+          },
+          {
+            "word": "create",
+            "count": 31
+          },
+          {
+            "word": "search",
+            "count": 30
+          },
+          {
+            "word": "adp",
+            "count": 30
+          },
+          {
+            "word": "share",
+            "count": 27
+          },
+          {
+            "word": "files",
+            "count": 27
+          },
+          {
+            "word": "jobs",
+            "count": 26
+          },
+          {
+            "word": "easy",
+            "count": 26
+          },
+          {
+            "word": "connect",
+            "count": 25
+          },
+          {
+            "word": "track",
+            "count": 25
+          },
+          {
+            "word": "teams",
+            "count": 25
+          },
+          {
+            "word": "need",
+            "count": 25
+          },
+          {
+            "word": "scan",
+            "count": 25
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "push notifications",
+            "count": 16
+          },
+          {
+            "word": "job search",
+            "count": 14
+          },
+          {
+            "word": "updated onmay",
+            "count": 11
+          },
+          {
+            "word": "microsoft teams",
+            "count": 10
+          },
+          {
+            "word": "000 cities",
+            "count": 9
+          },
+          {
+            "word": "mobile device",
+            "count": 8
+          },
+          {
+            "word": "amazon flex",
+            "count": 8
+          },
+          {
+            "word": "next job",
+            "count": 7
+          },
+          {
+            "word": "personal information",
+            "count": 7
+          },
+          {
+            "word": "time off",
+            "count": 7
+          },
+          {
+            "word": "approve time",
+            "count": 6
+          },
+          {
+            "word": "anytime anywhere",
+            "count": 5
+          },
+          {
+            "word": "find jobs",
+            "count": 5
+          },
+          {
+            "word": "zoom workplace",
+            "count": 5
+          },
+          {
+            "word": "earn money",
+            "count": 5
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "Paylocity",
+          "fullDesc": "The Paylocity Mobile App gives you the tools you need to stay connected and access HR and payroll information, all in one intuitive experience.   \n\nEasily view paychecks, clock in and out, check schedules, update personal information, access messages, and complete tasks, all from a personalized home screen. Submit receipts, reconcile expenses, and use company cards with built-in controls. \n\nIt’s just another way Paylocity helps you handle it all with one unified platform.   \n\n \nWhy employees love it: \n\n- Secure access to everything you need — with just one login   \n- Edit personal info, search the company directory, or view current and historical pay info \n- Receive push notifications for activities like time-off request approvals, checks becoming available, chats, and more \n- Access Community, Paylocity’s social collaboration hub, to get important updates from leaders and connect with peers \n- Request access to a portion of earned wages before payday \n- Track expenses and card use \n- Review schedules and timesheets \n- Clock in and out \n- View an interactive org chart to check organizational structure and reach out to colleagues \n\nWhy supervisors love it: \n\n- Experience one, unified platform \n- Submit, view, and approve time-off requests with real-time push notifications \n- Review and approve expense reports and timecards \n- Manage Journal entries for direct reports \n- Create, view, and edit schedules and shifts \n\nSecurity features: \n- Biometric functions are available for secure quick logins \n- All activities are encrypted and routed safely to secure Paylocity servers \n- Sessions will time out if inactive to prevent unauthorized access \n- Excessive failed login attempts will lock a user account \n\nApp usage:\n\n[…]",
+          "rating": 4.80795,
+          "appId": "652438572"
+        },
+        {
+          "source": "play",
+          "title": "Slack",
+          "shortDesc": "All your team communication in one place",
+          "fullDesc": "Slack helps companies big and small turn chaos into cohesive collaboration.\n\nIt’s one place where you can have meetings, collaborate on documents, share files, access your favorite apps, work alongside external partners, and use AI and agents to get ahead.\n\nWith Slack, you have everything you need to grow your business. \n\n💬 Talk things out with your team\n• Stay organized with a dedicated channel for every project.\n• Work alongside your team, customers, contractors, and vendors from anywhere in the world.\n• Video chat directly in Slack, and share your screen to present and discuss work live.\n• When typing doesn’t cut it, record and send audio or video clips to share complicated ideas clearly.\n\n🎯 Keep projects on track\n• Set projects up for success with pre-made and customizable* templates.\n• Collaborate on marketing plans, product specs, and more in shared docs that live right next to your team’s conversations.\n• Track to-dos, assign tasks, and map out milestones with project management tools.*\n\n⚙️ Tap into all of your tools\n• Access 2,600+ apps, including Google Drive, Salesforce Data Cloud, Dropbox, Asana, Zapier, Figma, and Zendesk.\n• Approve requests, manage your calendar, and update file permissions without leaving Slack.\n• Find files, messages, and information instantly with AI-powered search.**\nUse Slack AI to take meeting notes, so you and your teammates can stay focused.**\n\n*Requires an upgrade to Slack Pro, Business+, or Enterprise.\n\n**Requires Slack AI add-on.Updated onMay 12, 2026",
+          "rating": 4.656792640686035,
+          "appId": "com.Slack"
+        },
+        {
+          "source": "ios",
+          "title": "DoorDash - Dasher",
+          "fullDesc": "Enjoy the freedom to be your own boss and earn money on your schedule. Plus, get 100% of your tips, always.\n\n*   CASH AFTER EVERY DASH   *\nGet paid right after every dash, automatically, with no deposit fees — ever.\n\n*    EARN WITH NUMBER ONE   *\nMake money delivering with the #1 Food & Drink Delivery app, available in 7,000+ cities in the US.\n\n *   START RIGHT NOW   *\nSign up to deliver in minutes. You only need your smartphone and transportation (bike, car, scooter, or motorcycle) to start.\n\n*   BE SUPPORTED   *\nYour app will show you where you’re going and when to get there. Plus 24/7 help is available if you need it.\n\n*   SET YOUR OWN SCHEDULE   *\nChoose your own hours and enjoy flexibility over hourly, seasonal, or full-time work. Start and stop whenever you want.\n\n*   FIND WORK NEAR YOU   *\nWork wherever you want. DoorDash is available in 7,000+ cities across the U.S., Australia, Canada, Japan and Germany. In select markets, you’ll be able to accept orders from Caviar, too!\n\n*   RESTAURANTS AND MORE   *\nMake money by completing deliveries from restaurants, convenience stores, grocery stores, and pet stores, too. \n\n\nDoorDash is available in over 7,000 cities in all 50 U.S. states, including Washington, D.C. and Puerto Rico; over 80 cities in Canada; and Melbourne, Australia, with more coming soon. \n\nFind out if we’re in your area and learn more here: doordash.com/dasher/signup\n\nCaviar Couriers can sign up using the DoorDash - Driver app",
+          "rating": 4.68037,
+          "appId": "1451754591"
+        }
+      ]
+    },
+    "education": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 9,
+        "p25": 24,
+        "p50": 28,
+        "p75": 29,
+        "p90": 30,
+        "max": 30,
+        "mean": 25.23
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 27,
+        "p25": 58,
+        "p50": 76,
+        "p75": 79,
+        "p90": 80,
+        "max": 80,
+        "mean": 65.4
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 533,
+        "p25": 1501,
+        "p50": 3272,
+        "p75": 3717,
+        "p90": 3948,
+        "max": 4005,
+        "mean": 2682.28
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 21,
+        "p25": 165,
+        "p50": 237,
+        "p75": 281,
+        "p90": 368,
+        "max": 967,
+        "mean": 233.33
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 3,
+        "p25": 6,
+        "p50": 11,
+        "p75": 15,
+        "p90": 22,
+        "max": 39,
+        "mean": 11.68
+      },
+      "rating": {
+        "n": 40,
+        "min": 2.02999,
+        "p25": 4.56,
+        "p50": 4.65,
+        "p75": 4.75,
+        "p90": 4.8,
+        "max": 4.83362,
+        "mean": 4.51
+      },
+      "ratingCountP50": 578317,
+      "screenshotCount": {
+        "n": 29,
+        "min": 4,
+        "p25": 9,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 10.38
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 1,
+        "p90": 1,
+        "max": 2,
+        "mean": 0.3
+      },
+      "dominantBullet": "•",
+      "bulletCharFrequency": {
+        "•": 173,
+        "◦": 0,
+        "●": 0,
+        "-": 129,
+        "*": 43,
+        "▶": 0,
+        "◉": 0,
+        "►": 21,
+        "→": 0
+      },
+      "listingsWithBullets": 29,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 11,
+        "imperative": 6,
+        "scenario": 4,
+        "question": 0,
+        "other": 19
+      },
+      "emojiBodiesShare": 0.15,
+      "exclamationBodiesShare": 0.65,
+      "benefitLexiconHits": {
+        "privacy": 20,
+        "private": 1,
+        "secure": 3,
+        "encryption": 0,
+        "encrypted": 0,
+        "free": 19,
+        "easy": 14,
+        "easily": 10,
+        "simple": 6,
+        "quick": 14,
+        "fast": 10,
+        "share": 9,
+        "shared": 0,
+        "anywhere": 10,
+        "offline": 8,
+        "sync": 0,
+        "help": 24,
+        "built-in": 3,
+        "automatic": 15,
+        "automatically": 15,
+        "one place": 5
+      },
+      "shortDescOpenerVerbs": {
+        "learn": 4,
+        "connect": 1,
+        "stay": 1,
+        "create": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "learning",
+            "count": 136
+          },
+          {
+            "word": "learn",
+            "count": 102
+          },
+          {
+            "word": "plant",
+            "count": 93
+          },
+          {
+            "word": "language",
+            "count": 72
+          },
+          {
+            "word": "fun",
+            "count": 60
+          },
+          {
+            "word": "english",
+            "count": 56
+          },
+          {
+            "word": "kids",
+            "count": 56
+          },
+          {
+            "word": "games",
+            "count": 52
+          },
+          {
+            "word": "practice",
+            "count": 47
+          },
+          {
+            "word": "lessons",
+            "count": 45
+          },
+          {
+            "word": "skills",
+            "count": 45
+          },
+          {
+            "word": "study",
+            "count": 44
+          },
+          {
+            "word": "vocabulary",
+            "count": 41
+          },
+          {
+            "word": "math",
+            "count": 41
+          },
+          {
+            "word": "spanish",
+            "count": 39
+          },
+          {
+            "word": "features",
+            "count": 37
+          },
+          {
+            "word": "subscription",
+            "count": 36
+          },
+          {
+            "word": "activities",
+            "count": 36
+          },
+          {
+            "word": "school",
+            "count": 34
+          },
+          {
+            "word": "free",
+            "count": 34
+          },
+          {
+            "word": "world",
+            "count": 32
+          },
+          {
+            "word": "time",
+            "count": 32
+          },
+          {
+            "word": "plants",
+            "count": 32
+          },
+          {
+            "word": "chess",
+            "count": 31
+          },
+          {
+            "word": "help",
+            "count": 31
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "language learning",
+            "count": 15
+          },
+          {
+            "word": "current period",
+            "count": 14
+          },
+          {
+            "word": "turned off",
+            "count": 11
+          },
+          {
+            "word": "after purchase",
+            "count": 10
+          },
+          {
+            "word": "free trial",
+            "count": 10
+          },
+          {
+            "word": "itunes account",
+            "count": 10
+          },
+          {
+            "word": "toca boca",
+            "count": 10
+          },
+          {
+            "word": "learning goals",
+            "count": 9
+          },
+          {
+            "word": "learn spanish",
+            "count": 9
+          },
+          {
+            "word": "plant identification",
+            "count": 9
+          },
+          {
+            "word": "boca world",
+            "count": 9
+          },
+          {
+            "word": "sign language",
+            "count": 9
+          },
+          {
+            "word": "learning games",
+            "count": 9
+          },
+          {
+            "word": "spanish french",
+            "count": 8
+          },
+          {
+            "word": "plant identifier",
+            "count": 8
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "Gauth: AI Study Companion",
+          "fullDesc": "Gauth is the #1 AI study companion powered by newest AI model! Trusted by millions of users, Gauth offers unlimited answers for all subjects. Try Gauth for all your learning needs!\n\nKey Features:\n► ACCURATE ANSWERS, STEP-BY-STEP\nCompared to other homework helpers, Gauth is faster and more accurate at solving homework problems, especially with the support of Gauth AI Pro. Problems could be solved quickly within a few seconds, and all answers are accompanied by animated instructions and detailed explanations.\n\n► AI LIVE TUTOR, VOICE & WHITEBOARD\nStuck on a question? With AI Live Tutor, ask by voice anytime and see problems explained clearly on a live whiteboard—just like having a personal tutor by your side.\n\n► AI STUDY CONVERTER: QUIZZES & FLASHCARDS INSTANTLY\nGot messy notes or long lectures? With AI Study Converter, upload class notes, photos, audio, or YouTube links — and instantly get personalized quizzes & flashcards to help you learn faster and boost your GPA. No extra work, just better results.\n\n► DEEPTHINKING, INSPIRE YOUR LEARNING\nPowered by Gauth AI, integrates the advantages of multiple AI models and solves your problems smarter and more deeply. With Gauth AI, we hope you can get inspired and learn efficiently.\n\n► MASTER ALL SUBJECTS, ALL GRADES\nNot only Math questions, Gauth could now solve all different levels of problems in Physics, Chemistry, Biology and more.\n\n[…]",
+          "rating": 4.83362,
+          "appId": "1542571008"
+        },
+        {
+          "source": "play",
+          "title": "Gauth: AI Study Companion",
+          "shortDesc": "Ask anything, get right answer",
+          "fullDesc": "Gauth is the #1 AI study companion powered by newest AI model! Trusted by millions of users, Gauth offers unlimited answers for all subjects. Try Gauth for all your learning needs!\n\nKey Features:\n► ACCURATE ANSWERS, STEP-BY-STEP\nCompared to other homework helpers, Gauth is faster and more accurate at solving homework problems, especially with the support of Gauth AI Pro. Problems could be solved quickly within a few seconds, and all answers are accompanied by animated instructions and detailed explanations.\n\n► AI LIVE TUTOR, VOICE & WHITEBOARD\nStuck on a question? With AI Live Tutor, ask by voice anytime and see problems explained clearly on a live whiteboard—just like having a personal tutor by your side.\n\n► DEEPTHINKING, INSPIRE YOUR LEARNING\nPowered by Gauth AI, integrates the advantages of multiple AI models and solves your problems smarter and more deeply. With Gauth AI, we hope you can get inspired and learn efficiently.\n\n► MASTER ALL SUBJECTS, ALL GRADES\nNot only Math questions, Gauth could now solve all different levels of problems in Physics, Chemistry, Biology and more.\n\n► REAL EXPERTS READY TO HELP 24/7\nAs a strong and resourceful homework solver, we have professional experts and dedicated experts ready to help you 24/7 with multiple subjects, including Math, Physics, Chemistry, and Biology. All experts are available to solve your problems anytime and anywhere, offering clear step-by-step explanations. With Gauth, you can easily understand and master different subjects.\n\n[…]",
+          "rating": 4.774357795715332,
+          "appId": "com.education.android.h.intelligence"
+        },
+        {
+          "source": "ios",
+          "title": "Quizlet: More than Flashcards",
+          "fullDesc": "Quizlet gives you study tools that teach you — not just tell you the answer — so you can walk into every test with confidence.\n\nYour personalized feed recommends exactly what to study next, powered by your courses, your school and what students like you are studying now. Jump in faster with Study Bites: bite‑sized suggestions, progress updates and content tailored to your learning goals.\n\nTurn your notes into study materials\n* Turn class notes into practice tests, study guides and flashcards so you can review your material in the way that works best for you\n * Create flashcards from scratch or let AI generate a deck from your study materials\n\nFlashcards that fit your routine\n* Discover millions of flashcard sets created by students and teachers\n* Sort cards into Know and Still learning to track progress\n* Save decks for offline access and study anywhere\n\nPractice that adapts to you\n* Turn any flashcard set into practice questions to reinforce knowledge\n* Study with multiple choice, true/false and written questions\n* Quizlet adapts based on what you know and what needs more work\n* Seamlessly pick up where you left off across all your devices\n\nExam‑ready tests\n* Simulate test day with a personalized practice test generated from any flashcard set\n* Customize the number of questions and formats to challenge yourself in different ways\n* Get instant scoring and feedback to spot gaps and build confidence\n\nHomework help when you need it\n* Expert‑authored, step‑by‑step solutions to tough homework problems\n* Check your work in challenging subjects like Calculus, Chemistry and Electrical Engineering\n* Use AI‑powered support to unpack each step or explore alternative approaches\n\n[…]",
+          "rating": 4.77764,
+          "appId": "546473125"
+        }
+      ]
+    },
+    "entertainment": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 7,
+        "p25": 18,
+        "p50": 26,
+        "p75": 30,
+        "p90": 30,
+        "max": 30,
+        "mean": 22.43
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 18,
+        "p25": 39,
+        "p50": 69,
+        "p75": 79,
+        "p90": 80,
+        "max": 80,
+        "mean": 57.25
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 374,
+        "p25": 1660,
+        "p50": 2528,
+        "p75": 3091,
+        "p90": 3664,
+        "max": 4020,
+        "mean": 2415.5
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 43,
+        "p25": 113,
+        "p50": 279,
+        "p75": 381,
+        "p90": 451,
+        "max": 3622,
+        "mean": 351.23
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 1,
+        "p25": 5,
+        "p50": 8,
+        "p75": 11,
+        "p90": 14,
+        "max": 23,
+        "mean": 8.32
+      },
+      "rating": {
+        "n": 40,
+        "min": 2.259979009628296,
+        "p25": 4.24,
+        "p50": 4.62,
+        "p75": 4.77,
+        "p90": 4.85,
+        "max": 4.86879,
+        "mean": 4.43
+      },
+      "ratingCountP50": 1654773,
+      "screenshotCount": {
+        "n": 34,
+        "min": 1,
+        "p25": 7,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 9.62
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 0,
+        "p90": 1,
+        "max": 1,
+        "mean": 0.15
+      },
+      "dominantBullet": "-",
+      "bulletCharFrequency": {
+        "•": 98,
+        "◦": 0,
+        "●": 0,
+        "-": 117,
+        "*": 1,
+        "▶": 0,
+        "◉": 0,
+        "►": 0,
+        "→": 0
+      },
+      "listingsWithBullets": 23,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 6,
+        "imperative": 7,
+        "scenario": 3,
+        "question": 3,
+        "other": 21
+      },
+      "emojiBodiesShare": 0.15,
+      "exclamationBodiesShare": 0.55,
+      "benefitLexiconHits": {
+        "privacy": 19,
+        "private": 4,
+        "secure": 3,
+        "encryption": 0,
+        "encrypted": 0,
+        "free": 21,
+        "easy": 7,
+        "easily": 12,
+        "simple": 3,
+        "quick": 16,
+        "fast": 6,
+        "share": 10,
+        "shared": 3,
+        "anywhere": 16,
+        "offline": 7,
+        "sync": 0,
+        "help": 13,
+        "built-in": 1,
+        "automatic": 8,
+        "automatically": 8,
+        "one place": 11
+      },
+      "shortDescOpenerVerbs": {
+        "play": 1,
+        "build": 1,
+        "watch": 3
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "watch",
+            "count": 79
+          },
+          {
+            "word": "live",
+            "count": 71
+          },
+          {
+            "word": "shows",
+            "count": 68
+          },
+          {
+            "word": "movies",
+            "count": 68
+          },
+          {
+            "word": "content",
+            "count": 60
+          },
+          {
+            "word": "free",
+            "count": 50
+          },
+          {
+            "word": "experience",
+            "count": 49
+          },
+          {
+            "word": "short",
+            "count": 49
+          },
+          {
+            "word": "love",
+            "count": 48
+          },
+          {
+            "word": "entertainment",
+            "count": 47
+          },
+          {
+            "word": "stream",
+            "count": 45
+          },
+          {
+            "word": "favorite",
+            "count": 44
+          },
+          {
+            "word": "dramas",
+            "count": 42
+          },
+          {
+            "word": "exclusive",
+            "count": 37
+          },
+          {
+            "word": "series",
+            "count": 37
+          },
+          {
+            "word": "available",
+            "count": 36
+          },
+          {
+            "word": "streaming",
+            "count": 35
+          },
+          {
+            "word": "games",
+            "count": 35
+          },
+          {
+            "word": "character",
+            "count": 35
+          },
+          {
+            "word": "videos",
+            "count": 34
+          },
+          {
+            "word": "enjoy",
+            "count": 34
+          },
+          {
+            "word": "discover",
+            "count": 33
+          },
+          {
+            "word": "download",
+            "count": 33
+          },
+          {
+            "word": "drama",
+            "count": 33
+          },
+          {
+            "word": "subscription",
+            "count": 32
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "short dramas",
+            "count": 24
+          },
+          {
+            "word": "hours before",
+            "count": 10
+          },
+          {
+            "word": "never run",
+            "count": 10
+          },
+          {
+            "word": "character creation",
+            "count": 10
+          },
+          {
+            "word": "live events",
+            "count": 9
+          },
+          {
+            "word": "viewing experience",
+            "count": 9
+          },
+          {
+            "word": "anytime anywhere",
+            "count": 9
+          },
+          {
+            "word": "live sports",
+            "count": 8
+          },
+          {
+            "word": "exclusive original",
+            "count": 8
+          },
+          {
+            "word": "please visit",
+            "count": 8
+          },
+          {
+            "word": "immerse yourself",
+            "count": 8
+          },
+          {
+            "word": "short videos",
+            "count": 8
+          },
+          {
+            "word": "free streaming",
+            "count": 8
+          },
+          {
+            "word": "availability varies",
+            "count": 7
+          },
+          {
+            "word": "movies live",
+            "count": 7
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "HBO Max: Stream Movies & TV",
+          "fullDesc": "The most talked about shows and movies featuring the worlds of HBO, the DC Universe, Adult Swim, A24, and beyond.\n\nWith HBO Max you'll get:\n• Access to thousands of TV shows and movies.\n• Exclusive, award-winning series that everyone's talking about — like the HBO Originals The Last of Us, Succession, The White Lotus, and House of the Dragon.\n• The latest hits from HBO, Harry Potter, DC, Warner Bros., ID, Adult Swim, A24, and more.\n• Stream select live sports from your favorite leagues and teams. Availability varies by plan and by subscription provider.\n• Iconic favorite TV shows like Friends, Rick and Morty, Gossip Girl, 90 Day Fiancé, Looney Tunes, and more.\n• Family-friendly entertainment for the whole household.\n• Fascinating documentaries and true crime series.\n\nFeatures:\n• Enjoy your favorite shows and movies at home or on the go. HBO Max is available on select TV, web browser, mobile, tablet, and gaming console devices.  \n• Catch even more sports action with the live Multiview experience — stream up to 3 games at once during select events.\n• Browse or search with ease across HBO, movies, series, genres, and brands.\n• Download shows and movies you love to watch on the go with select plans. (Download limits vary by plan.)\n• Personalized profiles for the entire household with customizable ratings, profile PIN protection, and kid-proof exit.\n• Pick up episodes and movies where you left off across your favorite devices.\n• Keep up with everything you love, all in one place with My Stuff.\n• Watch on multiple devices at the same time. (Limits vary by plan.)\n• Stream with high-quality video and surround sound on select plans.\n\n[…]",
+          "rating": 4.86879,
+          "appId": "1666653815"
+        },
+        {
+          "source": "play",
+          "title": "FreeReels - Dramas & Reels",
+          "shortDesc": "Watch short dramas, reels, and series anytime, anywhere.",
+          "fullDesc": "Enjoy high-quality short dramas and discover your favorite stories anytime. \n\nDiscover 70,000+ popular short dramas, over19 languages, covering US dramas, K-dramas, historical, modern, revenge, CEO romance, and more. Every episode is packed with excitement—whether it’s a quick break or a binge-watching session, you can dive in and enjoy an immersive experience anytime.\n\n⸻\n\n🌟 Key Features\n\n🎭 Diverse Genres, Endless Stories\nDive into thousands of mini dramas, short dramas, and one-shot web series across every genre — romance, thriller, suspense, family, comedy, and more. Each story is short, emotional, and perfectly designed for your busy lifestyle.\n\n🔥 Trending & Updated Daily\nStay ahead with daily new mini drama releases, popular short series, and exclusive web dramas. Fresh stories arrive every day so your watchlist never runs dry.\n\n💡 Personalized Recommendations\nFreeReels learns your preferences to suggest romantic dramas, thrilling episodes, and heartwarming series that fit your taste.\n\n📺 Seamless Viewing Anytime\nWatch short episodes, mini dramas, and web series smoothly in HD — no buffering, just instant entertainment.\n\n🌈 Intuitive Experience\nSwipe, tap, and scroll through hundreds of bite-sized dramas. Our clean, fast interface makes watching mini dramas easier than ever.\n\n⸻\n\n💫 Why Choose FreeReels\n\t•\tWatch thousands of short dramas, mini-series, and web stories anytime.\n\t•\tCurated content in romance, fantasy, mystery, and more.\n\t•\tAlways free to access — no subscriptions, no limits.\n\t•\tJoin millions discovering storytelling in minutes.\n\n⸻\n\n📥 Download FreeReels Today\nStream mini dramas, short series, and exclusive web dramas designed to move you.\nYour next favorite story is waiting — only on FreeReels.\n\n[…]",
+          "rating": 4.8664870262146,
+          "appId": "com.freereels.app"
+        },
+        {
+          "source": "ios",
+          "title": "Amazon Prime Video",
+          "fullDesc": "Watch movies, TV shows, live programming, and sports including Amazon MGM Studios-produced series and movies Road House, The Lord of the Rings: The Rings of Power, Fallout, Reacher, The Boys, and The Idea of You, and much more. Browse titles, search for your favorites, or enjoy movies and shows recommended just for you.\n\nApp features:\n• Download videos to watch anywhere.\n• Rent or buy new-release movies and popular TV shows (availability varies by marketplace).\n• Cast from your phone or tablet to the big screen with Chromecast.\n• Create multiple profiles so each person gets a personalized entertainment experience.\n• Go behind the scenes of movies and TV shows with exclusive X-Ray access, powered by IMDb (availability varies by marketplace).\n\nEnjoy Prime Video updates on your Apple TV or Mac by downloading the latest app from the App Store on your device. This requires an Apple TV 3rd generation or later, and for Mac, macOS Big Sur 11.4 or later.\n\nIf you subscribe to Prime Video via iTunes (where available), payment is charged to your iTunes Account at confirmation of purchase and your membership automatically renews monthly unless auto-renewal is turned off at least 24 hours before the end of the then current plan period. Your account is charged for renewal within 24 hours before the end of each plan period at the rate of your selected plan. Manage your subscription and turn off auto-renewal anytime by going to My Account or through iTunes.\n\nFor customers located within the European Union, United Kingdom or Brazil: By using this app, you agree to the Amazon Conditions of Use and the Prime Video Terms of Use at primevideo.com/ww-av-legal-home. See our Privacy Notice, Cookies Notice and Interest-Based Ads Notice at primevideo.com/ww-av-legal-home.\n\n[…]",
+          "rating": 4.76696,
+          "appId": "545519333"
+        }
+      ]
+    },
+    "finance": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 5,
+        "p25": 18,
+        "p50": 27,
+        "p75": 30,
+        "p90": 30,
+        "max": 30,
+        "mean": 22.43
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 49,
+        "p25": 65,
+        "p50": 76,
+        "p75": 79,
+        "p90": 80,
+        "max": 80,
+        "mean": 71.6
+      },
+      "fullDescLength": {
+        "n": 39,
+        "min": 259,
+        "p25": 1946,
+        "p50": 3408,
+        "p75": 3880,
+        "p90": 3975,
+        "max": 4000,
+        "mean": 2849.87
+      },
+      "hookLength": {
+        "n": 39,
+        "min": 10,
+        "p25": 124,
+        "p50": 188,
+        "p75": 283,
+        "p90": 480,
+        "max": 2256,
+        "mean": 326.77
+      },
+      "sectionCount": {
+        "n": 39,
+        "min": 1,
+        "p25": 6,
+        "p50": 10,
+        "p75": 16,
+        "p90": 18,
+        "max": 22,
+        "mean": 11
+      },
+      "rating": {
+        "n": 40,
+        "min": 3.9600000381469727,
+        "p25": 4.53,
+        "p50": 4.73,
+        "p75": 4.83,
+        "p90": 4.86,
+        "max": 4.88001,
+        "mean": 4.65
+      },
+      "ratingCountP50": 2141529,
+      "screenshotCount": {
+        "n": 28,
+        "min": 7,
+        "p25": 10,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 10.96
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 0,
+        "p90": 1,
+        "max": 2,
+        "mean": 0.15
+      },
+      "dominantBullet": "•",
+      "bulletCharFrequency": {
+        "•": 144,
+        "◦": 0,
+        "●": 0,
+        "-": 140,
+        "*": 19,
+        "▶": 0,
+        "◉": 0,
+        "►": 0,
+        "→": 0
+      },
+      "listingsWithBullets": 23,
+      "listingsAnalyzed": 39,
+      "openerPatternShare": {
+        "brandLinking": 17,
+        "imperative": 3,
+        "scenario": 4,
+        "question": 0,
+        "other": 15
+      },
+      "emojiBodiesShare": 0.1,
+      "exclamationBodiesShare": 0.38,
+      "benefitLexiconHits": {
+        "privacy": 6,
+        "private": 4,
+        "secure": 17,
+        "encryption": 1,
+        "encrypted": 2,
+        "free": 17,
+        "easy": 14,
+        "easily": 13,
+        "simple": 9,
+        "quick": 10,
+        "fast": 18,
+        "share": 13,
+        "shared": 2,
+        "anywhere": 7,
+        "offline": 2,
+        "sync": 5,
+        "help": 17,
+        "built-in": 0,
+        "automatic": 7,
+        "automatically": 6,
+        "one place": 4
+      },
+      "shortDescOpenerVerbs": {
+        "manage": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "money",
+            "count": 105
+          },
+          {
+            "word": "bank",
+            "count": 103
+          },
+          {
+            "word": "pay",
+            "count": 96
+          },
+          {
+            "word": "credit",
+            "count": 84
+          },
+          {
+            "word": "card",
+            "count": 83
+          },
+          {
+            "word": "account",
+            "count": 77
+          },
+          {
+            "word": "trading",
+            "count": 77
+          },
+          {
+            "word": "services",
+            "count": 68
+          },
+          {
+            "word": "payments",
+            "count": 66
+          },
+          {
+            "word": "financial",
+            "count": 64
+          },
+          {
+            "word": "mobile",
+            "count": 60
+          },
+          {
+            "word": "fees",
+            "count": 55
+          },
+          {
+            "word": "market",
+            "count": 54
+          },
+          {
+            "word": "available",
+            "count": 48
+          },
+          {
+            "word": "wallet",
+            "count": 47
+          },
+          {
+            "word": "cash",
+            "count": 44
+          },
+          {
+            "word": "deposit",
+            "count": 43
+          },
+          {
+            "word": "accounts",
+            "count": 43
+          },
+          {
+            "word": "funds",
+            "count": 43
+          },
+          {
+            "word": "stock",
+            "count": 40
+          },
+          {
+            "word": "transfer",
+            "count": 40
+          },
+          {
+            "word": "apply",
+            "count": 39
+          },
+          {
+            "word": "transfers",
+            "count": 37
+          },
+          {
+            "word": "cards",
+            "count": 37
+          },
+          {
+            "word": "000",
+            "count": 37
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "credit card",
+            "count": 25
+          },
+          {
+            "word": "debit card",
+            "count": 16
+          },
+          {
+            "word": "stock market",
+            "count": 16
+          },
+          {
+            "word": "send money",
+            "count": 15
+          },
+          {
+            "word": "services llc",
+            "count": 15
+          },
+          {
+            "word": "mutual funds",
+            "count": 13
+          },
+          {
+            "word": "pay bills",
+            "count": 12
+          },
+          {
+            "word": "credit karma",
+            "count": 12
+          },
+          {
+            "word": "financial services",
+            "count": 11
+          },
+          {
+            "word": "receive money",
+            "count": 9
+          },
+          {
+            "word": "member fdic",
+            "count": 9
+          },
+          {
+            "word": "credit score",
+            "count": 9
+          },
+          {
+            "word": "000 idr",
+            "count": 9
+          },
+          {
+            "word": "direct deposit",
+            "count": 8
+          },
+          {
+            "word": "cash back",
+            "count": 8
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "Chase Mobile®: Bank & Invest",
+          "fullDesc": "Bank securely with the Chase Mobile® app: send and receive money with Zelle®, deposit checks, monitor credit score, budget and track income & spend. Use J.P. Morgan Wealth Management to plan, invest, & set and track long-terms goals with Wealth Plan.\n\nManage your accounts\n• Review account activity: checking, savings, credit card, home, auto & business\n• Deposit checks\n\nPayments: Convenient ways to pay\n• Send & receive money with Zelle®\n• Schedule and manage payments for your Chase credit card & other bills\n• Transfer money between accounts\n\nChase Credit Journey®: Get free credit score\n• Take control of your credit, know where you stand, & set score goals\n• Receive free identity monitoring to help keep your information safe\n\nBudget & Save\n• Daily insights at a glance\n• Budget & track debit/credit transactions\n\nSecurity: Keep your money safe & secure\n• We may notify you of unusual card purchases\n• Lock & unlock cards in the app\n\nPlan for your future and manage your investments\n• $0 online commission for equities, ETFs & options\n• Use J.P. Morgan Wealth Plan for goal setting and tracking\n• Schedule meetings with an advisor\n\nRewards, offers & deals\n• Track & redeem rewards\n• Earn statement credit by using Chase Offers with eligible credit/debit cards\n\nConnect with Chase\n• Schedule meetings with bankers\n• Find Chase branches & ATMs\n• Chat with representatives 24/7\n\n[…]",
+          "rating": 4.83847,
+          "appId": "298867247"
+        },
+        {
+          "source": "play",
+          "title": "MetaTrader 5 — Forex, Stocks",
+          "shortDesc": "Online trading with Forex & Stock quotes, charts, technical analysis and news.",
+          "fullDesc": "Forex & Stock brokers offer traders investing in shares and currency trading via MetaTrader 5. Your MT5 features real-time quotes, financial news, FX & stock charts, technical analysis and online trading. Free demo accounts are available.\n\nRisk Warning: Our programs may involve real trading with a high risk of losing money rapidly. Most retail investor accounts lose money when trading financial products. You should consider whether you understand how various financial products work and whether you can afford to take the high risk of losing money.\n\nTRADING\n\n* Real-time Forex & Stock market quotes\n* Full set of trade orders, including pending orders\n* Level II prices with up to 32 quotes\n* All types of trade execution\n* Detailed online trading history\n\nADVANCED TRADING\n\n* Fast switching between financial instruments on charts\n* Sound notifications assisting trading\n* Customizable Forex & Stock chart color schemes\n* Trade levels visualizing the prices of pending orders, as well as SL and TP values on the chart\n* Free financial news — dozens of materials daily\n* Chat with any registered MQL5.community trader\n* Support of push notifications from the desktop MetaTrader 5 (MT5) platform and MQL5.community services\n* Connection with hundreds of Forex & Stock Brokers\n\nTECHNICAL ANALYSIS\n\n* Interactive real-time Forex & Stock charts with zoom and scroll options\n* 30 of the most popular technical indicators among traders\n* 24 analytical objects: lines, channels, geometric shapes, as well as Gann, Fibonacci and Elliott tools\n* 9 timeframes: M1, M5, M15, M30, H1, H4, D1, W1 and MN\n* 3 types of charts: bars, Japanese candlesticks and broken line for efficient trading\n\n[…]",
+          "rating": 4.761950492858887,
+          "appId": "net.metaquotes.metatrader5"
+        },
+        {
+          "source": "play",
+          "title": "Click SuperApp",
+          "shortDesc": "Pay with UZCARD and HUMO cards 24/7 and everywhere in one click!",
+          "fullDesc": "With the Click SuperApp mobile application, you have access to:\n\n- Card-to-Card Transfers \nTransfer funds from one plastic card to another. You can make transfers as well as request funds from a Click user by phone number, by card number, or transfer between your own cards.\n\n- Click Wallet \nThis is a virtual account that you can top up, use to pay for various goods and services, and transfer funds to other wallets. Now you don’t have to visit a bank or wait for an account or card to be opened.\n\n- Widgets \nEnjoy quick access for paying for mobile communications, utilities, transfers, and much more with new widgets on your home screen. Keep only those you need and arrange them as you like.\n- Click Premium \nThe Click Premium subscription lets you earn double cashback on payments, refund 100% of transfer commissions, make transfers via Click Boom, chat with premium support, and change the golden theme of the home screen for a fixed monthly fee.\n- Click Boom \nFast and convenient transfers to nearby contacts in one click.\n- Card History \nView the history of all transactions (credits, payments at retail locations, cash withdrawals, etc.) on your UzCard and Humo cards.\n\n- HumoPay \nPay directly with your mobile device using NFC technology at all terminals that accept Humo cards.\n\n- In-Person Payments \nPay using a QR code scanner at retail locations in your city.\n\n- Scheduled Auto-Pay \nUse this for making payments to a supplier on a specified day each month or week for a set amount.\n- Event-Based Auto-Pay \nThis is used for making a payment when a certain balance is reached on your supplier account.\n\n- Friend’s Help \nIf you run out of funds, you can ask friends to pay for you by sending them a payment request.\n\n[…]",
+          "rating": 4.731481552124023,
+          "appId": "air.com.ssdsoftwaresolutions.clickuz"
+        }
+      ]
+    },
+    "health_fitness": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 4,
+        "p25": 15,
+        "p50": 24,
+        "p75": 29,
+        "p90": 30,
+        "max": 30,
+        "mean": 22.15
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 15,
+        "p25": 51,
+        "p50": 71,
+        "p75": 79,
+        "p90": 80,
+        "max": 80,
+        "mean": 61
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 492,
+        "p25": 1847,
+        "p50": 3329,
+        "p75": 3882,
+        "p90": 3964,
+        "max": 4021,
+        "mean": 2826.1
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 18,
+        "p25": 73,
+        "p50": 202,
+        "p75": 349,
+        "p90": 515,
+        "max": 3741,
+        "mean": 380.55
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 1,
+        "p25": 8,
+        "p50": 12,
+        "p75": 17,
+        "p90": 20,
+        "max": 26,
+        "mean": 11.88
+      },
+      "rating": {
+        "n": 40,
+        "min": 3.3884644508361816,
+        "p25": 4.52,
+        "p50": 4.72,
+        "p75": 4.81,
+        "p90": 4.87,
+        "max": 4.94862,
+        "mean": 4.62
+      },
+      "ratingCountP50": 270809,
+      "screenshotCount": {
+        "n": 31,
+        "min": 4,
+        "p25": 8,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 10.35
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 1,
+        "p90": 1,
+        "max": 2,
+        "mean": 0.4
+      },
+      "dominantBullet": "-",
+      "bulletCharFrequency": {
+        "•": 96,
+        "◦": 0,
+        "●": 4,
+        "-": 135,
+        "*": 23,
+        "▶": 0,
+        "◉": 0,
+        "►": 4,
+        "→": 0
+      },
+      "listingsWithBullets": 23,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 14,
+        "imperative": 6,
+        "scenario": 2,
+        "question": 0,
+        "other": 18
+      },
+      "emojiBodiesShare": 0.08,
+      "exclamationBodiesShare": 0.45,
+      "benefitLexiconHits": {
+        "privacy": 18,
+        "private": 3,
+        "secure": 4,
+        "encryption": 0,
+        "encrypted": 0,
+        "free": 22,
+        "easy": 10,
+        "easily": 10,
+        "simple": 6,
+        "quick": 13,
+        "fast": 11,
+        "share": 16,
+        "shared": 2,
+        "anywhere": 8,
+        "offline": 4,
+        "sync": 11,
+        "help": 30,
+        "built-in": 5,
+        "automatic": 8,
+        "automatically": 7,
+        "one place": 6
+      },
+      "shortDescOpenerVerbs": {
+        "explore": 1,
+        "track": 2,
+        "scan": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "fitness",
+            "count": 154
+          },
+          {
+            "word": "health",
+            "count": 129
+          },
+          {
+            "word": "nutrition",
+            "count": 95
+          },
+          {
+            "word": "tracking",
+            "count": 78
+          },
+          {
+            "word": "workouts",
+            "count": 71
+          },
+          {
+            "word": "tracker",
+            "count": 70
+          },
+          {
+            "word": "goals",
+            "count": 69
+          },
+          {
+            "word": "sleep",
+            "count": 65
+          },
+          {
+            "word": "track",
+            "count": 63
+          },
+          {
+            "word": "daily",
+            "count": 62
+          },
+          {
+            "word": "calorie",
+            "count": 61
+          },
+          {
+            "word": "workout",
+            "count": 54
+          },
+          {
+            "word": "weight",
+            "count": 51
+          },
+          {
+            "word": "data",
+            "count": 48
+          },
+          {
+            "word": "help",
+            "count": 48
+          },
+          {
+            "word": "free",
+            "count": 45
+          },
+          {
+            "word": "food",
+            "count": 44
+          },
+          {
+            "word": "body",
+            "count": 44
+          },
+          {
+            "word": "macro",
+            "count": 42
+          },
+          {
+            "word": "progress",
+            "count": 41
+          },
+          {
+            "word": "time",
+            "count": 41
+          },
+          {
+            "word": "insights",
+            "count": 40
+          },
+          {
+            "word": "see",
+            "count": 40
+          },
+          {
+            "word": "support",
+            "count": 39
+          },
+          {
+            "word": "features",
+            "count": 37
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "weight loss",
+            "count": 26
+          },
+          {
+            "word": "heart rate",
+            "count": 22
+          },
+          {
+            "word": "lose weight",
+            "count": 19
+          },
+          {
+            "word": "fitness goals",
+            "count": 15
+          },
+          {
+            "word": "nutrition fitness",
+            "count": 14
+          },
+          {
+            "word": "fitness tracking",
+            "count": 13
+          },
+          {
+            "word": "planet fitness",
+            "count": 13
+          },
+          {
+            "word": "fitness journey",
+            "count": 13
+          },
+          {
+            "word": "calorie macro",
+            "count": 13
+          },
+          {
+            "word": "strength training",
+            "count": 13
+          },
+          {
+            "word": "samsung health",
+            "count": 13
+          },
+          {
+            "word": "nutrition macro",
+            "count": 12
+          },
+          {
+            "word": "calorie counter",
+            "count": 12
+          },
+          {
+            "word": "nutrition tracker",
+            "count": 12
+          },
+          {
+            "word": "mental health",
+            "count": 11
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "Finch: Self-Care Pet",
+          "fullDesc": "Meet your new self-care best friend! Finch is a self-care pet app that helps you feel prepared and positive, one day at a time. Take care of your pet by taking care of yourself! Choose from a wide variety of self-care exercises personalized for you.\n\nTHE BEST DAILY SELF-CARE APP\n\nStruggling with stress, mental health, or need motivation? Is self-care a chore? Finch makes self-care finally feel rewarding, lightweight, and fun. Complete quick self-care exercises to grow your pet, earn rewards, and improve mental health! People who struggle with mental health, goals, meditation, and journaling found it easier to be mindful with their self-care pet in the Finch app!\n\nREVIEWS\n\n- \"I’ve tried other apps for being thankful and thinking positive but never used them long. I enjoy this one because the virtual pet is really cute and it takes just a moment to be honest about I really feel.\"\n- \"As someone who struggles with anxiety and depression, I have tried many journaling apps and mood trackers. All of them felt like a chore, but not Finch! Even if I am not feeling like journaling or even facing my emotions, I can do so in order to help Finch.\"\n\nQUICK CHECK INS\n\n- Start mornings with quick mood checks and energize your pet to go exploring! Choose from a variety of quick mindful habits from goal tracking and bullet journaling to mindful breathing exercises and quizzes!\n- End days in moments of gratitude with your self-care pet where they'll be back from adventures to share stories with you! Destress, reflect, and recognize your positive moments.\n\nMINDFUL EXERCISES\n\nStrengthen your mental health by increasing resilience, productivity, and gratitude with self-care exercises! Finch helps you hit goals and sustain healthy habits with your self-care pet!\n\n[…]",
+          "rating": 4.94862,
+          "appId": "1528595748"
+        },
+        {
+          "source": "play",
+          "title": "Step Counter - Pedometer",
+          "shortDesc": "Automatic step tracking with Step Counter, Free Pedometer & Easy Calorie Counter",
+          "fullDesc": "This pedometer uses the built-in sensor to count your steps, which is battery-friendly. It also tracks your burned calories, walking distance and time, etc. All this information will be clearly displayed in graphs.\n\nJust tap the start button, and it starts counting your steps. Whether your phone is in your hand, bag, pocket or armband, it can auto-record your steps even your screen is locked.\n\nSave Power\nThis step counter uses the built-in sensor to count your steps, which is battery-friendly.\n\nNo Locked Features\nAll features are 100% FREE. You can use all features without having to pay for them.\n\n100% Private\nNo sign-in required. We never collect your personal data or share your information with third parties.\n\nStart, Pause and Reset\nYou can pause and start step counter at any time to save power. The app will stop background-refreshing statistics once you pause it. And you can reset today’s steps and count from 0 if you want to.\n\nFashion Design\nThis step tracker is designed by our Google Play Best of 2016 winning team. The clean design makes it easy to use. \n\nReport Graphs\nThe report graphs are the most innovative ever, they are specially designed for mobile devices to help you track your walking data. You can check your last 24 hours’, weekly and monthly statistics in graphs.\n\nBackup & Restore Data\nYou can back up and restore data from your Google drive. Keep your data safe and never lose your data.\n\nColorful Themes\nMulti colorful themes are under development. You can choose your favorite one to enjoy this step tracker. \n\nIMPORTANT NOTE\n\n[…]",
+          "rating": 4.856470108032227,
+          "appId": "pedometer.steptracker.calorieburner.stepcounter"
+        },
+        {
+          "source": "ios",
+          "title": "iCardiac: Heart Rate & Health",
+          "fullDesc": "Listen to Your Heart Health Like Never Before\n\n• Trusted by 3+ Million Users\n• #1 Health & Fitness Category in the US\n• 4.8 Star Rating\n\n— Do you ever feel \"OFF\" sometimes but can't pinpoint why? —\n\nYou wonder how stress affects your sleep, or how last night's meal impacts your energy today. Your body holds the answers, and iCardiac is the key to unlocking them.\n\nBy analyzing key metrics like Heart Rate (HR) and Heart Rate Variability (HRV) from your phone's camera or Apple Watch, we help you connect the dots between how you feel and what your health data reveals.\n\nGo Beyond Data. Get Personalized Guidance.\n\nLISTEN TO YOUR HEART'S STORY\n• Precise Heart Monitoring: Effortlessly measure your heart rate (HR), beats per minute (BPM), and Heart Rate Variability (HRV) anytime. Use your phone’s camera for quick checks or sync with your Apple Watch for continuous data.\n\n• Weekly Health Tests: Stay proactively informed about your heart's condition with our guided weekly tests.\n\n\nCREATE YOUR COMPLETE HEALTH JOURNAL\n• Comprehensive Tracking: Go beyond heart rate. Log your blood pressure, body temperature, and oxygen saturation (SpO2) to see the bigger picture.\n\n• Mood & Emotion Correlation: Log your daily mood to discover how your mental state correlates with your physical health.\n\n\nYOUR PERSONAL AI HEALTH COMPANION\n• Instant AI Insights: Our Doctor AI analyzes your complete health journal, providing instant feedback on your progress and trends.\n\n• AI-Powered Nutrition: Use our Food Calorie Tracker to log meals simply by taking a picture. Understand your nutrition like never before.\n\n• Personalized AI Health Plan: Receive a tailored plan with advice on lifestyle adjustments, exercise routines, and stress management to help you reach your health goals.\n\n[…]",
+          "rating": 4.76293,
+          "appId": "6468660073"
+        }
+      ]
+    },
+    "lifestyle": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 5,
+        "p25": 11,
+        "p50": 28,
+        "p75": 30,
+        "p90": 30,
+        "max": 30,
+        "mean": 21.3
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 24,
+        "p25": 64,
+        "p50": 75,
+        "p75": 79,
+        "p90": 80,
+        "max": 80,
+        "mean": 65.65
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 366,
+        "p25": 1333,
+        "p50": 2464,
+        "p75": 3108,
+        "p90": 3955,
+        "max": 4021,
+        "mean": 2284.05
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 33,
+        "p25": 113,
+        "p50": 200,
+        "p75": 326,
+        "p90": 501,
+        "max": 800,
+        "mean": 238.98
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 1,
+        "p25": 6,
+        "p50": 10,
+        "p75": 12,
+        "p90": 19,
+        "max": 27,
+        "mean": 9.73
+      },
+      "rating": {
+        "n": 40,
+        "min": 4.059572696685791,
+        "p25": 4.55,
+        "p50": 4.62,
+        "p75": 4.78,
+        "p90": 4.82,
+        "max": 4.95728,
+        "mean": 4.61
+      },
+      "ratingCountP50": 844701,
+      "screenshotCount": {
+        "n": 36,
+        "min": 5,
+        "p25": 8,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 9.81
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 1,
+        "p90": 2,
+        "max": 19,
+        "mean": 0.98
+      },
+      "dominantBullet": "-",
+      "bulletCharFrequency": {
+        "•": 153,
+        "◦": 0,
+        "●": 0,
+        "-": 312,
+        "*": 14,
+        "▶": 0,
+        "◉": 0,
+        "►": 15,
+        "→": 0
+      },
+      "listingsWithBullets": 32,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 12,
+        "imperative": 9,
+        "scenario": 3,
+        "question": 1,
+        "other": 15
+      },
+      "emojiBodiesShare": 0.18,
+      "exclamationBodiesShare": 0.23,
+      "benefitLexiconHits": {
+        "privacy": 14,
+        "private": 5,
+        "secure": 7,
+        "encryption": 1,
+        "encrypted": 0,
+        "free": 18,
+        "easy": 15,
+        "easily": 10,
+        "simple": 11,
+        "quick": 13,
+        "fast": 9,
+        "share": 15,
+        "shared": 4,
+        "anywhere": 12,
+        "offline": 1,
+        "sync": 5,
+        "help": 25,
+        "built-in": 2,
+        "automatic": 11,
+        "automatically": 10,
+        "one place": 9
+      },
+      "shortDescOpenerVerbs": {
+        "discover": 2
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "home",
+            "count": 114
+          },
+          {
+            "word": "diary",
+            "count": 107
+          },
+          {
+            "word": "journal",
+            "count": 57
+          },
+          {
+            "word": "devices",
+            "count": 53
+          },
+          {
+            "word": "money",
+            "count": 51
+          },
+          {
+            "word": "smart",
+            "count": 50
+          },
+          {
+            "word": "find",
+            "count": 47
+          },
+          {
+            "word": "daily",
+            "count": 46
+          },
+          {
+            "word": "free",
+            "count": 44
+          },
+          {
+            "word": "services",
+            "count": 37
+          },
+          {
+            "word": "lock",
+            "count": 36
+          },
+          {
+            "word": "control",
+            "count": 34
+          },
+          {
+            "word": "help",
+            "count": 33
+          },
+          {
+            "word": "local",
+            "count": 32
+          },
+          {
+            "word": "events",
+            "count": 30
+          },
+          {
+            "word": "create",
+            "count": 29
+          },
+          {
+            "word": "access",
+            "count": 28
+          },
+          {
+            "word": "see",
+            "count": 28
+          },
+          {
+            "word": "photos",
+            "count": 28
+          },
+          {
+            "word": "product",
+            "count": 28
+          },
+          {
+            "word": "astrology",
+            "count": 27
+          },
+          {
+            "word": "time",
+            "count": 26
+          },
+          {
+            "word": "people",
+            "count": 26
+          },
+          {
+            "word": "connect",
+            "count": 26
+          },
+          {
+            "word": "chat",
+            "count": 25
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "daily journal",
+            "count": 17
+          },
+          {
+            "word": "journal diary",
+            "count": 14
+          },
+          {
+            "word": "earn money",
+            "count": 12
+          },
+          {
+            "word": "stay connected",
+            "count": 10
+          },
+          {
+            "word": "smart home",
+            "count": 10
+          },
+          {
+            "word": "home appliances",
+            "count": 9
+          },
+          {
+            "word": "private journal",
+            "count": 9
+          },
+          {
+            "word": "access permissions",
+            "count": 8
+          },
+          {
+            "word": "alexa-enabled devices",
+            "count": 8
+          },
+          {
+            "word": "updated onmay",
+            "count": 8
+          },
+          {
+            "word": "personal diary",
+            "count": 8
+          },
+          {
+            "word": "diary daily",
+            "count": 8
+          },
+          {
+            "word": "current period",
+            "count": 7
+          },
+          {
+            "word": "local news",
+            "count": 7
+          },
+          {
+            "word": "money making",
+            "count": 7
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "Booksy for Customers",
+          "fullDesc": "Self-care, on your schedule. Instantly book with your favorite beauty and wellness providers, anytime and anywhere.\n\nJoin over 50 million clients who use Booksy to find and book top-rated beauty and wellness professionals. Skip the phone tag and back-and-forth DMs. With Booksy, your next appointment is just a tap away.\n\nBOOK 24/7 ON YOUR SCHEDULE\nNo more waiting for a callback. Pick a service, view open slots, and lock in your spot in seconds. \n\nEASILY MANAGE YOUR OWN APPOINTMENTS\nPlans change, we get it. Reschedule or cancel directly in the app in seconds. Automatic reminders keep you on track so you never miss a service.\n\nFIND THE BEST IN YOUR NEIGHBORHOOD\nDiscover nearby barbers, nail techs, hairstylists, massage therapists, and more. Explore real-time availability, check verified reviews, and browse portfolios to find your perfect match.\n\nWHY YOU’LL LOVE BOOKSY:\n• Rebook in seconds: Rebook your go-to services in just a couple clicks.\n• Automatic reminders: We’ll send you a nudge so you never miss an appointment.\n• Secure payments: Pay right through the app—no cash needed.\n• Special offers: Find and save on local services with exclusive deals.\n• Find local gems: Search and filter to find exactly what you need.\n\nReady to prioritize you? Download Booksy today and see why we’re the world’s top-rated beauty booking app.",
+          "rating": 4.92306,
+          "appId": "723961236"
+        },
+        {
+          "source": "play",
+          "title": "YarnPal - Crochet for Beginner",
+          "shortDesc": "Crochet made easy: step-by-step tutorials, beginner patterns & projects",
+          "fullDesc": "YarnPal helps you learn crochet and knitting with ease, even if you’ve never held a hook before. Learn new stitches, explore hundreds of patterns, track your progress, and design your own projects all in one place. With tons of beginner-friendly patterns and step-by-step video guides, YarnPal supports your crafting journey from the very first stitch. It’s an all-in-one crochet tutor and pattern maker designed to help you create with confidence.\n\nMain Features:\nLearn Step-by-Step\nGo from \"how-to\" to \"I-made-this.\" Our five signature beginner courses guide you through basic stitches and into real-world projects. With a clear, natural progression, you’ll build the skills and confidence to create anything you imagine.\n\nFull Video Tutorials\nMaster basics with video guides. Unlike fragmented social media clips, YarnPal offers complete project videos. \n• End-to-End Guidance: We show you every single stitch from start to finish.\n• Multi-Angle Views: See the placement clearly so you never have to guess where the hook goes.\n\nA Library That Grows With You\nDiscover 10-min quick patterns for beginners alongside advanced challenges. Our library is organized by category and skill level.\n• 500+ Patterns: From cozy everyday essentials to seasonal showstoppers, find your next project here. Choose from 500+ expert-curated ideas, including amigurumi, home decor, wearables, and gifts.\n• Fresh Weekly Updates: We add new patterns every week, ensuring you always have a new project to look forward to.\n\n[…]",
+          "rating": 4.612125873565674,
+          "appId": "com.yarnpal.ai"
+        },
+        {
+          "source": "ios",
+          "title": "Lemon8 - Lifestyle Community",
+          "fullDesc": "Lemon8 is a lifestyle community focused app powered by TikTok, where you can discover and share authentic content on a variety of topics such as beauty, fashion, travel, food, and more. You can edit and share photos with great ease and engage in discussion with like-minded people. Lemon8 offers a space where you can connect, inspire, and support one another.\n\n[Find Your Community]\n- Lemon8's customized content is specifically made for you. Our \"For You\" section recommends a personalized feed to you based on your interests. \n-Lemon8 is also a great place for you to express and engage in a free space with other like-minded creatives within the community.\n\n[Create with Ease]\n- Fed up of the faff of creating on one app, editing on another, posting on yet one more? With Lemon8, our in-app suite allows you to compose texts, edit photos and videos with ease.\n- You'll find a whole library of intuitive templates, stickers, filters and fonts for your photos and videos.\n- Say 'goodbye' to jumping between apps to make a single post and, say 'hello' to Lemon8!\n\n[Explore and Discover]\n- Use hashtags! Our hashtags not only help your posts get discovered, but also help you easily discover content you like.\n- Our campaign features and intuitive search helps you find trending content, top-performing creators and whatever answer you're browsing for.\n\n[Contact Us]\n- We want to build Lemon8 into the app you need and desire. Your suggestions make Lemon8 better.\n- If you have any feedback, questions or concerns, contact us at any time using the following email: contact@lemon8-app.com",
+          "rating": 4.60883,
+          "appId": "1498607143"
+        }
+      ]
+    },
+    "photo_video": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 7,
+        "p25": 21,
+        "p50": 28,
+        "p75": 30,
+        "p90": 30,
+        "max": 30,
+        "mean": 23.78
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 30,
+        "p25": 68,
+        "p50": 71,
+        "p75": 80,
+        "p90": 80,
+        "max": 80,
+        "mean": 69.35
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 663,
+        "p25": 1749,
+        "p50": 2885,
+        "p75": 3702,
+        "p90": 3993,
+        "max": 4022,
+        "mean": 2715.9
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 31,
+        "p25": 93,
+        "p50": 288,
+        "p75": 369,
+        "p90": 1031,
+        "max": 3947,
+        "mean": 406.45
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 1,
+        "p25": 6,
+        "p50": 10,
+        "p75": 13,
+        "p90": 18,
+        "max": 22,
+        "mean": 10.13
+      },
+      "rating": {
+        "n": 40,
+        "min": 3.785529613494873,
+        "p25": 4.48,
+        "p50": 4.64,
+        "p75": 4.74,
+        "p90": 4.84,
+        "max": 4.87696,
+        "mean": 4.54
+      },
+      "ratingCountP50": 1107833,
+      "screenshotCount": {
+        "n": 27,
+        "min": 5,
+        "p25": 9,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 10.63
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 0,
+        "p90": 1,
+        "max": 1,
+        "mean": 0.18
+      },
+      "dominantBullet": "•",
+      "bulletCharFrequency": {
+        "•": 274,
+        "◦": 0,
+        "●": 17,
+        "-": 142,
+        "*": 13,
+        "▶": 0,
+        "◉": 0,
+        "►": 0,
+        "→": 0
+      },
+      "listingsWithBullets": 28,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 15,
+        "imperative": 6,
+        "scenario": 2,
+        "question": 0,
+        "other": 17
+      },
+      "emojiBodiesShare": 0.25,
+      "exclamationBodiesShare": 0.57,
+      "benefitLexiconHits": {
+        "privacy": 26,
+        "private": 3,
+        "secure": 5,
+        "encryption": 1,
+        "encrypted": 2,
+        "free": 18,
+        "easy": 21,
+        "easily": 15,
+        "simple": 10,
+        "quick": 8,
+        "fast": 13,
+        "share": 27,
+        "shared": 4,
+        "anywhere": 3,
+        "offline": 1,
+        "sync": 7,
+        "help": 10,
+        "built-in": 2,
+        "automatic": 14,
+        "automatically": 13,
+        "one place": 5
+      },
+      "shortDescOpenerVerbs": {
+        "create": 1,
+        "edit": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "photo",
+            "count": 220
+          },
+          {
+            "word": "video",
+            "count": 200
+          },
+          {
+            "word": "photos",
+            "count": 175
+          },
+          {
+            "word": "videos",
+            "count": 128
+          },
+          {
+            "word": "create",
+            "count": 120
+          },
+          {
+            "word": "face",
+            "count": 93
+          },
+          {
+            "word": "editor",
+            "count": 88
+          },
+          {
+            "word": "share",
+            "count": 70
+          },
+          {
+            "word": "filters",
+            "count": 61
+          },
+          {
+            "word": "effects",
+            "count": 60
+          },
+          {
+            "word": "images",
+            "count": 58
+          },
+          {
+            "word": "tools",
+            "count": 57
+          },
+          {
+            "word": "content",
+            "count": 56
+          },
+          {
+            "word": "filter",
+            "count": 55
+          },
+          {
+            "word": "editing",
+            "count": 52
+          },
+          {
+            "word": "maker",
+            "count": 52
+          },
+          {
+            "word": "generator",
+            "count": 48
+          },
+          {
+            "word": "text",
+            "count": 47
+          },
+          {
+            "word": "add",
+            "count": 46
+          },
+          {
+            "word": "background",
+            "count": 44
+          },
+          {
+            "word": "edit",
+            "count": 44
+          },
+          {
+            "word": "fun",
+            "count": 43
+          },
+          {
+            "word": "image",
+            "count": 42
+          },
+          {
+            "word": "instagram",
+            "count": 41
+          },
+          {
+            "word": "social",
+            "count": 41
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "photo editor",
+            "count": 44
+          },
+          {
+            "word": "social media",
+            "count": 23
+          },
+          {
+            "word": "video generator",
+            "count": 20
+          },
+          {
+            "word": "collage maker",
+            "count": 17
+          },
+          {
+            "word": "video editor",
+            "count": 15
+          },
+          {
+            "word": "face shape",
+            "count": 14
+          },
+          {
+            "word": "video creation",
+            "count": 13
+          },
+          {
+            "word": "face editor",
+            "count": 11
+          },
+          {
+            "word": "amazon photos",
+            "count": 11
+          },
+          {
+            "word": "anime filter",
+            "count": 10
+          },
+          {
+            "word": "edit videos",
+            "count": 9
+          },
+          {
+            "word": "add text",
+            "count": 9
+          },
+          {
+            "word": "create stunning",
+            "count": 9
+          },
+          {
+            "word": "photo editing",
+            "count": 9
+          },
+          {
+            "word": "old face",
+            "count": 9
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "PhotoCircle",
+          "fullDesc": "PhotoCircle is a private photo-sharing app trusted by families, friends, social groups, individual professionals, schools, nonprofits, and businesses. Create invite-only albums to connect, share, and organize photos, videos, and documents — all in one simple, secure, and easy-to-use app.\n\nWHY 10M+ USERS CHOOSE PHOTOCIRCLE\n\n- Simple & Intuitive: Easy for everyone — no technical skills required.\n- Perfect for All Occasions: From personal memories to managing organizational media, PhotoCircle scales to your needs.\n- Private & Secure: Share in secure, invite-only albums with full control over who can access your content — backed by SOC 2 Type II compliance, GDPR, and US Data Privacy standards.\n- Scalable for Organizations: Purchase a premium plan tailored for your school, nonprofit, or business.\n\nExplore all features and plans directly on the PhotoCircle website.\n\nPERFECT FOR EVERY MOMENT\n\n- Family Albums: Share birthdays, holidays, graduations, vacations or special events and everyday moments with loved ones.\n- Weddings & Events: Create private spaces for weddings, reunions, and celebrations, and let guests upload their memories.\n- Professionals & Consultants: Keep your projects, clients, and colleagues’ communication and marketing materials organized.\n- Schools & Groups: Securely share classroom moments, school events, clubs, and campus activities.\n- Nonprofit & Community: Capture and share events, projects, and community gatherings with ease.\n- Businesses and Teams: Improve collaboration and securely share your content with team photo-sharing and collaborative albums for small teams and Fortune 500 enterprises alike.\n\nFEATURES THAT FIT YOUR NEEDS\n\n[…]",
+          "rating": 4.86796,
+          "appId": "517539894"
+        },
+        {
+          "source": "play",
+          "title": "Video Editor & Maker - InShot",
+          "shortDesc": "AI video editor with music! Edit video with effects, slideshow & slow motion",
+          "fullDesc": "InShot - Powerful all-in-one Video Editor and Video Maker with professional features. Add music, text, transition effects for videos, make smooth slow motion, make video collage, blur background and etc! As an easy-to-use editing app, InShot makes creating vlogs a breeze and helps you to become an influencer on YouTube, Instagram, TikTok, WhatsApp, Facebook, etc.\n\nInShot is also a photo editor and collage maker. Edit pictures and selfie, remove bg, add filters, adjust HSL, etc. Make stylish Instagram story covers and posts.\n\nFeatures:\n\nAI Tool\n- AI Body Effects. Experience the magic of AI with instant presets that elevate your images and videos in just one tap.\n- Auto Captions. AI-powered speech-to-text tool helps you say goodbye to manual text typing and makes video editing effortless.\n- Auto Remove Background. Remove background of videos/photos at the touch of a button.\n- Smart tracking. Make stickers/text move seamlessly in sync with your tracking object motion, adding dynamic flair to your videos.\n- Smooth slow-mo. Experience seamless slow-motion effects for buttery smooth videos.\n\nFull-featured Video Editing\n- Trim/Merge clips. Combine and compress video without losing quality.\n- Reverse videos.\n- Add text, emoji and InShot exclusive stickers.\n- Add music, sound effects & voice-overs.\n- Add various-styles voice effects.\n- Adjust ratio. Fit your video and photo in any aspect ratio.\n- Speed control. Speed up/slow down video. Add speed ramping.\n- Keyframes editing. Add custome keyframe animations.\n- Chromakey. Easily edit green screen video.\n- Picture-in-Picture. Create multi-layered videos.\n- Mixtures. Blend your video with blend mode.\n- Color picker. Pick any color on the screen and apply it to the background/text.\n\n[…]",
+          "rating": 4.8395538330078125,
+          "appId": "com.camerasideas.instashot"
+        },
+        {
+          "source": "play",
+          "title": "Photo Editor - Polish",
+          "shortDesc": "InShot 2026 Photo Editor: Fix blurry photos, generate AI art & retouch.",
+          "fullDesc": "✨ Elevate Your Photos with Professional AI Magic! 🎉\n\nTransform your shots instantly with the most powerful AI-driven photo editor on the market. Powered by our cutting-edge Titan-Pro vision architecture and the lightning-fast NanoBanana engine, Polish makes professional-grade editing accessible to everyone. Whether you need a high-end LinkedIn headshot, a viral TikTok aesthetic, or to rescue a cherished but blurry memory, our AI does the heavy lifting for you—no design skills required.\n\nJoin millions of creators who use Polish to refine their personal brand and capture life’s best moments in stunning HD.\n\n💡 Next-Gen AI Tools at Your Fingertips\n• Neural-HD Enhancer: Breathe new life into old, pixelated, or blurry photos. One tap to crystal-clear HD quality.\n• Pro AI Headshots: Skip the expensive photoshoot! Generate professional portraits for LinkedIn, resumes, or ID photos in seconds.\n• Smart AI Eraser: Effortlessly remove photobombers, power lines, or unwanted objects for a clean, distraction-free image.\n• AI Art & Cartoon: Turn selfies into unique avatars or trending AI art styles using the NanoBanana artistic model.\n• Generative Expand: Intelligently resize and uncrop photos to fit any social platform (Instagram, Pinterest, etc.) without losing detail.\n• Magic Retouch: Perfect your look with AI Beautify. Smooth skin, brighten eyes, and refine features for a natural, polished glow.\n\n🎨 Creative Filters & Professional Effects\n• Trendy Aesthetics: 100+ filters including CCD, Y2K, Retro VHS, and Flash-Glitch.\n• Precision Editing: Pro-level HSL color enhancement to adjust brightness, contrast, and saturation like a pro.\n• Collage Master: Combine up to 18 photos with stylish layouts and customizable frames.\n\n[…]",
+          "rating": 4.804478168487549,
+          "appId": "photo.editor.photoeditor.photoeditorpro"
+        }
+      ]
+    },
+    "productivity": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 7,
+        "p25": 13,
+        "p50": 19,
+        "p75": 29,
+        "p90": 30,
+        "max": 30,
+        "mean": 19.6
+      },
+      "shortDescLength": {
+        "n": 19,
+        "min": 26,
+        "p25": 65,
+        "p50": 74,
+        "p75": 79,
+        "p90": 80,
+        "max": 80,
+        "mean": 68.32
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 351,
+        "p25": 1478,
+        "p50": 2124,
+        "p75": 2836,
+        "p90": 3643,
+        "max": 3960,
+        "mean": 2217.13
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 72,
+        "p25": 122,
+        "p50": 193,
+        "p75": 244,
+        "p90": 351,
+        "max": 1925,
+        "mean": 255.85
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 1,
+        "p25": 6,
+        "p50": 9,
+        "p75": 12,
+        "p90": 19,
+        "max": 22,
+        "mean": 9.3
+      },
+      "rating": {
+        "n": 40,
+        "min": 3.7534279823303223,
+        "p25": 4.6,
+        "p50": 4.72,
+        "p75": 4.79,
+        "p90": 4.82,
+        "max": 4.88711,
+        "mean": 4.63
+      },
+      "ratingCountP50": 2193412,
+      "screenshotCount": {
+        "n": 29,
+        "min": 4,
+        "p25": 10,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 10.45
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0
+      },
+      "dominantBullet": "•",
+      "bulletCharFrequency": {
+        "•": 306,
+        "◦": 0,
+        "●": 0,
+        "-": 125,
+        "*": 24,
+        "▶": 17,
+        "◉": 0,
+        "►": 0,
+        "→": 0
+      },
+      "listingsWithBullets": 33,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 11,
+        "imperative": 11,
+        "scenario": 0,
+        "question": 0,
+        "other": 18
+      },
+      "emojiBodiesShare": 0.08,
+      "exclamationBodiesShare": 0.08,
+      "benefitLexiconHits": {
+        "privacy": 26,
+        "private": 2,
+        "secure": 8,
+        "encryption": 1,
+        "encrypted": 2,
+        "free": 18,
+        "easy": 15,
+        "easily": 16,
+        "simple": 11,
+        "quick": 23,
+        "fast": 14,
+        "share": 26,
+        "shared": 5,
+        "anywhere": 19,
+        "offline": 10,
+        "sync": 11,
+        "help": 18,
+        "built-in": 3,
+        "automatic": 16,
+        "automatically": 16,
+        "one place": 4
+      },
+      "shortDescOpenerVerbs": {
+        "create": 4,
+        "chat": 1,
+        "get": 1,
+        "make": 1,
+        "use": 1,
+        "share": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "microsoft",
+            "count": 73
+          },
+          {
+            "word": "files",
+            "count": 65
+          },
+          {
+            "word": "create",
+            "count": 59
+          },
+          {
+            "word": "edit",
+            "count": 57
+          },
+          {
+            "word": "access",
+            "count": 55
+          },
+          {
+            "word": "phone",
+            "count": 52
+          },
+          {
+            "word": "share",
+            "count": 47
+          },
+          {
+            "word": "work",
+            "count": 45
+          },
+          {
+            "word": "features",
+            "count": 41
+          },
+          {
+            "word": "gemini",
+            "count": 40
+          },
+          {
+            "word": "data",
+            "count": 39
+          },
+          {
+            "word": "claude",
+            "count": 38
+          },
+          {
+            "word": "assistant",
+            "count": 37
+          },
+          {
+            "word": "view",
+            "count": 36
+          },
+          {
+            "word": "calendar",
+            "count": 35
+          },
+          {
+            "word": "account",
+            "count": 34
+          },
+          {
+            "word": "collaborate",
+            "count": 32
+          },
+          {
+            "word": "documents",
+            "count": 32
+          },
+          {
+            "word": "time",
+            "count": 31
+          },
+          {
+            "word": "add",
+            "count": 31
+          },
+          {
+            "word": "365",
+            "count": 31
+          },
+          {
+            "word": "meta",
+            "count": 30
+          },
+          {
+            "word": "pdf",
+            "count": 29
+          },
+          {
+            "word": "subscription",
+            "count": 29
+          },
+          {
+            "word": "photos",
+            "count": 28
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "microsoft 365",
+            "count": 30
+          },
+          {
+            "word": "real time",
+            "count": 9
+          },
+          {
+            "word": "phone tablet",
+            "count": 9
+          },
+          {
+            "word": "existing ones",
+            "count": 8
+          },
+          {
+            "word": "voice mode",
+            "count": 8
+          },
+          {
+            "word": "subscriptions purchased",
+            "count": 8
+          },
+          {
+            "word": "word excel",
+            "count": 8
+          },
+          {
+            "word": "365 subscription",
+            "count": 8
+          },
+          {
+            "word": "even offline",
+            "count": 8
+          },
+          {
+            "word": "account settings",
+            "count": 7
+          },
+          {
+            "word": "create edit",
+            "count": 7
+          },
+          {
+            "word": "video calls",
+            "count": 7
+          },
+          {
+            "word": "privacy statement",
+            "count": 7
+          },
+          {
+            "word": "updated onmay",
+            "count": 7
+          },
+          {
+            "word": "claude helps",
+            "count": 6
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "Grok - AI Chat & Video",
+          "fullDesc": "Grok is an AI-powered assistant, developed by xAI, designed to be maximally truthful, useful, and curious. Get answers to any question, generate striking images and videos, and let Grok search the web and X for you to gain a deeper understanding of the world. With Grok, the universe is in your hands!\n\nAI assistant\n- Ask anything and get fast replies, have Grok do deep research on the web for you, or solve the hardest problems in math, science, and coding with Grok 4.\n- Upload documents and photos, or paste links in the chat to have Grok analyze or help you understand the content.\n\nGrok Imagine\n- Imagine is a new, super fast, groundbreaking AI image and video generation experience. \n- Generate 6-second videos with sound from text prompts, and turn static photos into videos.\n- Generate AI images using only your voice.\n\nGrok Voice Mode\n- Talk to Grok using your voice and get natural sounding replies as if you’re having a conversation with a human.\n- Live Camera: If you want Grok to see what you see, you can use Voice Mode with Live Camera to share your view in real-time.\n- Personalize your AI Assistant and choose between different personalities, like Assistant, Romantic, Storyteller, and more.\n\nGrok AI Companions\n- Have a chat with Ani, Rudi, or Valentine, our animated AI characters, each bursting with personality,\n- Rudi is a cheeky red panda with a sense of humor that you can banter with.\n- Valentine is a romantic male with poetic charm, perfect for deep and soulful conversations. \n- Ani is a charmer who blushes and sends hearts as your bond grows.\n\n[…]",
+          "rating": 4.88711,
+          "appId": "6670324846"
+        },
+        {
+          "source": "play",
+          "title": "Microsoft Word: Edit Documents",
+          "shortDesc": "Craft your story with formatting and grammar tools to ensure it’s right, always",
+          "fullDesc": "Create, edit, read and share documents on your mobile device with the same power and familiarity you rely on from your PC.\n\nWrite CVs, letters, assignments, notes or creative work on the go. Convert between Word and PDF, collaborate with others and access your files from anywhere. With easy to use editing tools and a built in document viewer, Word makes mobile writing simple and efficient.\n\nChoose from templates for CVs, newsletters, brochures and more to jump start any project. Whether you're a student, blogger, journalist or project manager, Word moves with you.\n\nCreate Documents\n\n•  Get started quickly with modern templates for letters, CVs, scripts, proposals, invoices and more \n•  Use rich formatting and layout tools to express your ideas clearly \n•  Keep your documents looking great on any device\n\nRead, Write and Edit Anywhere\n\n•  Edit long documents with familiar writing and formatting tools \n•  Open attachments and view documents with the built in reader \n•  Convert PDFs to Word for easy editing\n\nCollaborate and Share\n\n•  Comment alongside text to share feedback \n•  Work with others in real-time and track changes to text and layout \n•  Use version history to view or restore earlier drafts\n\nSimplified Sharing\n\n•  Invite others to edit or view with a few taps \n•  Manage permissions and see who’s in the document \n•  Copy content into an email with formatting intact or attach your files directly \n\nAI Assistance with Copilot*\n\n•  Draft CVs, polish proposals and organise ideas in seconds \n•  Summarise, refine and automatically format content \n•  Get intelligent suggestions that make your writing clear and impactful\n\nRequirements\n\n•  1 GB RAM or higher\n\n[…]",
+          "rating": 4.785151958465576,
+          "appId": "com.microsoft.office.word"
+        },
+        {
+          "source": "play",
+          "title": "Google Sheets",
+          "shortDesc": "Create and edit online spreadsheets with Google Sheets, part of Google Workspace",
+          "fullDesc": "Create, edit, and collaborate on spreadsheets from your Android phone or tablet with the Google Sheets app. With Sheets, you can:\n\n- Create new spreadsheets or edit existing files\n- Share spreadsheets and collaborate in the same spreadsheet at the same time.\n- Work anywhere, anytime - even offline\n- Add and respond to comments\n- Format cells, enter or sort data, view charts, insert formulas, use find/replace, and more\n- Never worry about losing your work – everything is saved automatically as you type\n- Quickly get insights, insert charts, and apply formatting with smart suggestions\n- Open, edit, and save Excel files.\n\nGoogle Sheets is part of Google Workspace: where teams of any size can chat, create, and collaborate.\n\nGoogle Workspace subscribers have access to additional Google Sheets features, including:\n- Easily add collaborators to projects, see changes as they occur, receive notifications for edits that happen while you’re away, and chat with colleagues in the same spreadsheet. All changes are automatically saved as you make them. And with offline access, you can create, view, and edit files wherever and whenever\n- Get insights fast, powered by Google AI\n- Work seamlessly across Sheets and Excel\n- Maintain control with enterprise-grade security\n- Analyze data from other business-critical tools\n- Build custom solutions\n\nLearn more about Google Workspace: https://workspace.google.com/products/sheets/\n\nFollow us for more:\nTwitter: https://twitter.com/googleworkspace\nLinkedin: https://www.linkedin.com/showcase/googleworkspace\nFacebook: https://www.facebook.com/googleworkspace/Updated onMay 11, 2026",
+          "rating": 4.797635555267334,
+          "appId": "com.google.android.apps.docs.editors.sheets"
+        }
+      ]
+    },
+    "social": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 6,
+        "p25": 11,
+        "p50": 25,
+        "p75": 29,
+        "p90": 30,
+        "max": 30,
+        "mean": 19.8
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 17,
+        "p25": 29,
+        "p50": 65,
+        "p75": 77,
+        "p90": 80,
+        "max": 80,
+        "mean": 55.35
+      },
+      "fullDescLength": {
+        "n": 39,
+        "min": 314,
+        "p25": 1458,
+        "p50": 2138,
+        "p75": 2670,
+        "p90": 3732,
+        "max": 3961,
+        "mean": 2107.67
+      },
+      "hookLength": {
+        "n": 39,
+        "min": 45,
+        "p25": 145,
+        "p50": 225,
+        "p75": 345,
+        "p90": 1673,
+        "max": 2441,
+        "mean": 447.77
+      },
+      "sectionCount": {
+        "n": 39,
+        "min": 1,
+        "p25": 5,
+        "p50": 10,
+        "p75": 13,
+        "p90": 18,
+        "max": 29,
+        "mean": 9.62
+      },
+      "rating": {
+        "n": 40,
+        "min": 3.0350403785705566,
+        "p25": 4.06,
+        "p50": 4.6,
+        "p75": 4.7,
+        "p90": 4.76,
+        "max": 4.811734199523926,
+        "mean": 4.38
+      },
+      "ratingCountP50": 579047,
+      "screenshotCount": {
+        "n": 33,
+        "min": 4,
+        "p25": 8,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 9.97
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 0,
+        "p90": 1,
+        "max": 4,
+        "mean": 0.28
+      },
+      "dominantBullet": "-",
+      "bulletCharFrequency": {
+        "•": 89,
+        "◦": 0,
+        "●": 0,
+        "-": 123,
+        "*": 24,
+        "▶": 0,
+        "◉": 0,
+        "►": 0,
+        "→": 0
+      },
+      "listingsWithBullets": 20,
+      "listingsAnalyzed": 39,
+      "openerPatternShare": {
+        "brandLinking": 15,
+        "imperative": 3,
+        "scenario": 1,
+        "question": 0,
+        "other": 20
+      },
+      "emojiBodiesShare": 0.03,
+      "exclamationBodiesShare": 0.51,
+      "benefitLexiconHits": {
+        "privacy": 21,
+        "private": 13,
+        "secure": 7,
+        "encryption": 3,
+        "encrypted": 4,
+        "free": 22,
+        "easy": 10,
+        "easily": 10,
+        "simple": 5,
+        "quick": 8,
+        "fast": 8,
+        "share": 32,
+        "shared": 5,
+        "anywhere": 6,
+        "offline": 1,
+        "sync": 3,
+        "help": 20,
+        "built-in": 1,
+        "automatic": 6,
+        "automatically": 6,
+        "one place": 1
+      },
+      "shortDescOpenerVerbs": {
+        "join": 1,
+        "connect": 1,
+        "build": 1,
+        "share": 1,
+        "chat": 1,
+        "watch": 1,
+        "get": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "friends",
+            "count": 93
+          },
+          {
+            "word": "free",
+            "count": 81
+          },
+          {
+            "word": "share",
+            "count": 80
+          },
+          {
+            "word": "people",
+            "count": 68
+          },
+          {
+            "word": "live",
+            "count": 57
+          },
+          {
+            "word": "phone",
+            "count": 54
+          },
+          {
+            "word": "videos",
+            "count": 52
+          },
+          {
+            "word": "chat",
+            "count": 51
+          },
+          {
+            "word": "text",
+            "count": 49
+          },
+          {
+            "word": "group",
+            "count": 48
+          },
+          {
+            "word": "video",
+            "count": 45
+          },
+          {
+            "word": "community",
+            "count": 44
+          },
+          {
+            "word": "photos",
+            "count": 41
+          },
+          {
+            "word": "features",
+            "count": 40
+          },
+          {
+            "word": "connect",
+            "count": 38
+          },
+          {
+            "word": "number",
+            "count": 37
+          },
+          {
+            "word": "calls",
+            "count": 32
+          },
+          {
+            "word": "tiktok",
+            "count": 32
+          },
+          {
+            "word": "send",
+            "count": 30
+          },
+          {
+            "word": "call",
+            "count": 30
+          },
+          {
+            "word": "help",
+            "count": 30
+          },
+          {
+            "word": "content",
+            "count": 30
+          },
+          {
+            "word": "stay",
+            "count": 29
+          },
+          {
+            "word": "data",
+            "count": 29
+          },
+          {
+            "word": "see",
+            "count": 29
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "phone number",
+            "count": 17
+          },
+          {
+            "word": "group chats",
+            "count": 10
+          },
+          {
+            "word": "social media",
+            "count": 10
+          },
+          {
+            "word": "stay connected",
+            "count": 8
+          },
+          {
+            "word": "best friends",
+            "count": 8
+          },
+          {
+            "word": "tiktok lite",
+            "count": 8
+          },
+          {
+            "word": "home screen",
+            "count": 7
+          },
+          {
+            "word": "photos videos",
+            "count": 6
+          },
+          {
+            "word": "free text",
+            "count": 6
+          },
+          {
+            "word": "live streams",
+            "count": 6
+          },
+          {
+            "word": "real people",
+            "count": 5
+          },
+          {
+            "word": "social network",
+            "count": 5
+          },
+          {
+            "word": "allow users",
+            "count": 5
+          },
+          {
+            "word": "nearby devices",
+            "count": 5
+          },
+          {
+            "word": "group chat",
+            "count": 5
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "Text Me - Phone Call + Texting",
+          "fullDesc": "The Best FREE TEXTING App on the Store with FREE CALLING and FREE PHONE NUMBERS\n\n- Need a new phone plan for FREE calling & texting to any number in US & Canada?\n- Need to protect your privacy and are looking for a second phone number?\n- Want a second or local phone number for dating & side projects? \n- Want to call & text to your international friends & relatives at a very low and affordable cost? \n\n==> TextMe is your reliable & free all-in-one solution!\n\nTrusted by millions of users, TextMe is the market-leading provider of private custom phone numbers in the US & Canada.\nWith TextMe your calls & texts to any number in the US & Canada are totally free! \n\nNo hidden cost, no catch! \n\nWhat other awesome features can I get with the TextMe app?\n- Enjoy free voicemail service \n- Pick as many custom phone numbers as you want to protect your privacy\n- Call & text to any foreign number at the best rate\n- Turn your iPad or iPod into a real phone \n- Text & chat with pictures, voice and video messages, and loads of fun emojis and stickers!\n\n\nWho are we?\nThe TextMe team has been developing with love out of San Francisco since 2011, when we initially launched a cross-platform messaging application that allows you to send unlimited text (SMS) messages and pictures to any phone number in the United States, Canada, and the United Kingdom. In 2013, we extended our reach to more than 100 countries for voice and SMS, enabling low cost communication across the globe.\n\nPlease give us your feedback on the app! Thanks for using TextMe!\n\nThe TextMe Team\n\nSupport: http://support.go-text.me\nTwitter: @textmeapp\n\n[…]",
+          "rating": 4.70362,
+          "appId": "514485964"
+        },
+        {
+          "source": "play",
+          "title": "Widgetable: Besties & Couples",
+          "shortDesc": "Keep connected, stay closer! Coparent Pets & Share Sleep, Poop, Moods on Screens",
+          "fullDesc": "Widget Together, Share Whatever! Turn your lock and home screens into a vibrant space for love and connection! Our interactive widgets enable you to share life's moments with your besties and loved ones in a fun and engaging way.\n\nFEATURES HIGHLIGHTS\n- Raise Pets Together\nAdopt adorable virtual pets and co-parent them with your friends! Feed, play, and watch them grow—your shared care creates unforgettable memories.\n- Share Your Daily Vibes\nShow you care with the Sleep Widget by tracking each other’s sleep! Record daily activities—even those funny moments like pooping and farting—and share them with your besties for fun. Use features like Mood Bubble and Mood Jar to express and share your emotions in a cute and colorful way.\n- Always Close, Even Miles Apart\nStay connected with the Distance Widget, which displays the real-time distance between you and your besties right on your lock screen. Keep an eye on their Status Widgets updates and send love bombs with the \"Miss You Widget\"—watch your “miss you” count soar!\n- Surprise & Delight\nBrighten your besties' screens with your snaps, funny emojis, doodles, and texts using the \"Pin It!\" feature. Remember to show care when you see theirs!\n- Personalize Your Style\nExplore more cute features like the Plant Widget, which lets you grow virtual plants on your screen and create a unique garden. Choose from trendy wallpapers, including 3D art, AI designs, and paper cuts, or match themes with your besties!\n\n*We request location permission for [Distance Widget] in the app so that you can always know how far the other one is.\n*We request permission to read your sleep data for [Sleep Widget] in the app so you can always track your and your friends' sleep patterns.\n\n[…]",
+          "rating": 4.732280731201172,
+          "appId": "com.widgetable.theme.android"
+        },
+        {
+          "source": "play",
+          "title": "Chatta - Live Meet Friends",
+          "shortDesc": "Chat, Live Stream, Meet Friends, Build Real Connections Worldwide",
+          "fullDesc": "Chat easier, connect with people, make life more joyful.\nChatta is a social app that helps people create meaningful connections and make real friends.\nChatta encourages you to be who you are and helps you find like-minded people.\nWhether you want to meet friends, discover interesting people, or expand your social circle, Chatta is the place to be!\nOur mission is to inspire users all over the world and let each user foster genuine connections with others.\nWe are committed to giving users a safe and secure environment to connect with others and express themselves.\nWe focus on live streaming and community sharing. You can make real connections, engage in live video chats, make lasting friendships and build your community here.\nWe have a Host role in the 3-party live room to help you break the ice with friends. They will help you start conversations, find more friends, and get more happiness.\nWhy Chatta?\n- Photo Verified Profiles: Connect with real people. Search for like-minded people and chat with them freely.\n- Live Host: A host role in the 3-party live room to help users socialize and build friendships.\n- Watch Live Stream: Our live room is designed for building genuine connections, allowing users to talk freely and become friends.\n- Live Video Chat: Enjoy real-time video chats with friends. Share moments as they happen.\n- Live Voice Chat: Don't want to show your face? Live voice chat is your perfect choice. Casual, drop-in audio conversations with no pressure.\n- Sharing Community: Share your interests and daily moments to start conversations. Chatta cherishes warm, safe, and good vibes — a community where people respect each other and communicate freely.\n- Connect with People Worldwide: Chat with people from the United States, Saudi Arabia, UAE, Kuwait, Oman and more. […]",
+          "rating": 4.627737045288086,
+          "appId": "com.metaztech.chatta"
+        }
+      ]
+    },
+    "utilities": {
+      "sampleSize": 40,
+      "titleLength": {
+        "n": 40,
+        "min": 4,
+        "p25": 11,
+        "p50": 21,
+        "p75": 29,
+        "p90": 30,
+        "max": 30,
+        "mean": 20.25
+      },
+      "shortDescLength": {
+        "n": 20,
+        "min": 18,
+        "p25": 52,
+        "p50": 65,
+        "p75": 78,
+        "p90": 80,
+        "max": 80,
+        "mean": 60.4
+      },
+      "fullDescLength": {
+        "n": 40,
+        "min": 471,
+        "p25": 1986,
+        "p50": 2530,
+        "p75": 3115,
+        "p90": 3495,
+        "max": 3844,
+        "mean": 2399.35
+      },
+      "hookLength": {
+        "n": 40,
+        "min": 34,
+        "p25": 114,
+        "p50": 186,
+        "p75": 325,
+        "p90": 726,
+        "max": 2388,
+        "mean": 312.38
+      },
+      "sectionCount": {
+        "n": 40,
+        "min": 1,
+        "p25": 8,
+        "p50": 11,
+        "p75": 14,
+        "p90": 22,
+        "max": 29,
+        "mean": 11.58
+      },
+      "rating": {
+        "n": 40,
+        "min": 1.4959864616394043,
+        "p25": 4.42,
+        "p50": 4.57,
+        "p75": 4.73,
+        "p90": 4.79,
+        "max": 4.91974,
+        "mean": 4.44
+      },
+      "ratingCountP50": 831406,
+      "screenshotCount": {
+        "n": 29,
+        "min": 6,
+        "p25": 9,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 10.55
+      },
+      "monthsSinceUpdate": {
+        "n": 40,
+        "min": 0,
+        "p25": 0,
+        "p50": 1,
+        "p75": 1,
+        "p90": 5,
+        "max": 23,
+        "mean": 1.83
+      },
+      "dominantBullet": "•",
+      "bulletCharFrequency": {
+        "•": 279,
+        "◦": 0,
+        "●": 0,
+        "-": 90,
+        "*": 24,
+        "▶": 0,
+        "◉": 3,
+        "►": 0,
+        "→": 0
+      },
+      "listingsWithBullets": 32,
+      "listingsAnalyzed": 40,
+      "openerPatternShare": {
+        "brandLinking": 15,
+        "imperative": 4,
+        "scenario": 0,
+        "question": 0,
+        "other": 21
+      },
+      "emojiBodiesShare": 0.2,
+      "exclamationBodiesShare": 0.33,
+      "benefitLexiconHits": {
+        "privacy": 24,
+        "private": 12,
+        "secure": 19,
+        "encryption": 7,
+        "encrypted": 5,
+        "free": 19,
+        "easy": 17,
+        "easily": 11,
+        "simple": 11,
+        "quick": 15,
+        "fast": 23,
+        "share": 13,
+        "shared": 5,
+        "anywhere": 7,
+        "offline": 4,
+        "sync": 5,
+        "help": 22,
+        "built-in": 6,
+        "automatic": 16,
+        "automatically": 15,
+        "one place": 9
+      },
+      "shortDescOpenerVerbs": {
+        "get": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "vpn",
+            "count": 128
+          },
+          {
+            "word": "free",
+            "count": 61
+          },
+          {
+            "word": "search",
+            "count": 60
+          },
+          {
+            "word": "internet",
+            "count": 57
+          },
+          {
+            "word": "access",
+            "count": 56
+          },
+          {
+            "word": "secure",
+            "count": 56
+          },
+          {
+            "word": "device",
+            "count": 46
+          },
+          {
+            "word": "security",
+            "count": 45
+          },
+          {
+            "word": "manage",
+            "count": 44
+          },
+          {
+            "word": "screen",
+            "count": 41
+          },
+          {
+            "word": "account",
+            "count": 41
+          },
+          {
+            "word": "phone",
+            "count": 40
+          },
+          {
+            "word": "network",
+            "count": 39
+          },
+          {
+            "word": "features",
+            "count": 39
+          },
+          {
+            "word": "support",
+            "count": 38
+          },
+          {
+            "word": "data",
+            "count": 37
+          },
+          {
+            "word": "privacy",
+            "count": 36
+          },
+          {
+            "word": "devices",
+            "count": 36
+          },
+          {
+            "word": "photos",
+            "count": 35
+          },
+          {
+            "word": "time",
+            "count": 35
+          },
+          {
+            "word": "family",
+            "count": 35
+          },
+          {
+            "word": "fast",
+            "count": 34
+          },
+          {
+            "word": "private",
+            "count": 34
+          },
+          {
+            "word": "control",
+            "count": 34
+          },
+          {
+            "word": "need",
+            "count": 33
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "family link",
+            "count": 26
+          },
+          {
+            "word": "free vpn",
+            "count": 17
+          },
+          {
+            "word": "proton vpn",
+            "count": 14
+          },
+          {
+            "word": "free trial",
+            "count": 13
+          },
+          {
+            "word": "internet connection",
+            "count": 11
+          },
+          {
+            "word": "secure vpn",
+            "count": 11
+          },
+          {
+            "word": "turbo vpn",
+            "count": 11
+          },
+          {
+            "word": "hours before",
+            "count": 10
+          },
+          {
+            "word": "private network",
+            "count": 10
+          },
+          {
+            "word": "current period",
+            "count": 9
+          },
+          {
+            "word": "universal remote",
+            "count": 9
+          },
+          {
+            "word": "fast vpn",
+            "count": 9
+          },
+          {
+            "word": "remote control",
+            "count": 8
+          },
+          {
+            "word": "cloud storage",
+            "count": 8
+          },
+          {
+            "word": "cleaner guru",
+            "count": 7
+          }
+        ]
+      },
+      "exampleListings": [
+        {
+          "source": "ios",
+          "title": "AT&T",
+          "fullDesc": "One app, every connection. The all-new AT&T app gives you unprecedented access, control, and insight with a sleek, reimagined interface. \n\nShop our best deals, pay your bill, manage your account and connections, and get help when you need it. A powerful AI assistant is always available to answer questions, resolve issues, and guide you to the right plans, devices, and upgrades.\n\nWith clear visibility into your network, you can track data usage, locate a device, refresh your connection, manage downtime. \n\nManage your account\n•\tEasily view and pay your AT&T bill.\n•\tManage your AT&T Wireless and Internet accounts all in one place.\n•\tGet user-level access so everyone on your account sees what matters to them.\n\nGet personalized offers and our best deals\n•\tSee personalized offers on the latest devices tailored to your needs. Upgrade seamlessly to the newest iPhone.\n•\tShop and compare our top plans, including unlimited wireless and fiber internet.\n•\tEnhance your account with features like early upgrades, international connectivity, device protection, and enhanced performance.\n•\tFind an AT&T store near you.\n\nSwitch to AT&T\n•\tExperience the power of AT&T’s fast, reliable, and secure 5G network.\n•\tTry AT&T Wireless free for 30 days. Keep your current service and number while you test drive our network from your compatible iPhone.  Terms apply.\n\nManage devices and usage\n•\tEasily manage all your devices, from smartphones and smartwatches to home internet equipment like Wi-Fi extenders.\n•\tSelf-install eligible internet services with step-by-step guidance.\n•\tAssign devices to profiles, manage content and internet access, and track locations for peace of mind.\n•\tTrack data usage across both wireless and internet services.\n\n[…]",
+          "rating": 4.80042,
+          "appId": "309172177"
+        },
+        {
+          "source": "play",
+          "title": "Proton VPN: Fast & Secure VPN",
+          "shortDesc": "VPN for Privacy & Security. Fast & Private VPN Proxy, Secure Unlimited Internet.",
+          "fullDesc": "Proton VPN is the world's only free VPN app that is safe to use and respects your privacy. Created by CERN scientists behind Proton Mail, our fast VPN offers unlimited, secure, encrypted, and private internet access with advanced privacy and security features.\n\n⭐ PCMag: \"[Proton VPN] is the best VPN with an excellent collection of advanced features, and it has the best free subscription plan we've seen.\"\n\n✔ Trusted by millions worldwide\n✔ Strict no logs policy; your privacy is our priority for secure VPN protection\n✔ Unlimited data access: true free VPN experience with no restrictions on bandwidth or speed limits.\n✔ No sign-up required to use our app\n\n🛡️ Free VPN features\n\n• Discreet app icon option disguises the Proton VPN app on your phone\n• Full-disk encrypted servers protect your data privacy from cyber threats with secure VPN technology\n• Perfect forward secrecy: encrypted traffic cannot be captured and decrypted later\n• DNS leak protection: we encrypt DNS queries to ensure browsing activity stays private\n• Always-on VPN kill switch offers protection against leaks from accidental disconnections\n\n🌟 Premium features\n\n[…]",
+          "rating": 4.702064514160156,
+          "appId": "ch.protonvpn.android"
+        },
+        {
+          "source": "ios",
+          "title": "Microsoft Edge",
+          "fullDesc": "Browse with Microsoft Edge, your everyday web browser with built-in Copilot. From finding information to making sense of it, Copilot works alongside you to streamline everyday browsing, so you can turn ideas into action and get it done faster. \n\nCopilot in Edge helps you search, browse, and explore, so you can make decisions faster with more confidence, all in one place.  Summarize lengthy articles and videos, get answers about what you are browsing, and turn ideas into drafts or images – without breaking your flow.  Whether you need a quick answer or deeper help, Copilot in Edge adapts to support how you work, right when you need it. \n\nStay safer with built-in security tools like tracking prevention, AdBlock Plus and Microsoft Defender Smartscreen. When you want extra privacy, switch to InPrivate mode to keep your browsing history protected.  \n\nDo more with less effort.  With Microsoft Edge, everyday browsing is faster, more intuitive, and focused. \n\nExplore the web effortlessly with Copilot built-in \n• The Copilot-inspired new tab page brings together Copilot with browsing. Now your queries will get routed to search, chat or web automatically – all in one place. \n• Copilot understands context across your open tabs, helping you compare information, summarize, brainstorm and connect ideas across pages, so you can move faster and make decisions with confidence without switching tabs. \n• Get help from what’s on your screen. With Vision, Copilot can scan, analyze, and brainstorm with you on the content you’re browsing. \n• Quickly summarize the content of the webpage, PDF or video you are viewing \n• Get the right level of help for the moment—quick answers when you’re moving fast, deeper insights when you need it.\n\n[…]",
+          "rating": 4.70943,
+          "appId": "1288723196"
+        }
+      ]
+    },
+    "_default": {
+      "sampleSize": 400,
+      "titleLength": {
+        "n": 400,
+        "min": 3,
+        "p25": 13,
+        "p50": 25,
+        "p75": 29,
+        "p90": 30,
+        "max": 30,
+        "mean": 21.36
+      },
+      "shortDescLength": {
+        "n": 199,
+        "min": 15,
+        "p25": 54,
+        "p50": 71,
+        "p75": 79,
+        "p90": 80,
+        "max": 80,
+        "mean": 63.5
+      },
+      "fullDescLength": {
+        "n": 398,
+        "min": 228,
+        "p25": 1518,
+        "p50": 2464,
+        "p75": 3408,
+        "p90": 3899,
+        "max": 4022,
+        "mean": 2451.8
+      },
+      "hookLength": {
+        "n": 398,
+        "min": 10,
+        "p25": 109,
+        "p50": 214,
+        "p75": 325,
+        "p90": 526,
+        "max": 3947,
+        "mean": 322.39
+      },
+      "sectionCount": {
+        "n": 398,
+        "min": 1,
+        "p25": 6,
+        "p50": 10,
+        "p75": 13,
+        "p90": 18,
+        "max": 39,
+        "mean": 10.24
+      },
+      "rating": {
+        "n": 400,
+        "min": 1.4959864616394043,
+        "p25": 4.47,
+        "p50": 4.66,
+        "p75": 4.77,
+        "p90": 4.82,
+        "max": 4.95728,
+        "mean": 4.54
+      },
+      "ratingCountP50": 897430,
+      "screenshotCount": {
+        "n": 310,
+        "min": 1,
+        "p25": 8,
+        "p50": 12,
+        "p75": 12,
+        "p90": 12,
+        "max": 12,
+        "mean": 10.21
+      },
+      "monthsSinceUpdate": {
+        "n": 400,
+        "min": 0,
+        "p25": 0,
+        "p50": 0,
+        "p75": 0,
+        "p90": 1,
+        "max": 23,
+        "mean": 0.44
+      },
+      "dominantBullet": "•",
+      "bulletCharFrequency": {
+        "•": 1921,
+        "◦": 0,
+        "●": 21,
+        "-": 1358,
+        "*": 204,
+        "▶": 17,
+        "◉": 3,
+        "►": 40,
+        "→": 0
+      },
+      "listingsWithBullets": 269,
+      "listingsAnalyzed": 398,
+      "openerPatternShare": {
+        "brandLinking": 126,
+        "imperative": 59,
+        "scenario": 22,
+        "question": 4,
+        "other": 187
+      },
+      "emojiBodiesShare": 0.13,
+      "exclamationBodiesShare": 0.41,
+      "benefitLexiconHits": {
+        "privacy": 188,
+        "private": 48,
+        "secure": 92,
+        "encryption": 14,
+        "encrypted": 18,
+        "free": 190,
+        "easy": 143,
+        "easily": 118,
+        "simple": 80,
+        "quick": 139,
+        "fast": 121,
+        "share": 176,
+        "shared": 36,
+        "anywhere": 100,
+        "offline": 39,
+        "sync": 51,
+        "help": 203,
+        "built-in": 27,
+        "automatic": 107,
+        "automatically": 102,
+        "one place": 63
+      },
+      "shortDescOpenerVerbs": {
+        "chat": 3,
+        "make": 3,
+        "get": 4,
+        "build": 3,
+        "find": 1,
+        "learn": 4,
+        "connect": 2,
+        "stay": 1,
+        "create": 6,
+        "play": 1,
+        "watch": 4,
+        "manage": 1,
+        "explore": 1,
+        "track": 2,
+        "scan": 1,
+        "discover": 2,
+        "edit": 1,
+        "use": 1,
+        "share": 2,
+        "join": 1
+      },
+      "topVocabulary": {
+        "unigrams": [
+          {
+            "word": "free",
+            "count": 413
+          },
+          {
+            "word": "create",
+            "count": 358
+          },
+          {
+            "word": "video",
+            "count": 356
+          },
+          {
+            "word": "features",
+            "count": 350
+          },
+          {
+            "word": "photos",
+            "count": 347
+          },
+          {
+            "word": "access",
+            "count": 338
+          },
+          {
+            "word": "share",
+            "count": 316
+          },
+          {
+            "word": "time",
+            "count": 301
+          },
+          {
+            "word": "videos",
+            "count": 301
+          },
+          {
+            "word": "photo",
+            "count": 301
+          },
+          {
+            "word": "account",
+            "count": 293
+          },
+          {
+            "word": "help",
+            "count": 259
+          },
+          {
+            "word": "find",
+            "count": 250
+          },
+          {
+            "word": "data",
+            "count": 247
+          },
+          {
+            "word": "see",
+            "count": 247
+          },
+          {
+            "word": "available",
+            "count": 240
+          },
+          {
+            "word": "content",
+            "count": 236
+          },
+          {
+            "word": "phone",
+            "count": 232
+          },
+          {
+            "word": "home",
+            "count": 228
+          },
+          {
+            "word": "subscription",
+            "count": 225
+          },
+          {
+            "word": "live",
+            "count": 220
+          },
+          {
+            "word": "support",
+            "count": 218
+          },
+          {
+            "word": "experience",
+            "count": 212
+          },
+          {
+            "word": "mobile",
+            "count": 208
+          },
+          {
+            "word": "2026",
+            "count": 203
+          }
+        ],
+        "bigrams": [
+          {
+            "word": "updated onmay",
+            "count": 63
+          },
+          {
+            "word": "current period",
+            "count": 57
+          },
+          {
+            "word": "social media",
+            "count": 55
+          },
+          {
+            "word": "hours before",
+            "count": 51
+          },
+          {
+            "word": "free trial",
+            "count": 45
+          },
+          {
+            "word": "photo editor",
+            "count": 44
+          },
+          {
+            "word": "account settings",
+            "count": 40
+          },
+          {
+            "word": "stay connected",
+            "count": 38
+          },
+          {
+            "word": "turned off",
+            "count": 38
+          },
+          {
+            "word": "microsoft 365",
+            "count": 34
+          },
+          {
+            "word": "anytime anywhere",
+            "count": 33
+          },
+          {
+            "word": "credit card",
+            "count": 32
+          },
+          {
+            "word": "itunes account",
+            "count": 31
+          },
+          {
+            "word": "real time",
+            "count": 29
+          },
+          {
+            "word": "family link",
+            "count": 27
+          }
+        ]
+      },
+      "exampleListings": []
+    }
+  }
+}

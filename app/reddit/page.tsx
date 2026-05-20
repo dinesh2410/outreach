@@ -6,11 +6,15 @@ import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
 import type {
+  MyApp,
   RedditAnalysisPayload,
   RedditAnalysisRecord,
   RedditPostSummary,
   RedditSelectedPost,
+  UsageCall,
+  UsageRecord,
 } from "@/lib/types";
+import { recordUsageForUser } from "@/lib/firestore";
 import {
   ArrowRight,
   ExternalLink,
@@ -26,7 +30,10 @@ import {
   Users,
   AlertCircle,
   HelpCircle,
-} from "lucide-react";
+  Send,
+  Copy,
+  Check,
+} from "@/components/shared/Icon";
 import Link from "next/link";
 
 // Deterministic id from the idea text so re-running the same idea updates
@@ -81,6 +88,7 @@ function RedditPageInner() {
   const {
     user,
     loading: authLoading,
+    myApps,
     redditAnalyses,
     recordRedditAnalysis,
     removeRedditAnalysis,
@@ -103,7 +111,7 @@ function RedditPageInner() {
   const runAnalysis = useCallback(
     async (rawIdea: string) => {
       const trimmed = rawIdea.trim();
-      if (trimmed.length < 20) return;
+      if (!trimmed) return;
       setRunning(true);
       setResult(null);
       setSnapshotAt(null);
@@ -117,7 +125,16 @@ function RedditPageInner() {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error ?? `HTTP ${res.status}`);
         }
-        const data = (await res.json()) as RedditAnalysisPayload;
+        const data = (await res.json()) as RedditAnalysisPayload & {
+          usage?: {
+            calls: UsageCall[];
+            totalInputTokens: number;
+            totalOutputTokens: number;
+            totalTokens: number;
+            estimatedCostUsd: number;
+            elapsedMs: number;
+          };
+        };
         setResult(data);
 
         const record: RedditAnalysisRecord = {
@@ -131,13 +148,34 @@ function RedditPageInner() {
           snapshot: data,
         };
         recordRedditAnalysis(record);
+
+        // Persist Reddit-analysis usage so admin dashboard sees it.
+        if (user && data.usage) {
+          const usageRecord: UsageRecord = {
+            id: `red-${redditAnalysisId(trimmed)}`,
+            userId: user.id,
+            userEmail: user.email,
+            tool: "reddit",
+            context: record.ideaPreview,
+            totalInputTokens: data.usage.totalInputTokens,
+            totalOutputTokens: data.usage.totalOutputTokens,
+            totalTokens: data.usage.totalTokens,
+            estimatedCostUsd: data.usage.estimatedCostUsd,
+            elapsedMs: data.usage.elapsedMs,
+            calls: data.usage.calls,
+            createdAt: data.createdAt,
+          };
+          recordUsageForUser(user.id, usageRecord).catch((err) =>
+            console.error("[reddit] usage persist failed:", err)
+          );
+        }
       } catch (err) {
         push(err instanceof Error ? err.message : "Reddit analysis failed");
       } finally {
         setRunning(false);
       }
     },
-    [push, recordRedditAnalysis]
+    [push, recordRedditAnalysis, user]
   );
 
   // Deep-link replay: /reddit?id=rd_abc loads the saved snapshot.
@@ -161,7 +199,7 @@ function RedditPageInner() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (running || idea.trim().length < 20) return;
+    if (running || !idea.trim()) return;
     runAnalysis(idea);
   }
 
@@ -231,7 +269,7 @@ function RedditPageInner() {
           )}
         </>
       ) : (
-        <ResultView result={result} snapshotAt={snapshotAt} />
+        <ResultView result={result} snapshotAt={snapshotAt} myApps={myApps} />
       )}
     </AppShell>
   );
@@ -251,7 +289,7 @@ function InputForm({
   running: boolean;
 }) {
   const len = idea.trim().length;
-  const tooShort = len > 0 && len < 20;
+  const tooShort = false;
   return (
     <div className="max-w-3xl">
       <form onSubmit={onSubmit} className="card-soft p-7 space-y-6">
@@ -268,7 +306,7 @@ function InputForm({
           <div className="flex items-center justify-between mt-2">
             <p className={`text-[12px] ${tooShort ? "text-warn" : "text-ink-faint"}`}>
               {tooShort
-                ? `${20 - len} more characters — give us a real sentence.`
+                ? ""
                 : "Describe the problem, who it's for, and what's different. More detail = sharper search."}
             </p>
             <p className="text-[12px] text-ink-faint tabular-nums">{len} / 2000</p>
@@ -295,7 +333,7 @@ function InputForm({
         <div className="flex items-center gap-3 pt-3 border-t border-line-soft">
           <button
             type="submit"
-            disabled={running || len < 20}
+            disabled={running || len === 0}
             className="px-6 py-3.5 rounded-full bg-ink text-white text-[14px] font-medium hover:bg-night-soft transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {running ? (
@@ -374,13 +412,23 @@ function BenefitTile({
 // post matters, and an "Open on Reddit" footer link.
 
 type TagFilter = "all" | "request" | "complaint" | "discussion";
+type SortMode = "relevance" | "newest" | "upvotes" | "comments";
+
+const SORT_OPTIONS: { id: SortMode; label: string }[] = [
+  { id: "relevance", label: "Relevance" },
+  { id: "newest", label: "Newest" },
+  { id: "upvotes", label: "Most upvoted" },
+  { id: "comments", label: "Most comments" },
+];
 
 function ResultView({
   result,
   snapshotAt,
+  myApps,
 }: {
   result: RedditAnalysisPayload;
   snapshotAt: string | null;
+  myApps: MyApp[];
 }) {
   void snapshotAt; // shown in AppShell description instead
 
@@ -408,14 +456,28 @@ function ResultView({
   }, [selected]);
 
   const [filter, setFilter] = useState<TagFilter>("all");
-  const visible =
-    filter === "all" ? selected : selected.filter((x) => x.selection.tag === filter);
+  const [sort, setSort] = useState<SortMode>("relevance");
+
+  const visible = useMemo(() => {
+    const filtered =
+      filter === "all" ? selected : selected.filter((x) => x.selection.tag === filter);
+    if (sort === "relevance") return filtered;
+    return [...filtered].sort((a, b) => {
+      if (sort === "newest")
+        return new Date(b.post.createdAt).getTime() - new Date(a.post.createdAt).getTime();
+      if (sort === "upvotes") return b.post.score - a.post.score;
+      return b.post.numComments - a.post.numComments;
+    });
+  }, [selected, filter, sort]);
 
   return (
     <div className="max-w-3xl space-y-6">
       <Verdict result={result} />
 
-      <FilterPills counts={counts} active={filter} onChange={setFilter} />
+      <div className="flex items-center gap-4 flex-wrap sticky top-[80px] z-10 bg-white py-2 -mx-1 px-1">
+        <FilterPills counts={counts} active={filter} onChange={setFilter} />
+        <SortDropdown active={sort} onChange={setSort} />
+      </div>
 
       {visible.length > 0 ? (
         <div className="space-y-3">
@@ -425,6 +487,8 @@ function ResultView({
               post={post}
               insight={selection.insight}
               tag={selection.tag}
+              idea={result.idea}
+              myApps={myApps}
             />
           ))}
         </div>
@@ -484,7 +548,7 @@ function FilterPills({
     { id: "discussion", label: "Talking about it", count: counts.discussion },
   ];
   return (
-    <div className="flex flex-wrap gap-2 sticky top-[80px] z-10 bg-white py-2 -mx-1 px-1">
+    <div className="flex flex-wrap gap-2">
       {pills.map((p) => {
         const isActive = active === p.id;
         const disabled = p.count === 0 && p.id !== "all";
@@ -511,6 +575,36 @@ function FilterPills({
   );
 }
 
+function SortDropdown({
+  active,
+  onChange,
+}: {
+  active: SortMode;
+  onChange: (s: SortMode) => void;
+}) {
+  return (
+    <div className="ml-auto flex items-center gap-1.5">
+      <span className="text-[11px] text-ink-faint uppercase tracking-[0.08em] font-medium">Sort</span>
+      <select
+        value={active}
+        onChange={(e) => onChange(e.target.value as SortMode)}
+        className="appearance-none bg-cream-deep text-ink text-[13px] font-medium pl-3 pr-7 py-1.5 rounded-full border-none outline-none cursor-pointer hover:bg-cream transition-colors"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "right 8px center",
+        }}
+      >
+        {SORT_OPTIONS.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // Reddit-style post: vote arrow + count on left rail, post body on right.
 // Hover lifts the title color toward Reddit-blue and underlines, like a real
 // reddit feed item.
@@ -518,24 +612,73 @@ function RedditPostTile({
   post,
   insight,
   tag,
+  idea,
+  myApps,
 }: {
   post: RedditPostSummary;
   insight: string;
   tag: "request" | "complaint" | "discussion";
+  idea: string;
+  myApps: MyApp[];
 }) {
+  const { push } = useToast();
   const meta = TAG_META[tag];
   const Icon = meta.icon;
-  // Color the vote count by magnitude — Reddit-ish orange for highly upvoted.
   const voteColor =
     post.score >= 1000 ? "#FF4500" : post.score >= 100 ? "#0B3D7A" : "#6B7280";
 
+  const [replyState, setReplyState] = useState<"idle" | "picking" | "generating" | "copied">("idle");
+  const [generatedReply, setGeneratedReply] = useState<string | null>(null);
+  const [customAppName, setCustomAppName] = useState("");
+  const [customAppUrl, setCustomAppUrl] = useState("");
+
+  function handleReplyClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (generatedReply) {
+      navigator.clipboard.writeText(generatedReply);
+      setReplyState("copied");
+      window.open(post.permalink, "_blank", "noopener,noreferrer");
+      push("Reply copied — paste it in the Reddit comment box");
+      setTimeout(() => setReplyState("idle"), 3000);
+      return;
+    }
+
+    setReplyState((s) => (s === "picking" ? "idle" : "picking"));
+  }
+
+  async function generateReply(appName: string, appUrl: string) {
+    setReplyState("generating");
+    try {
+      const res = await fetch("/api/reddit-reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postTitle: post.title,
+          postBody: post.body,
+          postSubreddit: post.subreddit,
+          idea,
+          appName,
+          appUrl,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setGeneratedReply(data.reply);
+      setReplyState("idle");
+      push("Reply generated — click Copy & open to use it");
+    } catch (err) {
+      push(err instanceof Error ? err.message : "Failed to generate reply");
+      setReplyState("idle");
+    }
+  }
+
   return (
-    <a
-      href={post.permalink}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group block rounded-xl border border-line bg-white hover:border-ink-faint hover:shadow-sm transition-all"
-    >
+    <div className="group block rounded-xl border border-line bg-white hover:border-ink-faint hover:shadow-sm transition-all">
       <div className="flex gap-0">
         {/* Left vote rail */}
         <div className="flex flex-col items-center justify-start gap-0.5 py-4 pl-3 pr-2 sm:pl-4 sm:pr-3 rounded-l-xl bg-cream/40 min-w-[58px] sm:min-w-[68px]">
@@ -555,7 +698,7 @@ function RedditPostTile({
 
         {/* Post body */}
         <div className="flex-1 min-w-0 p-4 sm:p-5">
-          {/* Meta row — like reddit's "r/sub · Posted by u/author · 2d ago" */}
+          {/* Meta row */}
           <div className="flex items-center gap-1.5 flex-wrap text-[12px] mb-2">
             <span className="font-semibold text-ink">r/{post.subreddit}</span>
             <span className="text-ink-faint">·</span>
@@ -571,13 +714,16 @@ function RedditPostTile({
             </span>
           </div>
 
-          {/* Title — the reddit link feel */}
-          <h3
-            className="text-[16px] sm:text-[17px] font-semibold text-ink leading-snug group-hover:text-accent-deep transition-colors"
-            style={{ color: undefined }}
+          {/* Title */}
+          <a
+            href={post.permalink}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            {post.title}
-          </h3>
+            <h3 className="text-[16px] sm:text-[17px] font-semibold text-ink leading-snug hover:text-accent-deep transition-colors">
+              {post.title}
+            </h3>
+          </a>
 
           {/* Body excerpt */}
           {post.body && (
@@ -587,28 +733,133 @@ function RedditPostTile({
             </p>
           )}
 
-          {/* Quiet inline insight — italic, prefixed with a small spark icon.
-              Not a separate panel — feels like a margin note next to the post. */}
+          {/* Insight */}
           <p className="text-[12px] text-ink-muted italic leading-relaxed mt-3 pl-3 border-l-2 border-line">
             <Lightbulb size={11} className="inline-block mr-1 -mt-0.5 not-italic" />
             {insight}
           </p>
 
-          {/* Footer — reddit-style action row */}
+          {/* App picker for reply */}
+          {replyState === "picking" && (
+            <div className="mt-3 p-4 rounded-lg bg-cream-deep border border-line-soft space-y-3" onClick={(e) => e.stopPropagation()}>
+              <p className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink-faint">Which app to mention in the reply?</p>
+
+              {myApps.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {myApps.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => generateReply(a.name, a.url)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border border-line bg-white hover:border-ink-faint hover:bg-white transition-colors text-ink"
+                    >
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <div className="flex-1 space-y-1.5">
+                  <input
+                    type="text"
+                    value={customAppName}
+                    onChange={(e) => setCustomAppName(e.target.value)}
+                    placeholder="App name"
+                    className="w-full px-3 py-2 rounded-lg bg-white border border-line focus:border-ink-faint outline-none text-[13px] text-ink placeholder:text-ink-faint"
+                  />
+                  <input
+                    type="text"
+                    value={customAppUrl}
+                    onChange={(e) => setCustomAppUrl(e.target.value)}
+                    placeholder="Store URL (optional)"
+                    className="w-full px-3 py-2 rounded-lg bg-white border border-line focus:border-ink-faint outline-none text-[13px] text-ink placeholder:text-ink-faint"
+                  />
+                </div>
+                <button
+                  onClick={() => generateReply(customAppName.trim(), customAppUrl.trim())}
+                  disabled={!customAppName.trim()}
+                  className="px-4 py-2 rounded-lg bg-ink text-white text-[12px] font-medium hover:bg-night-soft transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                >
+                  Generate
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => generateReply("", "")}
+                  className="text-[12px] text-ink-muted hover:text-ink transition-colors"
+                >
+                  Skip — generate without mentioning an app
+                </button>
+                <button
+                  onClick={() => setReplyState("idle")}
+                  className="ml-auto text-[12px] text-ink-faint hover:text-ink transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {replyState === "generating" && (
+            <div className="mt-3 p-4 rounded-lg bg-cream-deep border border-line-soft flex items-center gap-2 text-[13px] text-ink-muted">
+              <Loader2 size={14} className="animate-spin-slow" />
+              Generating reply…
+            </div>
+          )}
+
+          {/* Generated reply preview */}
+          {generatedReply && (
+            <div className="mt-3 p-3 rounded-lg bg-cream-deep border border-line-soft text-[13px] text-ink leading-relaxed">
+              <p className="text-[10px] uppercase tracking-[0.12em] font-bold text-ink-faint mb-1.5">Generated reply</p>
+              {generatedReply}
+            </div>
+          )}
+
+          {/* Footer */}
           <div className="flex items-center gap-4 mt-4 pt-3 border-t border-line-soft text-[12px] text-ink-faint">
             <span className="inline-flex items-center gap-1.5">
               <MessageCircle size={13} strokeWidth={2} />
               <span className="font-medium">{formatCompact(post.numComments)}</span>
               <span>comments</span>
             </span>
-            <span className="ml-auto inline-flex items-center gap-1 text-ink-muted group-hover:text-ink transition-colors">
-              Open on Reddit
-              <ExternalLink size={11} />
-            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={handleReplyClick}
+                disabled={replyState === "generating"}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-ink text-white hover:bg-night-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {replyState === "copied" ? (
+                  <>
+                    <Check size={11} />
+                    Copied!
+                  </>
+                ) : generatedReply ? (
+                  <>
+                    <Copy size={11} />
+                    Copy &amp; open
+                  </>
+                ) : (
+                  <>
+                    <Send size={11} />
+                    Reply
+                  </>
+                )}
+              </button>
+              <a
+                href={post.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-ink-muted hover:text-ink transition-colors"
+              >
+                Open on Reddit
+                <ExternalLink size={11} />
+              </a>
+            </div>
           </div>
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 

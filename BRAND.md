@@ -1,13 +1,13 @@
 # Brand
 
 ## Positioning
-Outreach is the post-build platform for indie app makers. Working name — final name TBD.
+ReachFront is the post-build platform for indie app makers.
 
 ## Hero
 "You built the app. *Now what?*" — "Now what?" in italic serif, accent color.
 
 ## Subhead
-Outreach is the platform for everything after build — ASO descriptions, screenshots, Reddit, competitor analysis, keyword research, ad creative. Starting with descriptions today.
+ReachFront is the platform for everything after build — ASO descriptions, screenshots, Reddit, competitor analysis, keyword research, ad creative. Starting with descriptions today.
 
 ## Voice
 Honest, indie-friendly, technically credible, anti-hype. Sounds like a dev wrote it, not a marketing team.

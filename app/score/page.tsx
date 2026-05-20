@@ -1,31 +1,71 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PublicNav } from "@/components/shared/PublicNav";
 import { Footer } from "@/components/shared/Footer";
 import { AppShell } from "@/components/shared/AppShell";
-import { calculateScore } from "@/lib/score";
+import { AppPicker } from "@/components/shared/AppPicker";
 import { useAuth } from "@/lib/auth";
-import type { AuditPayload, ScoreResult } from "@/lib/types";
-import { ArrowRight, Sparkles, CheckCircle2, AlertCircle, RotateCcw, FileText } from "lucide-react";
+import type { AuditPayload, MyApp, ScoreResult } from "@/lib/types";
+import {
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
+  RotateCcw,
+  FileText,
+  MagnifyingGlass,
+  Medal,
+  ListChecks,
+} from "@/components/shared/Icon";
 
-// Fetches the live audit (real scrape + listing-based checks) and converts it
-// into a ScoreResult the audit card can render. Falls back to the URL-only
-// preview when the audit endpoint is unreachable.
-async function runLiveAudit(url: string): Promise<ScoreResult> {
+// URL-only preview score — mirrors the server's legacy fallback so the page
+// has something to render before the audit returns. The detailed report
+// always uses the server-computed score from /api/audit.
+function urlOnlyPreview(url: string): ScoreResult {
+  const charSum = url.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0);
+  const score = (charSum % 30) + 55;
+  const grade =
+    score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : score >= 35 ? "D" : "F";
+  return {
+    score,
+    grade,
+    checks: [
+      {
+        label: "Listing preview only",
+        passed: false,
+        note:
+          "We haven't fetched the live listing yet — this is a quick preview. Open the detailed report for a real audit.",
+      },
+    ],
+  };
+}
+
+// Fetches the live audit and pulls the server-computed score out of the
+// payload. Falls back to the URL-only preview when the audit endpoint is
+// unreachable.
+async function runLiveAudit(url: string, keyword?: string): Promise<ScoreResult> {
   try {
+    const payload: Record<string, string> = { url };
+    if (keyword?.trim()) payload.keyword = keyword.trim();
     const r = await fetch("/api/audit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(payload),
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = (await r.json()) as AuditPayload;
-    return calculateScore(url, data.scrape ?? null);
+    if (data?.score?.checks) {
+      return {
+        score: data.score.score,
+        grade: data.score.grade,
+        checks: data.score.checks,
+      };
+    }
+    return urlOnlyPreview(url);
   } catch {
-    return calculateScore(url, null);
+    return urlOnlyPreview(url);
   }
 }
 
@@ -34,21 +74,48 @@ async function runLiveAudit(url: string): Promise<ScoreResult> {
 // public marketing landing with PublicNav + hero + CTA. The audit form +
 // result card are identical between the two — only the chrome differs.
 export default function ScorePage() {
+  return (
+    <Suspense fallback={null}>
+      <ScorePageInner />
+    </Suspense>
+  );
+}
+
+function ScorePageInner() {
   const { user, loading } = useAuth();
   if (loading) return null;
   return user ? <ScorePageAuthed /> : <ScorePagePublic />;
 }
 
 function ScorePageAuthed() {
+  const search = useSearchParams();
+  const { myApps } = useAuth();
   const [url, setUrl] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const prefilled = useRef(false);
+
+  useEffect(() => {
+    if (prefilled.current) return;
+    const fromQuery = search.get("url");
+    if (fromQuery) {
+      setUrl(fromQuery);
+      prefilled.current = true;
+    }
+    const kwFromQuery = search.get("keyword");
+    if (kwFromQuery) setKeyword(kwFromQuery);
+  }, [search]);
+
+  function handleSelectSaved(app: MyApp) {
+    setUrl(app.url);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim() || submitting) return;
     setSubmitting(true);
-    const r = await runLiveAudit(url.trim());
+    const r = await runLiveAudit(url.trim(), keyword);
     setResult(r);
     setSubmitting(false);
   }
@@ -56,6 +123,7 @@ function ScorePageAuthed() {
   function handleReset() {
     setResult(null);
     setUrl("");
+    setKeyword("");
   }
 
   return (
@@ -65,12 +133,17 @@ function ScorePageAuthed() {
       description={
         result
           ? "Quick check below. Open the detailed report for the full per-check breakdown, listing snapshot, and recommended fixes."
-          : "Drop your App Store or Play Store URL — we'll score it 0–100 against the ASO playbook and tell you exactly what to fix next."
+          : "Drop your App Store or Play Store URL — or pick one you've saved — and we'll score it 0–100 against the ASO playbook."
       }
     >
       <div className="max-w-3xl">
         <form onSubmit={handleSubmit} className="card-soft p-7 mb-6">
-          <label className="eyebrow mb-3 block">Listing URL</label>
+          <div className="flex items-center justify-between mb-3">
+            <label className="eyebrow">Listing URL</label>
+            {myApps.length > 0 && (
+              <AppPicker onSelect={handleSelectSaved} buttonLabel="Pick a saved app" align="right" />
+            )}
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="url"
@@ -89,16 +162,27 @@ function ScorePageAuthed() {
               {!submitting && <ArrowRight size={14} />}
             </button>
           </div>
-          <p className="text-[12px] text-ink-faint mt-2">
-            We fetch your live listing and score it against the patterns of 20+ top Play Store apps.
-          </p>
+
+          <div className="mt-4">
+            <label className="eyebrow text-[10px] mb-1.5 block">Primary keyword <span className="font-normal text-ink-faint tracking-normal normal-case">· optional</span></label>
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="e.g. cloud storage, habit tracker, budget planner"
+              className="w-full px-5 py-3 rounded-full bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+            />
+            <p className="text-[11px] text-ink-faint mt-1.5">
+              The search term you want to rank for. Leave empty to let AI detect it from the listing.
+            </p>
+          </div>
         </form>
 
         <div className="card-soft p-7">
           {!result ? (
             <EmptyAudit />
           ) : (
-            <FilledAudit result={result} url={url} onReset={handleReset} />
+            <FilledAudit result={result} url={url} keyword={keyword} onReset={handleReset} />
           )}
         </div>
       </div>
@@ -108,6 +192,7 @@ function ScorePageAuthed() {
 
 function ScorePagePublic() {
   const [url, setUrl] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -115,7 +200,7 @@ function ScorePagePublic() {
     e.preventDefault();
     if (!url.trim() || submitting) return;
     setSubmitting(true);
-    const r = await runLiveAudit(url.trim());
+    const r = await runLiveAudit(url.trim(), keyword);
     setResult(r);
     setSubmitting(false);
   }
@@ -123,6 +208,7 @@ function ScorePagePublic() {
   function handleReset() {
     setResult(null);
     setUrl("");
+    setKeyword("");
   }
 
   return (
@@ -145,27 +231,38 @@ function ScorePagePublic() {
 
               <form
                 onSubmit={handleSubmit}
-                className="mt-9 flex flex-col sm:flex-row gap-3 max-w-lg"
+                className="mt-9 max-w-lg"
               >
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                  placeholder="https://apps.apple.com/…"
-                  className="flex-1 px-5 py-3.5 rounded-full bg-white border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
-                />
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-6 py-3.5 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors inline-flex items-center justify-center gap-2 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {submitting ? "Scoring…" : "Score it"}
-                  {!submitting && <ArrowRight size={15} />}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    required
+                    placeholder="https://apps.apple.com/…"
+                    className="flex-1 px-5 py-3.5 rounded-full bg-white border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-6 py-3.5 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors inline-flex items-center justify-center gap-2 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? "Scoring…" : "Score it"}
+                    {!submitting && <ArrowRight size={15} />}
+                  </button>
+                </div>
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="Primary keyword (optional) — e.g. cloud storage, habit tracker"
+                    className="w-full px-5 py-3 rounded-full bg-white border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+                  />
+                </div>
               </form>
               <p className="mt-3 text-[12px] text-ink-muted">
-                We fetch your live listing and score it against the patterns of 20+ top Play Store apps.
+                We fetch your live listing and run a full audit against ASO standards.
               </p>
             </div>
 
@@ -175,7 +272,7 @@ function ScorePagePublic() {
                 {!result ? (
                   <EmptyAudit />
                 ) : (
-                  <FilledAudit result={result} url={url} onReset={handleReset} />
+                  <FilledAudit result={result} url={url} keyword={keyword} onReset={handleReset} />
                 )}
               </div>
             </div>
@@ -211,7 +308,7 @@ function ScorePagePublic() {
                         i % 3 === 0 ? "tile-blue" : i % 3 === 1 ? "tile-lilac" : "tile-mint"
                       }`}
                     >
-                      <Sparkles size={16} strokeWidth={1.85} />
+                      <ListChecks size={16} strokeWidth={1.85} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[15px] font-semibold text-ink">{label}</p>
@@ -253,7 +350,7 @@ function EmptyAudit() {
     <>
       <div className="flex items-center gap-3 mb-6">
         <div className="w-11 h-11 rounded-2xl tile-blue flex items-center justify-center">
-          <Sparkles size={18} strokeWidth={1.85} />
+          <MagnifyingGlass size={18} strokeWidth={1.85} />
         </div>
         <div>
           <p className="eyebrow">Ready when you are</p>
@@ -282,17 +379,21 @@ function EmptyAudit() {
 function FilledAudit({
   result,
   url,
+  keyword,
   onReset,
 }: {
   result: ScoreResult;
   url: string;
+  keyword?: string;
   onReset: () => void;
 }) {
   const { user } = useAuth();
   const router = useRouter();
 
   function openDetailedReport() {
-    const target = `/score/report?url=${encodeURIComponent(url)}`;
+    const params = new URLSearchParams({ url });
+    if (keyword?.trim()) params.set("keyword", keyword.trim());
+    const target = `/score/report?${params.toString()}`;
     if (user) {
       router.push(target);
     } else {
@@ -305,7 +406,7 @@ function FilledAudit({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl tile-blue flex items-center justify-center">
-            <Sparkles size={18} strokeWidth={1.85} />
+            <Medal size={18} strokeWidth={1.85} />
           </div>
           <div>
             <p className="eyebrow">Audit complete</p>

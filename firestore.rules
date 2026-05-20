@@ -6,6 +6,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Admin email allow-list. MUST stay in sync with lib/admins.ts —
+    // both files define the same set; the TS file gates the UI, this
+    // file gates the underlying Firestore reads.
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          'support@testerscommunity.com',
+          'dinesh.ch@testerscommunity.com'
+        ];
+    }
+
     // The user's profile document. Owner-only access.
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
@@ -44,6 +55,35 @@ service cloud.firestore {
       match /redditAnalyses/{analysisId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+
+      // "Your applications" — apps the user saved as reusable inputs across tools.
+      // Owner-only.
+      match /myApps/{appId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Review Intelligence analyses. Owner-only.
+      match /reviewIntelligence/{recordId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // Per-generation usage records. Owner can read/write their own;
+      // admins (see isAdmin() above) can also read for the /admin/usage
+      // dashboard. Writes are owner-only — admins should never inject data.
+      match /usage/{genId} {
+        allow write: if request.auth != null && request.auth.uid == uid;
+        allow read: if request.auth != null
+          && (request.auth.uid == uid || isAdmin());
+      }
+    }
+
+    // Admin-only collectionGroup read on `usage` so /admin/usage can
+    // aggregate across every user's subcollection in one query. The match
+    // path uses `{path=**}` because collectionGroup queries don't follow
+    // the per-user document path. Writes still go through the per-user
+    // rule above, which enforces owner-only writes.
+    match /{path=**}/usage/{genId} {
+      allow read: if isAdmin();
     }
 
     // Default deny — anything not explicitly allowed above is rejected.

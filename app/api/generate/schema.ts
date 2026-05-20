@@ -7,7 +7,7 @@ import type { Variant } from "@/lib/types";
 // The route handler truncates to the real platform limits cleanly at word boundaries.
 
 export const VariantSchema = z.object({
-  approach: z.enum(["keyword", "conversion", "brand"]),
+  approach: z.literal("keyword"),
   title: z
     .string()
     .min(1)
@@ -30,29 +30,26 @@ export const VariantSchema = z.object({
     .min(1)
     .max(4500)
     .describe(
-      "Full app description — aim for 2000-3500 characters. Real platform cap is 4000."
+      "Full app description — aim for 2500-3300 characters. Real platform cap is 4000."
     ),
   keywords: z
     .array(z.string().min(2).max(40))
     .min(5)
     .max(8)
-    .optional()
     .describe(
-      "REQUIRED only when approach='keyword': 5-8 high-intent search terms this variant is optimizing for. Lowercase, single words or short phrases (≤40 chars each). Omit entirely for 'conversion' and 'brand' approaches."
+      "5-8 high-intent search terms this listing is optimizing for. Lowercase, single words or short phrases (≤40 chars each)."
     ),
 });
 
 export const PlatformSchema = z.object({
   variants: z
     .array(VariantSchema)
-    .length(3)
-    .describe("Exactly three variants in the order: keyword, conversion, brand."),
+    .length(1)
+    .describe("Exactly one keyword-optimized variant."),
 });
 
 export const APPROACH_LABEL: Record<Variant["approach"], string> = {
   keyword: "Keyword-Optimized",
-  conversion: "Conversion-Focused",
-  brand: "Brand-Led",
 };
 
 // Real platform limits — used by the route handler to truncate cleanly.

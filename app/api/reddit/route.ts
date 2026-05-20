@@ -3,6 +3,8 @@ import { generateObject } from "ai";
 import { searchRedditMany, type RedditPost } from "@/lib/reddit";
 import { RedditPlanSchema, RedditRankSchema, type RedditPlan, type RedditRank } from "./schema";
 import { buildPlanPrompt, buildRankPrompt } from "./prompts";
+import { readUsage, summarizeUsage, logUsageSummary } from "@/lib/usage-tracking";
+import type { UsageCall } from "@/lib/types";
 
 // POST /api/reddit { idea: string }
 //
@@ -39,12 +41,6 @@ export async function POST(req: Request) {
   if (!idea) {
     return Response.json({ error: "Missing idea" }, { status: 400 });
   }
-  if (idea.length < 20) {
-    return Response.json(
-      { error: "Tell us a bit more about the idea — at least 20 characters." },
-      { status: 400 }
-    );
-  }
   if (idea.length > 2000) {
     return Response.json(
       { error: "Idea is too long (max 2000 chars)." },
@@ -52,15 +48,19 @@ export async function POST(req: Request) {
     );
   }
 
+  const usageLog: UsageCall[] = [];
+  const requestStart = Date.now();
+
   // --- Step 1: plan the search --------------------------------------------
   let plan: RedditPlan;
   try {
-    const { object } = await generateObject({
+    const res = await generateObject({
       model: google("gemini-2.5-flash"),
       schema: RedditPlanSchema,
       prompt: buildPlanPrompt(idea),
     });
-    plan = object;
+    usageLog.push(readUsage("reddit.plan", res));
+    plan = res.object;
   } catch (err) {
     console.error("[/api/reddit] plan stage failed:", err);
     return Response.json(
@@ -128,12 +128,13 @@ export async function POST(req: Request) {
   // --- Step 3: rank + tag + brief -----------------------------------------
   let rank: RedditRank;
   try {
-    const { object } = await generateObject({
+    const res = await generateObject({
       model: google("gemini-2.5-flash"),
       schema: RedditRankSchema,
       prompt: buildRankPrompt(idea, rankable),
     });
-    rank = object;
+    usageLog.push(readUsage("reddit.rank", res));
+    rank = res.object;
   } catch (err) {
     console.error("[/api/reddit] rank stage failed:", err);
     return Response.json(
@@ -147,11 +148,15 @@ export async function POST(req: Request) {
   const byId = new Map(rankable.map((p) => [p.id, p]));
   const validSelected = rank.selectedPosts.filter((s) => byId.has(s.id));
 
+  const summary = summarizeUsage(usageLog, Date.now() - requestStart);
+  logUsageSummary(`/api/reddit ${idea.slice(0, 40)}`, summary);
+
   return Response.json({
     idea,
     plan,
     posts: rankable,
     rank: { ...rank, selectedPosts: validSelected },
     createdAt: new Date().toISOString(),
+    usage: summary,
   });
 }

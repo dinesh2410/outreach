@@ -8,6 +8,7 @@
 
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -26,8 +27,11 @@ import {
   CompetitorRecord,
   GenerationResult,
   KeywordRankRecord,
+  MyApp,
   Platform,
   RedditAnalysisRecord,
+  ReviewIntelligenceRecord,
+  UsageRecord,
   User,
 } from "./types";
 
@@ -79,6 +83,15 @@ const keywordRankRef = (uid: string, rankId: string) =>
 const redditCol = (uid: string) => collection(firestore, "users", uid, "redditAnalyses");
 const redditRef = (uid: string, analysisId: string) =>
   doc(firestore, "users", uid, "redditAnalyses", analysisId);
+const usageCol = (uid: string) => collection(firestore, "users", uid, "usage");
+const usageRef = (uid: string, genId: string) =>
+  doc(firestore, "users", uid, "usage", genId);
+const myAppsCol = (uid: string) => collection(firestore, "users", uid, "myApps");
+const myAppRef = (uid: string, appId: string) =>
+  doc(firestore, "users", uid, "myApps", appId);
+const reviewIntelCol = (uid: string) => collection(firestore, "users", uid, "reviewIntelligence");
+const reviewIntelRef = (uid: string, recordId: string) =>
+  doc(firestore, "users", uid, "reviewIntelligence", recordId);
 
 // Read the user doc; create with sensible defaults if it doesn't exist.
 // Returns the resolved fields (not the raw Firestore doc).
@@ -248,4 +261,65 @@ export async function fetchUserRedditAnalyses(uid: string): Promise<RedditAnalys
 
 export async function deleteRedditAnalysisEntry(uid: string, analysisId: string): Promise<void> {
   await deleteDoc(redditRef(uid, analysisId));
+}
+
+// --- usage records (admin monitoring) ------------------------------------
+//
+// One doc per /api/generate call, keyed by the generation id so re-running
+// the same generation overwrites rather than duplicates. Stored under
+// /users/{uid}/usage/{genId} so per-user reads stay scoped; the admin
+// dashboard pulls across users via collectionGroup("usage").
+
+export async function recordUsageForUser(
+  uid: string,
+  record: UsageRecord
+): Promise<void> {
+  await setDoc(usageRef(uid, record.id), stripUndefined(record));
+}
+
+export async function fetchUserUsage(uid: string): Promise<UsageRecord[]> {
+  const snap = await getDocs(query(usageCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as UsageRecord);
+}
+
+// Admin-only: read every user's usage subcollection in one query. Requires
+// a Firestore collectionGroup index on `usage`, ordered by createdAt desc.
+// Firestore rules restrict this read to the admin email.
+export async function fetchAllUsage(maxRecords = 500): Promise<UsageRecord[]> {
+  const q = query(collectionGroup(firestore, "usage"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.slice(0, maxRecords).map((d) => d.data() as UsageRecord);
+}
+
+// --- Your applications (MyApp reusable refs) -----------------------------
+
+export async function saveMyAppForUser(uid: string, app: MyApp): Promise<void> {
+  await setDoc(myAppRef(uid, app.id), stripUndefined(app));
+}
+
+export async function fetchMyApps(uid: string): Promise<MyApp[]> {
+  const snap = await getDocs(query(myAppsCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as MyApp);
+}
+
+export async function deleteMyApp(uid: string, appId: string): Promise<void> {
+  await deleteDoc(myAppRef(uid, appId));
+}
+
+// --- review intelligence (Review Intelligence history) -------------------
+
+export async function recordReviewIntelForUser(
+  uid: string,
+  record: ReviewIntelligenceRecord
+): Promise<void> {
+  await setDoc(reviewIntelRef(uid, record.id), stripUndefined(record));
+}
+
+export async function fetchUserReviewIntel(uid: string): Promise<ReviewIntelligenceRecord[]> {
+  const snap = await getDocs(query(reviewIntelCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as ReviewIntelligenceRecord);
+}
+
+export async function deleteReviewIntelEntry(uid: string, recordId: string): Promise<void> {
+  await deleteDoc(reviewIntelRef(uid, recordId));
 }

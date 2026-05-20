@@ -29,7 +29,7 @@
   --color-purple: #A855F7;
 
   --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Georgia", "Times New Roman", ui-serif, serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 }
 
@@ -39,6 +39,24 @@ body {
   position: relative;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.011em;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px;
+}
+
+/* Glass morphism utility */
+.glass {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Gradient text utility */
+.text-gradient-blue {
+  background: linear-gradient(135deg, #2563EB 0%, #0B3D7A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Primary CTA — near-black pill with white arrow circle */
@@ -92,6 +110,13 @@ body {
 .card-soft:hover {
   border-color: #C7D6F0;
   box-shadow: 0 16px 32px -16px rgba(11, 61, 122, 0.18);
+  transform: translateY(-2px);
+}
+
+.card-glow:hover {
+  border-color: #C7D6F0;
+  box-shadow: 0 0 0 1px rgba(37,99,235,0.15), 0 20px 40px -20px rgba(11,61,122,0.25);
+  transform: translateY(-2px);
 }
 
 .card-cream {
@@ -117,10 +142,23 @@ body {
 .tile-rose   { background-color: #FCE8EC; color: #B0274F; }
 .tile-peach  { background-color: #FFE9D6; color: #9E4A0F; }
 
-/* Section padding rhythm */
-.section-pad   { padding-top: 6rem; padding-bottom: 6rem; }
+/* Section padding rhythm — matches the py-14 sm:py-20 lg:py-32 used by most sections */
+.section-pad   { padding-top: 8rem; padding-bottom: 8rem; }
 @media (max-width: 1024px) {
-  .section-pad { padding-top: 4rem; padding-bottom: 4rem; }
+  .section-pad { padding-top: 5rem; padding-bottom: 5rem; }
+}
+@media (max-width: 640px) {
+  .section-pad { padding-top: 3.5rem; padding-bottom: 3.5rem; }
+}
+
+/* iOS Safari zooms in when an input has font-size < 16px. Set a floor on
+ * mobile so the page doesn't pan when the keyboard appears. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
 
 /* Inline arrow link — used for "Learn more →" style */
@@ -334,3 +372,27 @@ body {
 .stagger-children > *:nth-child(4) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(5) { animation-delay: 400ms; }
 .stagger-children > *:nth-child(6) { animation-delay: 500ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-x,
+  .animate-drift,
+  .animate-orb-drift,
+  .animate-orb-drift-2,
+  .animate-orb-drift-3,
+  .animate-node-float-1,
+  .animate-node-float-2,
+  .animate-node-float-3,
+  .animate-pulse-dot,
+  .animate-pulse-glow,
+  .animate-dash-flow,
+  .animate-spin-slow,
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-tab-content,
+  .word-reveal,
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

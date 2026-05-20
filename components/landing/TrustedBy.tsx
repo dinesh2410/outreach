@@ -12,7 +12,7 @@ import {
   Music,
   Camera,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/shared/Icon";
 
 // Honest framing: indie-product, no real partner logos yet — so the band shows
 // the app categories the generator supports rather than fake brand logos.
@@ -34,9 +34,10 @@ const CATEGORIES: Category[] = [
 
 export function TrustedBy() {
   return (
-    <section className="bg-white">
-      <div className="max-w-[1400px] mx-auto px-8 py-16 lg:py-20 grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-12 items-center">
-        <h3 className="text-[22px] lg:text-[24px] font-semibold text-ink leading-snug max-w-sm">
+    <section className="bg-white relative">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90%] max-w-[1200px] h-px bg-gradient-to-r from-transparent via-line to-transparent" />
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-10 sm:py-14 lg:py-20 grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6 md:gap-12 items-center">
+        <h3 className="text-[18px] sm:text-[22px] lg:text-[24px] font-semibold text-ink leading-snug max-w-sm">
           Trusted across every category indie devs ship in.
         </h3>
 
@@ -55,8 +56,7 @@ export function TrustedBy() {
               return (
                 <div
                   key={`${cat.name}-${i}`}
-                  className="flex items-center gap-2.5 shrink-0"
-                  style={{ color: "#0B3D7A" }}
+                  className="flex items-center gap-2.5 shrink-0 text-accent-ink"
                 >
                   <Icon size={20} strokeWidth={1.75} />
                   <span className="text-[16px] lg:text-[17px] font-semibold whitespace-nowrap tracking-tight">

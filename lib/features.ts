@@ -6,7 +6,7 @@ import {
   BarChart3,
   Key,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/shared/Icon";
 
 // Single source of truth for the product's features.
 // Used by:
@@ -39,9 +39,9 @@ export const FEATURES: Feature[] = [
   {
     slug: "generator",
     name: "ASO Description Generator",
-    tagline: "Three angles per generation",
+    tagline: "Keyword-optimized store listings",
     description:
-      "Keyword-optimized, conversion-focused, and brand-led variants for both stores in one click.",
+      "Paste a URL or fill a brief, pick your target keyword, and get a publish-ready listing for both stores.",
     icon: FileText,
     status: "live",
     href: "/generator",

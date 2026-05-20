@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { FeaturesMenu } from "./FeaturesMenu";
 import { useAuth } from "@/lib/auth";
-import { Globe, LayoutDashboard, Menu, X } from "lucide-react";
+import { Globe, LayoutDashboard, Menu, X } from "@/components/shared/Icon";
 import { useState } from "react";
 import { FEATURES } from "@/lib/features";
 
@@ -54,7 +54,7 @@ export function PublicNav() {
           {isAuthed ? (
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors"
+              className="btn-pill-dark gap-2 px-5 py-2.5 text-[15px]"
             >
               <LayoutDashboard size={15} strokeWidth={2} />
               Dashboard
@@ -69,7 +69,7 @@ export function PublicNav() {
               </Link>
               <Link
                 href="/auth"
-                className="px-5 py-2.5 rounded-full bg-ink text-white text-[15px] font-medium hover:bg-night-soft transition-colors"
+                className="btn-pill-dark px-5 py-2.5 text-[15px]"
               >
                 Get Started
               </Link>

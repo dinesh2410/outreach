@@ -13,34 +13,24 @@ export function MockASOResults({ compact = false }: { compact?: boolean }) {
         <span className="font-mono text-ink-faint text-xs">Productivity</span>
       </div>
       <div className="p-4 space-y-3">
-        {[
-          { label: "A", tag: "Keyword", color: "bg-accent/10 text-accent" },
-          { label: "B", tag: "Conversion", color: "bg-gold/10 text-gold" },
-          { label: "C", tag: "Brand", color: "bg-green/10 text-green" },
-        ].map((v) => (
-          <div
-            key={v.label}
-            className="flex items-start gap-3 p-3 rounded-xl bg-paper border border-line-soft"
-          >
-            <div
-              className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${v.color}`}
-            >
-              {v.label}
-            </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-ink truncate">
-                FocusFlow &mdash; {v.tag} Title
-              </p>
-              <p className="text-ink-muted truncate mt-0.5">
-                {v.tag === "Keyword"
-                  ? "Productivity focus app for professionals and creators"
-                  : v.tag === "Conversion"
-                    ? "Most productivity apps slow you down..."
-                    : "Focus. Done differently."}
-              </p>
-            </div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="px-2 py-0.5 rounded text-xs font-medium text-white" style={{ backgroundColor: "#2563EB" }}>
+            productivity
+          </span>
+          <span className="text-xs text-ink-faint">Target keyword</span>
+        </div>
+        <div className="p-3 rounded-xl bg-paper border border-line-soft">
+          <p className="font-semibold text-ink">
+            FocusFlow &mdash; Productivity Timer &amp; Focus
+          </p>
+          <p className="text-ink-muted mt-1.5 leading-relaxed">
+            The productivity app for professionals and creators. Stay focused with smart timers, track your streaks, and build a routine that works.
+          </p>
+          <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-line-soft text-xs text-ink-faint">
+            <span>4,000 / 4,000 chars</span>
+            <span className="font-mono text-green">Ready to ship</span>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

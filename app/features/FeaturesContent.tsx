@@ -20,7 +20,7 @@ import {
   Megaphone,
   Globe,
   ArrowRight,
-} from "lucide-react";
+} from "@/components/shared/Icon";
 import { useInView } from "@/lib/useInView";
 
 type Feat = {
@@ -31,21 +31,24 @@ type Feat = {
 };
 
 const ASO_FEATURES: Feat[] = [
-  { icon: Layers, title: "Three angles per generation", desc: "Keyword-optimized, conversion-focused, and brand-led variants in one click.", tile: "tile-blue" },
+  { icon: Layers, title: "Keyword-optimized listing", desc: "Pick your target keyword and get a full store listing built around it.", tile: "tile-blue" },
   { icon: Smartphone, title: "Both stores supported", desc: "Android and iOS with correct character limits enforced for each platform.", tile: "tile-lilac" },
   { icon: Ruler, title: "Live character counters", desc: "Title, short description, and full description limits enforced in real time.", tile: "tile-mint" },
   { icon: Pencil, title: "Editable in place", desc: "Click any field to edit. Your changes, your voice, your final copy.", tile: "tile-cream" },
-  { icon: LayoutGrid, title: "Compare-all view", desc: "See all three variants side by side. Spot differences at a glance.", tile: "tile-rose" },
-  { icon: Search, title: "Keyword extraction", desc: "Top 10 keywords with frequency counts after every generation.", tile: "tile-peach" },
+  { icon: LayoutGrid, title: "URL import", desc: "Paste an App Store or Play Store URL and auto-import your existing listing.", tile: "tile-rose" },
+  { icon: Search, title: "Keyword selection", desc: "AI-suggested keywords for your app — pick the one you want to rank for.", tile: "tile-peach" },
   { icon: Copy, title: "Copy and download", desc: "Copy any field or export the whole thing as a .txt file.", tile: "tile-blue" },
   { icon: BookOpen, title: "App library", desc: "Save generations and come back to them. Your history, organized.", tile: "tile-lilac" },
 ];
 
+const LIVE_TOOLS: Feat[] = [
+  { icon: MessageSquare, title: "Reddit Demand & Replies", desc: "Search Reddit for real demand signals and draft helpful, contextual replies.", tile: "tile-lilac" },
+  { icon: BarChart3, title: "Competitor Watch", desc: "Paste your app and a competitor URL. Get downloads, ratings, and a side-by-side comparison.", tile: "tile-mint" },
+  { icon: Key, title: "Keyword Rankings", desc: "Check how any app ranks for a keyword across both stores.", tile: "tile-cream" },
+];
+
 const COMING_SOON: Feat[] = [
   { icon: Camera, title: "Screenshot Generator", desc: "Generate store screenshots with text overlays and localize to multiple languages.", tile: "tile-blue" },
-  { icon: MessageSquare, title: "Reddit Replies", desc: "Find relevant threads and draft contextual, helpful responses.", tile: "tile-lilac" },
-  { icon: BarChart3, title: "Competitor Analysis", desc: "Paste your app and a competitor URL. Get a side-by-side comparison.", tile: "tile-mint" },
-  { icon: Key, title: "Keyword Research", desc: "Discover and track keywords for your category and competitors.", tile: "tile-cream" },
 ];
 
 const GOOD_TO_HAVE: Feat[] = [
@@ -104,11 +107,18 @@ export function FeaturesContent() {
               className="text-[36px] lg:text-[48px] font-semibold leading-[1.1] tracking-[-0.02em]"
               style={{ color: "#0B3D7A" }}
             >
-              ASO Description Generator
+              Tools you can use today
             </h2>
           </div>
+          <p className="eyebrow mb-4">ASO Description Generator</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {ASO_FEATURES.map((f, i) => (
+              <FeatureCard key={f.title} {...f} index={i} />
+            ))}
+          </div>
+          <p className="eyebrow mb-4 mt-12">Research & Intelligence</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {LIVE_TOOLS.map((f, i) => (
               <FeatureCard key={f.title} {...f} index={i} />
             ))}
           </div>

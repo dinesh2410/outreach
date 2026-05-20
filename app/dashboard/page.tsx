@@ -20,7 +20,7 @@ import {
   Clock,
   Activity,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/shared/Icon";
 
 function relativeTime(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -305,7 +305,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-[14px] font-semibold text-ink truncate">
-                    {a.appName || a.source === "ios" ? "App Store listing" : a.source === "play" ? "Play Store listing" : "Listing"}
+                    {a.appName ? a.appName : a.source === "ios" ? "App Store listing" : a.source === "play" ? "Play Store listing" : "Listing"}
                   </p>
                   <p className="text-[11px] text-ink-faint truncate mt-1 font-mono">{a.url}</p>
                   <div className="mt-3 pt-3 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint">
@@ -500,7 +500,7 @@ export default function DashboardPage() {
           <span className="text-[13px] text-ink-faint">5 live · 1 coming</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ToolCard href="/generator" icon={Wand2} title="ASO Generator" desc="Three angle variants per platform from one brief." status="live" tile="tile-blue" />
+          <ToolCard href="/generator" icon={Wand2} title="ASO Generator" desc="Keyword-optimized store listing from a URL or brief." status="live" tile="tile-blue" />
           <ToolCard href="/score" icon={Sparkles} title="ASO Score" desc="Audit any listing against the ASO playbook." status="live" tile="tile-lilac" />
           <ToolCard href="/features/screenshots" icon={ImageIcon} title="Screenshots" desc="Auto-generate store screenshots from your UI." status="soon" tile="tile-mint" />
           <ToolCard href="/reddit" icon={MessageSquare} title="Reddit Demand" desc="Validate your idea against Reddit posts asking for it." status="live" tile="tile-cream" />

@@ -5,21 +5,21 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
-import { Copy, Search, BookOpen } from "lucide-react";
+import { Copy, Search, BookOpen } from "@/components/shared/Icon";
 import Link from "next/link";
 
 export default function LibraryPage() {
-  const { user, savedGenerations } = useAuth();
+  const { user, loading, savedGenerations } = useAuth();
   const router = useRouter();
   const { push } = useToast();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "android" | "ios">("all");
 
   useEffect(() => {
-    if (!user) router.push("/auth");
-  }, [user, router]);
+    if (!loading && !user) router.push("/auth");
+  }, [user, loading, router]);
 
-  if (!user) return null;
+  if (loading || !user) return null;
 
   const filtered = savedGenerations.filter((gen) => {
     const matchesSearch = gen.input.appName.toLowerCase().includes(search.toLowerCase());

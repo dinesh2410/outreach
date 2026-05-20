@@ -1,0 +1,200 @@
+{
+  "Productivity": [
+    {
+      "name": "Notion",
+      "icon": "/category-examples/productivity-notion.png"
+    },
+    {
+      "name": "Todoist",
+      "icon": "/category-examples/productivity-todoist.png"
+    },
+    {
+      "name": "Trello",
+      "icon": "/category-examples/productivity-trello.png"
+    },
+    {
+      "name": "Evernote",
+      "icon": "/category-examples/productivity-evernote.png"
+    },
+    {
+      "name": "Microsoft To Do",
+      "icon": "/category-examples/productivity-microsoft-to-do.png"
+    }
+  ],
+  "AI / ML": [
+    {
+      "name": "ChatGPT",
+      "icon": "/category-examples/ai-ml-chatgpt.png"
+    },
+    {
+      "name": "Gemini",
+      "icon": "/category-examples/ai-ml-gemini.png"
+    },
+    {
+      "name": "Perplexity",
+      "icon": "/category-examples/ai-ml-perplexity.png"
+    },
+    {
+      "name": "Copilot",
+      "icon": "/category-examples/ai-ml-copilot.png"
+    },
+    {
+      "name": "Character AI",
+      "icon": "/category-examples/ai-ml-character-ai.png"
+    }
+  ],
+  "Dev tools": [
+    {
+      "name": "GitHub",
+      "icon": "/category-examples/dev-tools-github.png"
+    },
+    {
+      "name": "Termux",
+      "icon": "/category-examples/dev-tools-termux.png"
+    },
+    {
+      "name": "Pydroid 3",
+      "icon": "/category-examples/dev-tools-pydroid-3.png"
+    },
+    {
+      "name": "Acode",
+      "icon": "/category-examples/dev-tools-acode.png"
+    },
+    {
+      "name": "Termius",
+      "icon": "/category-examples/dev-tools-termius.png"
+    }
+  ],
+  "Game": [
+    {
+      "name": "Candy Crush",
+      "icon": "/category-examples/game-candy-crush.png"
+    },
+    {
+      "name": "Clash Royale",
+      "icon": "/category-examples/game-clash-royale.png"
+    },
+    {
+      "name": "Subway Surfers",
+      "icon": "/category-examples/game-subway-surfers.png"
+    },
+    {
+      "name": "Among Us",
+      "icon": "/category-examples/game-among-us.png"
+    },
+    {
+      "name": "Brawl Stars",
+      "icon": "/category-examples/game-brawl-stars.png"
+    }
+  ],
+  "Social": [
+    {
+      "name": "WhatsApp",
+      "icon": "/category-examples/social-whatsapp.png"
+    },
+    {
+      "name": "Instagram",
+      "icon": "/category-examples/social-instagram.png"
+    },
+    {
+      "name": "X",
+      "icon": "/category-examples/social-x.png"
+    },
+    {
+      "name": "Discord",
+      "icon": "/category-examples/social-discord.png"
+    },
+    {
+      "name": "Telegram",
+      "icon": "/category-examples/social-telegram.png"
+    }
+  ],
+  "Lifestyle": [
+    {
+      "name": "Pinterest",
+      "icon": "/category-examples/lifestyle-pinterest.png"
+    },
+    {
+      "name": "Headspace",
+      "icon": "/category-examples/lifestyle-headspace.png"
+    },
+    {
+      "name": "Calm",
+      "icon": "/category-examples/lifestyle-calm.png"
+    },
+    {
+      "name": "Reflectly",
+      "icon": "/category-examples/lifestyle-reflectly.png"
+    },
+    {
+      "name": "Habitica",
+      "icon": "/category-examples/lifestyle-habitica.png"
+    }
+  ],
+  "Finance": [
+    {
+      "name": "PayPal",
+      "icon": "/category-examples/finance-paypal.png"
+    },
+    {
+      "name": "Cash App",
+      "icon": "/category-examples/finance-cash-app.png"
+    },
+    {
+      "name": "Revolut",
+      "icon": "/category-examples/finance-revolut.png"
+    },
+    {
+      "name": "Robinhood",
+      "icon": "/category-examples/finance-robinhood.png"
+    },
+    {
+      "name": "Venmo",
+      "icon": "/category-examples/finance-venmo.png"
+    }
+  ],
+  "Health & fitness": [
+    {
+      "name": "Strava",
+      "icon": "/category-examples/health-fitness-strava.png"
+    },
+    {
+      "name": "MyFitnessPal",
+      "icon": "/category-examples/health-fitness-myfitnesspal.png"
+    },
+    {
+      "name": "Nike Run Club",
+      "icon": "/category-examples/health-fitness-nike-run-club.png"
+    },
+    {
+      "name": "Fitbit",
+      "icon": "/category-examples/health-fitness-fitbit.png"
+    },
+    {
+      "name": "Adidas Running",
+      "icon": "/category-examples/health-fitness-adidas-running.png"
+    }
+  ],
+  "Other": [
+    {
+      "name": "Spotify",
+      "icon": "/category-examples/other-spotify.png"
+    },
+    {
+      "name": "Netflix",
+      "icon": "/category-examples/other-netflix.png"
+    },
+    {
+      "name": "YouTube",
+      "icon": "/category-examples/other-youtube.png"
+    },
+    {
+      "name": "Google Maps",
+      "icon": "/category-examples/other-google-maps.png"
+    },
+    {
+      "name": "Gmail",
+      "icon": "/category-examples/other-gmail.png"
+    }
+  ]
+}

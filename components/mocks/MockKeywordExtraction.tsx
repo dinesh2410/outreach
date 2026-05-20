@@ -2,32 +2,33 @@ export function MockKeywordExtraction() {
   return (
     <div className="bg-surface rounded-2xl border border-line shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-line-soft">
-        <span className="font-mono text-xs text-ink-faint">Keyword extraction</span>
+        <span className="font-mono text-xs text-ink-faint">Pick your target keyword</span>
       </div>
       <div className="p-4">
         <div className="flex flex-wrap gap-2">
           {[
-            { word: "productivity", count: 6 },
-            { word: "focus", count: 5 },
-            { word: "tasks", count: 4 },
-            { word: "workflow", count: 3 },
-            { word: "organize", count: 3 },
-            { word: "timer", count: 2 },
-            { word: "planning", count: 2 },
-            { word: "efficient", count: 2 },
+            { word: "productivity", selected: true },
+            { word: "focus timer", selected: false },
+            { word: "task manager", selected: false },
+            { word: "workflow", selected: false },
+            { word: "daily planner", selected: false },
+            { word: "time tracking", selected: false },
           ].map((kw) => (
             <span
               key={kw.word}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-paper border border-line-soft text-sm"
+              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-sm cursor-pointer ${
+                kw.selected
+                  ? "bg-accent text-white font-medium"
+                  : "bg-paper border border-line-soft text-ink"
+              }`}
             >
-              <span className="text-ink">{kw.word}</span>
-              <span className="text-xs font-mono text-ink-faint">{kw.count}</span>
+              {kw.word}
             </span>
           ))}
         </div>
         <div className="mt-3 pt-3 border-t border-line-soft flex items-center justify-between text-xs text-ink-muted">
-          <span>8 keywords extracted</span>
-          <span className="font-mono text-green">Good density</span>
+          <span>AI-suggested keywords</span>
+          <span className="font-mono text-green">1 selected</span>
         </div>
       </div>
     </div>

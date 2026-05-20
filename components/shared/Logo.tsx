@@ -16,7 +16,7 @@ export function Logo({ className = "" }: { className?: string }) {
         <rect x="0" y="13" width="9" height="9" rx="2" fill="#0A0A0A" />
       </svg>
       <span className="font-semibold text-[15px] text-ink tracking-tight">
-        Outreach
+        ReachFront
       </span>
     </Link>
   );

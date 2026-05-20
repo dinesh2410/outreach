@@ -1,16 +1,22 @@
 import { ScoreResult, ScoreCheck } from "./types";
-import { extractKeywords } from "./keywords";
+import {
+  getBenchmarks,
+  comfortableRange,
+  type CategoryBenchmarks,
+  type Distribution,
+} from "./benchmarks";
+import { ASO } from "./aso-standards";
 
-// ASO scoring driven by both:
-//   (1) descriptive patterns from a 20-app top-app corpus (Google, Microsoft,
-//       Spotify, Duolingo, etc. — see CHANGES.md), and
-//   (2) the major ranking signals documented across ASO research from Phiture,
-//       AppTweak, Apptopia, and Apple/Google developer docs — rating, rating
-//       count, keyword placement, freshness, and asset coverage.
+// ASO scorer.
 //
-// When a scraped listing is available, score against real signals; when only
-// the URL is known, fall back to a URL-only heuristic so the marketing /score
-// teaser keeps working before the user signs in for the live audit.
+// When a scraped listing is available, score against real signals using
+// category-specific standards (a productivity app's title plays by different
+// length norms than a finance app's). When only the URL is known, fall back
+// to a URL-only heuristic so the marketing /score teaser keeps working
+// before the user signs in for the live audit.
+//
+// User-facing check notes describe the standard the listing should meet —
+// they do not reveal the methodology behind the score.
 
 export interface ScoreListing {
   title?: string;
@@ -25,12 +31,20 @@ export interface ScoreListing {
   screenshotUrls?: string[];
   lastUpdated?: string;
   source?: "play" | "ios";
+  // Category genre returned by the scraper (e.g. "Productivity",
+  // "Health & Fitness"). Used to pick category-specific thresholds; if absent
+  // or unrecognised, falls back to a cross-category default.
+  genre?: string;
 }
 
-export function calculateScore(url: string, listing?: ScoreListing | null): ScoreResult {
+export function calculateScore(
+  url: string,
+  listing?: ScoreListing | null,
+  llmKeyword?: { primary: string; secondary?: string } | null,
+): ScoreResult {
   const hasListing =
     !!listing && (!!listing.title || !!listing.shortDesc || !!listing.subtitle || !!listing.fullDesc);
-  if (hasListing) return scoreListing(listing!);
+  if (hasListing) return scoreListing(listing!, llmKeyword);
   return scoreUrlOnly(url);
 }
 
@@ -51,6 +65,10 @@ const HOOK_VERB_OPENERS = [
   "create", "discover", "join", "listen", "watch", "send", "track", "manage",
   "find", "save", "share", "build", "connect", "store", "back up",
   "chat", "open", "edit", "scan", "plan", "play", "read", "design", "shop",
+  "navigate", "organize", "record", "capture", "stream", "search", "book",
+  "order", "control", "protect", "secure", "sync", "access", "download",
+  "upload", "convert", "customize", "monitor", "schedule", "automate",
+  "simplify", "try", "take", "keep", "set", "turn", "run", "choose",
 ];
 
 const HOOK_LINKING_VERBS = ["is", "lets", "helps", "brings", "gives", "puts", "makes"];
@@ -65,22 +83,39 @@ const FORBIDDEN_CTA_PHRASES = [
   "click below", "click here", "tap below",
 ];
 
-// Bullet chars top apps actually use (• dominates with 14/20; dashes 2/20
-// — Instagram, Netflix; asterisks 1/20). All three are accepted as valid;
-// • gets the strongest signal but consistency matters more than the char.
-const PREFERRED_BULLET = "•";              // U+2022 — the dominant top-app bullet
-const ACCEPTABLE_BULLETS = ["•", "◦", "●", "-", "*"]; // any of these, used consistently
-const POOR_BULLET_CHARS = ["▶", "◉", "►", "→"]; // patterns we used to emit; not what top apps use
+// Short-description openers that waste the indexed first 30 characters on
+// filler — these are the patterns Google Play ranking research flags as
+// "burned ad space" because the model isn't seeing functional keywords yet
+// at the moment of highest indexing weight.
+const FORBIDDEN_SHORT_DESC_OPENERS = [
+  "welcome to", "introducing", "discover the", "discover a",
+  "the new", "the all-new", "the all new", "the best",
+  "looking for an app", "looking for the", "are you looking",
+  "meet ", "say hello to", "presenting",
+];
 
-function scoreListing(listing: ScoreListing): ScoreResult {
+// Title separators that signal a clean "Brand + Descriptor" structure rather
+// than a comma-stuffed keyword list. Per Google Play indexing weighting, the
+// optimal title pairs a unique brand with a generic functional descriptor.
+const TITLE_BRAND_SEPARATORS = [":", " - ", " – ", " — ", " | "];
+
+// Bullets accepted as a clean list character. Per-category benchmarks tell
+// us which one this category prefers; the scorer rewards consistency, not
+// any specific character.
+const ACCEPTABLE_BULLETS = ["•", "◦", "●", "-", "*", "✓", "✔", "☑", "✦", "➤", "➜", "►", "→", "★", "✧"];
+const POOR_BULLET_CHARS = ["▶", "◉"];
+
+function scoreListing(
+  listing: ScoreListing,
+  llmKeyword?: { primary: string; secondary?: string } | null,
+): ScoreResult {
+  const { data: bench } = getBenchmarks(listing.genre);
+
   const title = (listing.title ?? "").trim();
   const shortDesc = (listing.shortDesc ?? listing.subtitle ?? "").trim();
   const fullDesc = (listing.fullDesc ?? "").trim();
-  const paragraphs = fullDesc
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  const hookPara = paragraphs[0] ?? "";
+  const paragraphs = splitIntoBlocks(fullDesc);
+  const hookPara = extractHook(paragraphs[0] ?? "");
   const closingPara = paragraphs.length > 1 ? paragraphs[paragraphs.length - 1] : "";
   const allCheckedText = `${title} ${shortDesc} ${fullDesc}`.toLowerCase();
   const fullLower = fullDesc.toLowerCase();
@@ -88,21 +123,25 @@ function scoreListing(listing: ScoreListing): ScoreResult {
   const closingLower = closingPara.toLowerCase();
   const brandToken = title.split(/[\s:–—-]+/)[0]?.toLowerCase() ?? "";
 
+  // Category-derived bands. comfortableRange returns p25/p75 as the "in-band"
+  // range and p90 as the upper guardrail. When benchmarks are missing,
+  // fall back to conservative defaults.
+  const titleBand = comfortableRange(bench?.titleLength) ?? { low: 12, high: 28, median: 18, ceiling: 30 };
+  const shortBand = comfortableRange(bench?.shortDescLength) ?? { low: 50, high: 80, median: 70, ceiling: 80 };
+  const fullBand = comfortableRange(bench?.fullDescLength) ?? { low: ASO.FULL_DESC_FLOOR, high: 3200, median: 2400, ceiling: ASO.FULL_DESC_CEILING };
+  const hookBand = comfortableRange(bench?.hookLength) ?? { low: 120, high: 320, median: 220, ceiling: 400 };
+  const sectionBand = comfortableRange(bench?.sectionCount) ?? { low: 5, high: 12, median: 8, ceiling: 16 };
+
   // ---- Bullets --------------------------------------------------------
-  // Count bullets per character so we can detect (a) any consistent bullet
-  // style, (b) the use of • specifically, (c) bad patterns like ▶/◉ which
-  // top apps don't use. A "bullet" only counts when it appears at the start
-  // of a line — character-anywhere matches over-count.
   const bulletLines = fullDesc.split("\n");
   const bulletCharCounts: Record<string, number> = {};
   for (const line of bulletLines) {
-    const m = line.match(/^\s*([•◦●\-*▶◉►→])\s+\S/);
+    const m = line.match(/^\s*([•◦●\-*✓✔☑✦➤➜►→★✧▶◉])\s+\S/);
     if (m) {
       const ch = m[1];
       bulletCharCounts[ch] = (bulletCharCounts[ch] ?? 0) + 1;
     }
   }
-  const preferredBulletCount = bulletCharCounts[PREFERRED_BULLET] ?? 0;
   const acceptableBulletTotal = ACCEPTABLE_BULLETS.reduce(
     (s, ch) => s + (bulletCharCounts[ch] ?? 0),
     0
@@ -112,7 +151,6 @@ function scoreListing(listing: ScoreListing): ScoreResult {
     0
   );
   const hasBullets = acceptableBulletTotal + poorBulletTotal >= 3;
-  // Pick the dominant bullet character to report back to the user.
   let dominantBullet: string | undefined;
   let dominantCount = 0;
   for (const [ch, n] of Object.entries(bulletCharCounts)) {
@@ -123,15 +161,11 @@ function scoreListing(listing: ScoreListing): ScoreResult {
   }
 
   // ---- Sections (labelled chunks) ------------------------------------
-  // Title-cased section labels: a short line (≤60 chars), capitalised first
-  // letter, possibly ending with a colon, on its own line — followed by more
-  // content. Matches both "Capture what's on your mind" and "BACK UP & SYNC".
   const sectionLabelMatches = paragraphs.filter((p) => {
     const firstLine = p.split("\n")[0].trim();
     if (firstLine.length === 0 || firstLine.length > 80) return false;
     if (firstLine.endsWith(".") || firstLine.endsWith("!")) return false;
     if (!/^[A-Z]/.test(firstLine)) return false;
-    // Must be followed by either bullets or more lines in this paragraph
     return p.split("\n").length > 1 || firstLine.endsWith(":");
   });
   const sectionCount = Math.max(sectionLabelMatches.length, paragraphs.length);
@@ -148,99 +182,136 @@ function scoreListing(listing: ScoreListing): ScoreResult {
     ? (fullLower.match(new RegExp(`\\b${escapeRegex(brandToken)}\\b`, "g"))?.length ?? 0)
     : 0;
 
-  // ---- Emoji counts (skip section-decorator runs of 5+) -------------
+  // ---- Emoji counts -------------------------------------------------
   const emojiMatches = fullDesc.match(EMOJI_RE) ?? [];
   const emojiCount = emojiMatches.length;
 
   // ---- Build checks --------------------------------------------------
   const checks: ScoreCheck[] = [];
 
-  // 1. Title length (weight 3)
+  // 1. Title length within range (weight 3)
+  const titleLengthOk =
+    title.length >= Math.max(8, titleBand.low - 4) &&
+    title.length <= ASO.TITLE_MAX;
   checks.push(makeCheck({
     label: "Title length within range",
     weight: 3,
-    passed: title.length >= 8 && title.length <= 30 && title.length !== 30,
-    okNote:
-      `Title is ${title.length} chars — sits comfortably under the 30-char Play cap. Top apps median is 16.`,
+    passed: titleLengthOk,
+    okNote: `Title is ${title.length} chars — within the 30-char store cap.`,
     failNote: title.length === 0
       ? "No title detected on the listing."
-      : title.length < 8
-        ? `Title is only ${title.length} chars — top apps median is 16. Add a short descriptor after the brand.`
-        : `Title is at the 30-char cap. Top apps almost never max it out; consider dropping a keyword.`,
+      : title.length < Math.max(8, titleBand.low - 4)
+        ? `Title is only ${title.length} chars. Aim for ${titleBand.low}–${titleBand.high} characters — that's the room you have to add a short descriptor after the brand.`
+        : `Title exceeds the 30-char store cap.`,
   }));
 
   // 2. Title format (no comma keyword-stuffing) (weight 3)
-  const titleStuffed = /,/.test(title) || /\s\w+\s\w+\s\w+\s\w+\s\w+$/.test(title);
+  // A single comma after a brand separator is fine ("YouTube: Watch, Listen, Stream").
+  // Flag only when there are 3+ commas (keyword lists) or 6+ trailing words without a separator.
+  const titleHasSeparator = TITLE_BRAND_SEPARATORS.some((sep) => title.includes(sep));
+  const commaCount = (title.match(/,/g) ?? []).length;
+  const titleStuffed = commaCount >= 3 || (!titleHasSeparator && /\s\w+\s\w+\s\w+\s\w+\s\w+\s\w+$/.test(title));
   checks.push(makeCheck({
     label: "Title format is clean",
     weight: 3,
     passed: !titleStuffed,
-    okNote: "Title reads as a brand + short descriptor, not a comma-separated keyword list.",
-    failNote: "Title looks keyword-stuffed. Use `Brand: Descriptor` or `Brand - Descriptor` — top apps don't comma-chain keywords.",
+    okNote: "Title reads as a brand plus a short descriptor, not a comma-separated keyword list.",
+    failNote: commaCount >= 3
+      ? "Title has multiple commas — reads as a keyword list. Use `Brand: Descriptor` instead of comma-chaining keywords."
+      : "Title looks keyword-stuffed. Use `Brand: Descriptor` or `Brand - Descriptor` instead of chaining keywords.",
   }));
 
-  // Short-description-dependent checks only run when the scrape actually
-  // returned a short description / subtitle. iTunes Lookup doesn't expose
-  // the iOS subtitle, so we skip these on iOS rather than penalize for a
-  // field we can't see.
+  // 2b. Title carries a functional descriptor after the brand (weight 3).
+  const titleHasDescriptor =
+    titleHasSeparator &&
+    title.split(/[:|\-–—]/).slice(1).join(" ").trim().split(/\s+/).filter(Boolean).length >= 1;
+  const titleLongEnoughForDescriptor = title.length >= 14;
+  checks.push(makeCheck({
+    label: "Title pairs brand with a descriptor",
+    weight: 3,
+    passed: titleHasDescriptor || !titleLongEnoughForDescriptor,
+    okNote: titleHasDescriptor
+      ? "Title pairs the brand with a functional descriptor — captures both branded and non-branded search intent."
+      : "Title is short enough that a bare brand reads cleanly.",
+    failNote:
+      "Title is brand-only. Append a short functional descriptor after a `:` or ` - ` (e.g. `Brand: Calorie Tracker`) to capture non-branded search traffic.",
+  }));
+
   if (shortDesc.length > 0) {
     // 3. Short description length (weight 4)
-    // Top-app range is 26–80. 11/19 use ≥70 chars; outliers like WhatsApp
-    // (26) and Chrome (32) ship sparse short descs because their brands
-    // carry the listing. Pass anything ≥25 chars and within the 80 cap.
+    const shortOk = shortDesc.length >= Math.max(ASO.SHORT_DESC_MIN, shortBand.low) && shortDesc.length <= ASO.SHORT_DESC_MAX;
     checks.push(makeCheck({
       label: "Short description uses available space",
       weight: 4,
-      passed: shortDesc.length >= 25 && shortDesc.length <= 80,
-      okNote: shortDesc.length >= 65
-        ? `Short description is ${shortDesc.length} chars — uses the available space well (top-app median is 75).`
-        : `Short description is ${shortDesc.length} chars — short, but a valid pattern (WhatsApp ships 26 chars, Chrome 32). Tighter copy works when the brand carries weight.`,
-      failNote: shortDesc.length < 25
-        ? `Short description is only ${shortDesc.length} chars — too sparse even by top-app standards.`
-        : `Short description is ${shortDesc.length} chars — exceeds the 80-char Play cap.`,
+      passed: shortOk,
+      okNote: shortDesc.length >= shortBand.high
+        ? `Short description is ${shortDesc.length} chars — uses the available space well.`
+        : `Short description is ${shortDesc.length} chars — fits the 80-char limit; a tight short line works when the brand carries weight.`,
+      failNote: shortDesc.length < Math.max(ASO.SHORT_DESC_MIN, shortBand.low)
+        ? `Short description is only ${shortDesc.length} chars — too sparse. Aim for ${shortBand.low}–${shortBand.high} characters to use the available space.`
+        : `Short description is ${shortDesc.length} chars — exceeds the ${ASO.SHORT_DESC_MAX}-char store cap.`,
     }));
 
-    // 4. Short description verb-lead or sentence-fragment (weight 3)
+    // 4. Short description verb-lead or sentence-fragment (weight 2)
     const firstWord = (shortDesc.split(/\s+/)[0] ?? "").toLowerCase().replace(/[^a-z']/g, "");
     const verbLed = HOOK_VERB_OPENERS.includes(firstWord);
+    const shortDescIsSubstantive = shortDesc.length >= 30 && /[a-z]/i.test(shortDesc);
     checks.push(makeCheck({
       label: "Short description leads with action",
+      weight: 2,
+      passed: verbLed || shortDescIsSubstantive,
+      okNote: verbLed
+        ? "Short description leads with an action verb — the strongest opener pattern for this field."
+        : "Short description reads as a clear, substantive product statement.",
+      failNote: "Short description doesn't lead with an action verb. Try opening with 'Make', 'Stay', 'Create', 'Get', or similar.",
+    }));
+
+    // 4b. Short description avoids filler openers (weight 3).
+    // Google Play indexes the first 30 characters most heavily; burning them
+    // on phrases like "Welcome to" or "Introducing" leaves functional
+    // keywords out of the highest-weighted slot of the field.
+    const shortDescOpener = shortDesc.toLowerCase().slice(0, 40);
+    const hasFillerOpener = FORBIDDEN_SHORT_DESC_OPENERS.some((p) =>
+      shortDescOpener.startsWith(p)
+    );
+    checks.push(makeCheck({
+      label: "Short description opens with substance",
       weight: 3,
-      passed: verbLed || (shortDesc.split(/\s+/)[0]?.endsWith(",") === false && shortDesc.length > 40),
-      okNote: "Short description leads with an action verb — the most common pattern in top apps.",
-      failNote: "Short description doesn't lead with a verb. Top apps open with verbs like 'Make', 'Stay', 'Create', 'Get'.",
+      passed: !hasFillerOpener,
+      okNote: "Short description doesn't burn its first 30 characters on filler — functional keywords appear in the indexed slot.",
+      failNote:
+        "Short description opens with filler ('Welcome to…', 'Introducing…', 'Discover the…', 'The new…'). The first 30 characters are the most heavily indexed; lead with what the app does.",
     }));
   }
 
   // 5. Full description length (weight 4)
-  // Top-app range is 1170–3948. The Google productivity suite (Chrome,
-  // Keep, Sheets, Docs, Slides) all ship sparse 1100–1700 char listings;
-  // accept anything in the 1100–3700 band as a valid pattern.
+  const fullOk = fullDesc.length >= Math.max(ASO.FULL_DESC_FLOOR, fullBand.low - 200) && fullDesc.length <= ASO.FULL_DESC_CEILING;
   checks.push(makeCheck({
     label: "Full description hits target length",
     weight: 4,
-    passed: fullDesc.length >= 1100 && fullDesc.length <= 3950,
-    okNote: fullDesc.length >= 1800
-      ? `Full description is ${fullDesc.length} chars — sits in the 1800–3950 band top apps use. Median: 2539.`
-      : `Full description is ${fullDesc.length} chars — short, but matches the Google house style (Chrome ships ~1170, Sheets ~1600). Valid when the structure stays clean.`,
+    passed: fullOk,
+    okNote: fullDesc.length >= fullBand.median
+      ? `Full description is ${fullDesc.length} chars — sits in the comfortable range for this category.`
+      : `Full description is ${fullDesc.length} chars — short but within range; a tight body works when the structure stays clean.`,
     failNote: fullDesc.length === 0
       ? "No full description detected."
-      : fullDesc.length < 1100
-        ? `Full description is only ${fullDesc.length} chars — below even the sparsest top apps (Chrome ships 1170).`
-        : `Full description is ${fullDesc.length} chars — at the 4000-char cap. No top app pushes the full limit; trim padding to land closer to the 2539-char median.`,
+      : fullDesc.length < Math.max(ASO.FULL_DESC_FLOOR, fullBand.low)
+        ? `Full description is only ${fullDesc.length} chars. Aim for ${fullBand.low}–${fullBand.high} characters to give the body room to breathe.`
+        : `Full description is ${fullDesc.length} chars — over the ${ASO.FULL_DESC_CEILING}-char ceiling. Trim toward ${fullBand.median} characters; padding hurts more than it helps.`,
   }));
 
   // 6. Hook (first paragraph) length (weight 4)
+  const hookOk = hookPara.length >= Math.max(80, hookBand.low - 30) && hookPara.length <= Math.min(500, hookBand.ceiling + 50);
   checks.push(makeCheck({
     label: "Hook paragraph length",
     weight: 4,
-    passed: hookPara.length >= 100 && hookPara.length <= 450,
-    okNote: `Hook is ${hookPara.length} chars — within the 150–400 band top apps use.`,
+    passed: hookOk,
+    okNote: `Hook is ${hookPara.length} chars — sits in the ${hookBand.low}–${hookBand.high} band where opening paragraphs read tightest.`,
     failNote: hookPara.length === 0
       ? "No hook paragraph detected."
-      : hookPara.length < 100
-        ? `Hook is only ${hookPara.length} chars. Aim for ~250 with one positioning sentence + one capability sentence.`
-        : `Hook is ${hookPara.length} chars — too long. Trim to ≤400; rest belongs in the section list below.`,
+      : hookPara.length < Math.max(80, hookBand.low - 30)
+        ? `Hook is only ${hookPara.length} chars. Aim for ~${hookBand.median} with one positioning sentence and one capability sentence.`
+        : `Hook is ${hookPara.length} chars — too long for an opener. Trim toward ${hookBand.median}; everything else belongs in the body sections.`,
   }));
 
   // 7. Brand in hook (weight 4)
@@ -249,8 +320,8 @@ function scoreListing(listing: ScoreListing): ScoreResult {
     label: "Hook anchors the brand name",
     weight: 4,
     passed: brandInHook,
-    okNote: "Hook names the brand — 14/20 top apps anchor the brand in the first sentence.",
-    failNote: "Hook never mentions the brand name. Top apps almost always open with '[Brand] is/lets/helps…'.",
+    okNote: "Hook names the brand in the first sentence — the dominant opener pattern.",
+    failNote: "Hook never mentions the brand name. Open with `[Brand] is/lets/helps…` so the first thing readers see is the product name.",
   }));
 
   // 8. Hook opener pattern (weight 3)
@@ -259,8 +330,6 @@ function scoreListing(listing: ScoreListing): ScoreResult {
   const hookHasLinking = HOOK_LINKING_VERBS.some((v) =>
     new RegExp(`\\b${v}\\b`).test(hookOpenerLower)
   );
-  // Use word-boundary matching so "Create, edit, …" matches "create" (Google's
-  // dominant opener pattern across the productivity suite).
   const hookHasImperative = HOOK_VERB_OPENERS.some((v) =>
     new RegExp(`^${escapeRegex(v)}\\b`).test(hookOpenerLower)
   );
@@ -273,38 +342,28 @@ function scoreListing(listing: ScoreListing): ScoreResult {
     label: "Hook uses a proven opener pattern",
     weight: 3,
     passed: goodOpener && !badQuestion,
-    okNote: "Hook opens with one of the three patterns top apps use ([Brand] is/lets/helps…, imperative verb, or scenario).",
+    okNote: "Hook opens with a strong positioning pattern — either '[Brand] is/lets/helps…', an imperative verb, or a scenario.",
     failNote: badQuestion
-      ? "Hook opens with a 'Tired of…?' pain question. Zero top apps do this — switch to a positioning sentence."
-      : "Hook opener doesn't match the three patterns top apps use. Try '[Brand] is…', 'Use/Get/Explore [Brand]…', or 'Whether you're…'.",
+      ? "Hook opens with a pain-question ('Tired of…?'). Switch to a positioning sentence — the brand and outcome should land first."
+      : "Hook opener could be tighter. Try '[Brand] is…', 'Use/Get/Explore [Brand]…', or 'Whether you're…'.",
   }));
 
   // 9. Bullet character quality (weight 5)
-  // Pass if (a) bullets exist and (b) they use one of the acceptable chars
-  // (• preferred, but - and * are valid minority patterns). Fail only when
-  // poor chars (▶ / ◉ / →) dominate, or when there are no bullets in a body
-  // long enough to warrant them.
   const usesAcceptableBullet = hasBullets && acceptableBulletTotal >= poorBulletTotal;
   const longBodyNeedsBullets = fullDesc.length >= 1500;
   checks.push(makeCheck({
     label: "Uses a consistent bullet character",
     weight: 5,
     passed: hasBullets ? usesAcceptableBullet : !longBodyNeedsBullets,
-    okNote: dominantBullet === PREFERRED_BULLET
-      ? `Bullets use • (U+2022) — the character 14/20 top apps use.`
-      : dominantBullet
-        ? `Bullets use "${dominantBullet}" consistently — valid minority pattern (2/20 top apps use dashes).`
-        : "Body is concise enough that no bullets are needed.",
+    okNote: dominantBullet
+      ? `Bullets use "${dominantBullet}" consistently — a clean, scannable list character.`
+      : "Body is concise enough that no bullets are needed.",
     failNote: hasBullets
-      ? `Bullets use ${POOR_BULLET_CHARS.filter((c) => bulletCharCounts[c]).join("/") || "non-standard chars"} — not what top apps use. Switch to • for the strongest signal.`
-      : `No bullet list detected in a ${fullDesc.length}-char body. Top apps with longer descriptions split features into bullets.`,
+      ? `Bullets use ${POOR_BULLET_CHARS.filter((c) => bulletCharCounts[c]).join("/") || "non-standard characters"}. Switch to • or a plain dash for cleaner scanning.`
+      : `No bullet list detected in a ${fullDesc.length}-char body. Split features into bullets to make the body scannable.`,
   }));
 
   // 10. Section structure (weight 5)
-  // Two valid patterns: (a) explicit labelled sections + bullets (Spotify,
-  // Outlook), (b) Google productivity-suite style — a short hook ending in
-  // ":" followed by a long bullet list, possibly with a second labelled
-  // section. Both count.
   const hookEndsWithColon = /:\s*$/.test(hookPara);
   const implicitGooglePattern = hookEndsWithColon && hasBullets;
   const sectionsOk =
@@ -316,11 +375,11 @@ function scoreListing(listing: ScoreListing): ScoreResult {
     weight: 5,
     passed: sectionsOk,
     okNote: implicitGooglePattern && sectionLabelMatches.length < 2
-      ? `Hook leads into a bullet list (Google productivity-suite pattern). Valid scannable structure.`
-      : `${sectionLabelMatches.length} labelled sections detected — matches the section-label + bullet-list pattern 17/20 top apps use.`,
+      ? "Hook leads into a bullet list — a clean scannable structure."
+      : `${sectionLabelMatches.length} labelled sections detected — the body reads as scannable chunks.`,
     failNote: !hasBullets
-      ? "Body lacks bullets or labelled chunks. Top apps chunk into 3–7 sections, each as 'Capability label' + 3–5 bullets, OR open with a hook ending in ':' then a long bullet list."
-      : "Bullets exist but aren't anchored to section labels. Add a short Title-Case label above each bullet group, or end the hook with ':' so the bullets below read as one section.",
+      ? "Body lacks bullets or labelled sections. Chunk into 3–7 sections, each as 'Capability label' plus 3–5 bullets — or open with a hook ending in ':' followed by a bullet list."
+      : "Bullets exist but aren't anchored to section labels. Add a short Title-Case label above each bullet group, or end the hook with ':' so the bullets read as one section.",
   }));
 
   // 11. Paragraph length discipline (weight 4)
@@ -328,28 +387,30 @@ function scoreListing(listing: ScoreListing): ScoreResult {
     label: "Paragraphs stay short",
     weight: 4,
     passed: paragraphs.length > 0 && longParagraphs <= 1,
-    okNote: "Paragraphs stay ≤4 sentences — matches top-app pattern (15/20 keep paragraphs ≤2 sentences).",
-    failNote: `${longParagraphs} paragraph(s) run >4 sentences. Top apps split long thoughts into bullets — wall-of-text hurts scanning.`,
+    okNote: "Paragraphs stay ≤4 sentences — keeps the body scannable.",
+    failNote: `${longParagraphs} paragraph(s) run >4 sentences. Split long thoughts into bullets so readers can scan the body.`,
   }));
 
   // 12. Section count (weight 2)
+  const sectionMin = Math.max(ASO.SECTION_MIN, sectionBand.low - 2);
+  const sectionMax = Math.min(ASO.SECTION_MAX, sectionBand.ceiling + 4);
   checks.push(makeCheck({
     label: "Section count is balanced",
     weight: 2,
-    passed: sectionCount >= 5 && sectionCount <= 16,
-    okNote: `${sectionCount} paragraph blocks — sits in the 5–14 sweet spot (top-app median: 10).`,
-    failNote: sectionCount < 5
-      ? `Only ${sectionCount} sections. Add more labelled blocks — top apps run 5–14.`
-      : `${sectionCount} sections is too fragmented. Consolidate to 8–12 for cleaner scanning.`,
+    passed: sectionCount >= sectionMin && sectionCount <= sectionMax,
+    okNote: `${sectionCount} paragraph blocks — sits in the comfortable range for scanning.`,
+    failNote: sectionCount < sectionMin
+      ? `Only ${sectionCount} sections. Aim for ${sectionBand.low}–${sectionBand.high} labelled blocks.`
+      : `${sectionCount} sections is fragmented. Consolidate toward ${sectionBand.median} for cleaner scanning.`,
   }));
 
   // 13. Benefit keyword coverage (weight 3)
   checks.push(makeCheck({
     label: "Hits core benefit keywords",
     weight: 3,
-    passed: benefitHits >= 3,
-    okNote: `Covers ${benefitHits} benefit terms (privacy, free, easy, share, anywhere, etc.) — top apps median is 4–5.`,
-    failNote: `Only ${benefitHits} benefit term(s) detected. Top apps hit ≥3 of: privacy/secure, free, easy/simple, share, anywhere/offline.`,
+    passed: benefitHits >= ASO.BENEFIT_HITS_MIN,
+    okNote: `Covers ${benefitHits} core benefit terms — strong signal coverage.`,
+    failNote: `Only ${benefitHits} benefit term(s) detected. Work in at least three of: privacy/secure, free, easy/simple, share, anywhere/offline.`,
   }));
 
   // 14. No store-CTA in closing (weight 2)
@@ -358,19 +419,19 @@ function scoreListing(listing: ScoreListing): ScoreResult {
     label: "Closing avoids store-CTA clichés",
     weight: 2,
     passed: !closingHasBadCta,
-    okNote: "Closing doesn't fall back to 'Download now' clichés — top apps close with sign-offs or legal links, not CTAs.",
-    failNote: "Closing contains a 'Download now'-style CTA. Only 1/20 top apps do this. Close with a sub-CTA ('Try [Brand] free') or sign-off.",
+    okNote: "Closing avoids 'Download now' clichés — finishes with a sub-CTA or sign-off.",
+    failNote: "Closing falls back to a 'Download now'-style CTA. Replace with a sub-CTA ('Try [Brand] free') or a short sign-off.",
   }));
 
   // 15. Emoji discipline (weight 2)
   checks.push(makeCheck({
     label: "Emoji usage is restrained",
     weight: 2,
-    passed: emojiCount <= 3,
+    passed: emojiCount <= ASO.EMOJI_MAX,
     okNote: emojiCount === 0
-      ? "No emoji in body — matches 18/20 top apps."
-      : `${emojiCount} emoji used — within the restrained band 2/20 top apps use.`,
-    failNote: `${emojiCount} emoji detected. Only 2/20 top apps use them; emoji-heavy bodies look amateur.`,
+      ? "No emoji in the body — clean and professional."
+      : `${emojiCount} emoji used — restrained.`,
+    failNote: `${emojiCount} emoji detected. Trim to two or fewer; emoji-heavy bodies hurt credibility.`,
   }));
 
   // 16. Exclamation discipline (weight 2)
@@ -378,91 +439,159 @@ function scoreListing(listing: ScoreListing): ScoreResult {
   checks.push(makeCheck({
     label: "Exclamation marks stay restrained",
     weight: 2,
-    passed: exclamationCount <= 3,
-    okNote: `${exclamationCount} exclamation mark(s) — top apps run 0–2.`,
-    failNote: `${exclamationCount} exclamation marks detected. Top apps median is 0–2; trim to lower the hype tone.`,
+    passed: exclamationCount <= ASO.EXCLAMATION_MAX,
+    okNote: `${exclamationCount} exclamation mark(s) — within a restrained tone.`,
+    failNote: `${exclamationCount} exclamation marks detected. Trim toward two or fewer to lower the hype tone.`,
   }));
 
   // 17. Brand repetition across body (weight 2)
+  const brandCeiling = ASO.BRAND_MENTIONS_MAX;
   checks.push(makeCheck({
     label: "Brand name repeats across body",
     weight: 2,
-    passed: brandMentions >= 3 && brandMentions <= 12,
-    okNote: `Brand name appears ${brandMentions}× across the body — top apps anchor the brand 3–8 times.`,
+    passed: brandMentions >= ASO.BRAND_MENTIONS_MIN && brandMentions <= brandCeiling,
+    okNote: `Brand name appears ${brandMentions}× across the body — well-anchored.`,
     failNote: brandToken.length < 3
       ? "Couldn't infer brand name from title."
-      : brandMentions < 3
-        ? `Brand mentioned only ${brandMentions}×. Top apps repeat the brand 3–8 times — heavy anchoring is the pattern.`
-        : `Brand repeated ${brandMentions}× — too dense. Trim to 8 or fewer to avoid reading as stuffing.`,
+      : brandMentions < ASO.BRAND_MENTIONS_MIN
+        ? `Brand mentioned only ${brandMentions}×. Repeat the brand ${ASO.BRAND_MENTIONS_MIN}–${ASO.BRAND_MENTIONS_MAX} times across the body — heavy anchoring keeps the product name in mind.`
+        : `Brand repeated ${brandMentions}× — too dense. Trim so it doesn't read as stuffing.`,
   }));
 
   // ---- Ranking-signal checks ----------------------------------------
-  // These are the biggest ASO ranking factors documented across the
-  // industry (Phiture, AppTweak, Apple/Google docs). We only add a check
-  // when the underlying data is present on the scrape, so the score
-  // reflects what we can actually measure.
 
-  // Primary keyword extracted from the full description. This is what a
-  // user is most likely to type into store search to find this app.
-  const corpus = `${title} ${shortDesc} ${fullDesc}`;
-  const topKeywords = corpus.trim() ? extractKeywords(fullDesc) : [];
-  const primaryKw = topKeywords[0];
-  const primaryKwLower = primaryKw?.word?.toLowerCase() ?? "";
+  const primaryKwLower = llmKeyword?.primary?.toLowerCase().trim() ?? "";
+  const primaryKw = primaryKwLower
+    ? { word: primaryKwLower, count: 0 }
+    : null;
 
-  // 18. Primary keyword in title (weight 5) — title is the heaviest-indexed
-  // field for both Play and iOS. Skip if the primary keyword IS the brand
-  // (in which case the title trivially contains it).
-  if (primaryKwLower && primaryKwLower !== brandToken && primaryKw && primaryKw.count >= 3) {
-    const titleLower = title.toLowerCase();
-    const inTitle = new RegExp(`\\b${escapeRegex(primaryKwLower)}\\b`).test(titleLower);
+  // 18. Primary keyword in title (weight 5)
+  if (primaryKwLower && primaryKwLower !== brandToken && primaryKw) {
+    const inTitle = keywordPresent(primaryKwLower, title);
     checks.push(makeCheck({
       label: "Primary keyword appears in title",
       weight: 5,
       passed: inTitle,
-      okNote: `Primary keyword "${primaryKw.word}" is in the title — the most heavily-indexed field on Play and the heaviest factor in iOS search.`,
-      failNote: `Primary keyword "${primaryKw.word}" doesn't appear in the title. Title is the #1 ranking field; add the keyword as a short descriptor (e.g. "${brandToken ? brandToken[0].toUpperCase() + brandToken.slice(1) : "Brand"}: ${primaryKw.word.charAt(0).toUpperCase() + primaryKw.word.slice(1)} Tracker").`,
+      okNote: `Primary keyword "${primaryKw.word}" is in the title — the heaviest-indexed field in store search.`,
+      failNote: `Primary keyword "${primaryKw.word}" doesn't appear in the title. Add it as a short descriptor (e.g. "${brandToken ? brandToken[0].toUpperCase() + brandToken.slice(1) : "Brand"}: ${primaryKw.word.charAt(0).toUpperCase() + primaryKw.word.slice(1)}") — title indexing carries the most ranking weight.`,
     }));
+
+    if (inTitle) {
+      const titleLowerStr = title.toLowerCase();
+      const kwWords = primaryKwLower.split(/\s+/);
+      const firstWordPos = titleLowerStr.search(new RegExp(`\\b${escapeRegex(kwWords[0])}\\b`));
+      const titleMidpoint = title.length / 2;
+      const frontLoaded = firstWordPos >= 0 && firstWordPos <= titleMidpoint;
+      checks.push(makeCheck({
+        label: "Primary keyword is front-loaded in title",
+        weight: 4,
+        passed: frontLoaded,
+        okNote: `"${primaryKw.word}" sits in the first half of the title — front position carries higher indexing weight.`,
+        failNote: `"${primaryKw.word}" appears late in the title. Move it forward — Play weighs early-title keywords more heavily.`,
+      }));
+    }
   }
 
-  // 19. Primary keyword in short description (weight 4) — Play indexes the
-  // short description; missing the primary keyword here costs ranking. Skip
-  // when no shortDesc is available (e.g. iOS where iTunes Lookup omits it).
-  if (
-    shortDesc.length > 0 &&
-    primaryKwLower &&
-    primaryKwLower !== brandToken &&
-    primaryKw &&
-    primaryKw.count >= 3
-  ) {
-    const shortLower = shortDesc.toLowerCase();
-    const inShort = new RegExp(`\\b${escapeRegex(primaryKwLower)}\\b`).test(shortLower);
+  // 19. Primary keyword in short description (weight 4)
+  if (shortDesc.length > 0 && primaryKwLower && primaryKwLower !== brandToken && primaryKw) {
+    const inShort = keywordPresent(primaryKwLower, shortDesc);
     checks.push(makeCheck({
       label: "Primary keyword appears in short description",
       weight: 4,
       passed: inShort,
-      okNote: `Primary keyword "${primaryKw.word}" is in the short description — Play indexes this field for ranking.`,
-      failNote: `Primary keyword "${primaryKw.word}" is missing from the short description. Play indexes this 80-char field; work the keyword in naturally.`,
+      okNote: `Primary keyword "${primaryKw.word}" is in the short description — Google Play indexes this field for ranking.`,
+      failNote: `Primary keyword "${primaryKw.word}" is missing from the short description. The 80-char short description is indexed by Play; work the keyword in naturally.`,
+    }));
+
+    if (inShort) {
+      const firstSentence =
+        (shortDesc.split(/[.!?](?:\s|$)/)[0] ?? "");
+      const inFirstSentence = keywordPresent(primaryKwLower, firstSentence);
+      checks.push(makeCheck({
+        label: "Primary keyword sits in the opening sentence",
+        weight: 4,
+        passed: inFirstSentence,
+        okNote: `"${primaryKw.word}" appears in the opening sentence of the short description — Play prioritises this position when indexing.`,
+        failNote: `"${primaryKw.word}" is in the short description but not in the opening sentence. Rewrite so the primary keyword lands in the first sentence — that slot carries the heaviest indexing weight.`,
+      }));
+    }
+  }
+
+  // 20a. Primary keyword in the HOOK of the full description (weight 4).
+  if (fullDesc.length > 0 && primaryKwLower && primaryKwLower !== brandToken && primaryKw) {
+    const inHook = keywordPresent(primaryKwLower, hookPara);
+    checks.push(makeCheck({
+      label: "Primary keyword anchors the hook paragraph",
+      weight: 4,
+      passed: inHook,
+      okNote: `"${primaryKw.word}" appears in the hook — the opening paragraph is the most heavily indexed body slot.`,
+      failNote: `"${primaryKw.word}" is missing from the hook paragraph. Work it into the first sentences — Play's search crawler weighs hook-paragraph keywords more than body mentions.`,
     }));
   }
 
-  // 20. Average rating ≥ 4.0 (weight 5) — single biggest ranking signal we
-  // can measure from a public scrape. Apple requires 4.0+ for shelf placement
-  // in many surfaces; Play weights rating heavily in category rankings.
+  // 20b. No keyword stuffing (weight 4).
+  // Per Google Play's NLP-based relevance evaluation, any content word
+  // exceeding ~2.5% density across the corpus signals unnatural keyword
+  // stuffing and invokes severe algorithmic suppression. Top-ranked
+  // listings sit closer to 0.5–1% per term. We scan all content words and
+  // penalise the most-repeated one if it crosses the threshold.
+  if (fullDesc.length > 400) {
+    const STOPWORDS = new Set([
+      "the", "and", "for", "with", "you", "your", "from", "that", "this",
+      "are", "all", "can", "any", "our", "one", "two", "out", "use", "get",
+      "has", "have", "but", "not", "now", "more", "into", "just", "like",
+      "what", "when", "will", "they", "their", "them", "there", "than",
+      "then", "also", "been", "over",
+    ]);
+    const words = fullDesc.toLowerCase().match(/[a-z][a-z'-]{2,}/g) ?? [];
+    const counts: Record<string, number> = {};
+    for (const w of words) {
+      if (STOPWORDS.has(w)) continue;
+      counts[w] = (counts[w] ?? 0) + 1;
+    }
+    const total = words.length;
+    let topTerm = "";
+    let topCount = 0;
+    for (const [w, c] of Object.entries(counts)) {
+      if (w === brandToken) continue;
+      if (brandToken.length >= 3 && (w.startsWith(brandToken) || brandToken.startsWith(w))) continue;
+      if (c > topCount) {
+        topTerm = w;
+        topCount = c;
+      }
+    }
+    const density = total > 0 ? topCount / total : 0;
+    const stuffed = density > ASO.KEYWORD_DENSITY_CEILING && topCount >= ASO.KEYWORD_STUFFING_MIN_COUNT;
+    checks.push(makeCheck({
+      label: "Keyword density stays natural",
+      weight: 4,
+      passed: !stuffed,
+      okNote: topTerm
+        ? `Top content term "${topTerm}" appears ${topCount}× (${(density * 100).toFixed(1)}%) — reads as natural language.`
+        : "Body reads as natural language; no single term dominates.",
+      failNote: `"${topTerm}" appears ${topCount}× (${(density * 100).toFixed(1)}% density) — Play's NLP flags this as keyword stuffing. Replace some mentions with related concepts ("workout", "training", "fitness routine" instead of "fitness" repeated) so the body reads naturally.`,
+    }));
+  }
+
+  // 20. Average rating ≥ 4.0 (weight 5)
   if (typeof listing.rating === "number" && listing.rating > 0) {
     const r = listing.rating;
+    const ratingFloor = bench?.rating?.p25 ?? 4.0;
+    const ratingMedian = bench?.rating?.p50 ?? 4.5;
     checks.push(makeCheck({
       label: "Average rating",
       weight: 5,
       passed: r >= 4.0,
-      okNote: `Average rating is ${r.toFixed(1)}/5 — clears the 4.0 bar that most ASO research treats as the floor for category ranking.`,
+      okNote: r >= ratingMedian
+        ? `Average rating is ${r.toFixed(1)}/5 — competitive within this category (peers sit near ${ratingMedian.toFixed(1)}).`
+        : `Average rating is ${r.toFixed(1)}/5 — clears the 4.0 floor that most store surfaces require for shelf placement.`,
       failNote: r >= 3.5
-        ? `Average rating is ${r.toFixed(1)}/5 — below the 4.0 ranking floor. Triage your 1–3 star reviews: respond to the top themes, ship fixes, ask happy users for a rating via the in-app prompt.`
+        ? `Average rating is ${r.toFixed(1)}/5 — below the 4.0 ranking floor. Triage 1–3 star reviews: respond to top themes, ship fixes, prompt happy users for a rating.`
         : `Average rating is ${r.toFixed(1)}/5 — well below ranking floors. Pause copy/screenshot work and focus on the product issues showing up in 1-star reviews; nothing else moves the needle while rating sits here.`,
     }));
   }
 
-  // 21. Rating count credibility (weight 3) — fewer than ~50 ratings reads as
-  // "too new to evaluate" to most users. 1K+ starts to feel credible.
+  // 21. Rating count credibility (weight 3)
   if (typeof listing.ratingCount === "number") {
     const rc = listing.ratingCount;
     checks.push(makeCheck({
@@ -473,13 +602,12 @@ function scoreListing(listing: ScoreListing): ScoreResult {
         ? `${formatCount(rc)} ratings — strong social proof.`
         : `${formatCount(rc)} ratings — past the 100-rating credibility threshold.`,
       failNote: rc === 0
-        ? `No ratings yet. Add an in-app rating prompt (after a positive interaction, not on launch) and a "rate us" link in onboarding.`
-        : `Only ${formatCount(rc)} ratings. Aim for ≥100 to clear the credibility threshold; ratings volume also feeds ranking.`,
+        ? `No ratings yet. Add an in-app rating prompt after a positive interaction (not on launch) and a 'rate us' link in onboarding.`
+        : `Only ${formatCount(rc)} ratings. Aim for at least 100 to clear the credibility threshold; ratings volume also feeds ranking.`,
     }));
   }
 
-  // 22. Last-updated freshness (weight 3) — stale listings rank worse and
-  // signal abandoned apps to users. Track months since last update.
+  // 22. Last-updated freshness (weight 3)
   if (listing.lastUpdated) {
     const monthsSinceUpdate = monthsSince(listing.lastUpdated);
     if (monthsSinceUpdate !== null) {
@@ -487,26 +615,24 @@ function scoreListing(listing: ScoreListing): ScoreResult {
         label: "Listing freshness",
         weight: 3,
         passed: monthsSinceUpdate <= 6,
-        okNote: `Updated ${monthsSinceUpdate <= 1 ? "in the last month" : `${monthsSinceUpdate} months ago`} — Play and Apple both surface fresher listings more.`,
-        failNote: `Last update was ${monthsSinceUpdate} months ago. Stores down-rank listings that haven't shipped in 6+ months; even a small version bump with refreshed copy resets the freshness signal.`,
+        okNote: `Updated ${monthsSinceUpdate <= 1 ? "in the last month" : `${monthsSinceUpdate} months ago`} — stores surface fresher listings more.`,
+        failNote: `Last update was ${monthsSinceUpdate} months ago. Stores down-rank listings that haven't shipped in 6+ months; a small version bump with refreshed copy resets the freshness signal.`,
       }));
     }
   }
 
-  // 23. Screenshot coverage (weight 4) — screenshots drive conversion rate,
-  // which feeds install velocity (a ranking signal). iOS allows 10, Play
-  // allows 8 per device; first 3 are critical (the only ones visible on
-  // most search results).
+  // 23. Screenshot coverage (weight 4)
   if (Array.isArray(listing.screenshotUrls)) {
     const n = listing.screenshotUrls.length;
-    const ideal = listing.source === "ios" ? 5 : 4;
+    const target = bench?.screenshotCount?.p50 ?? (listing.source === "ios" ? 5 : 4);
+    const ideal = Math.max(3, Math.min(target - 3, 6));
     checks.push(makeCheck({
       label: "Screenshot coverage",
       weight: 4,
       passed: n >= ideal,
       okNote: `${n} screenshots — covers the slots that drive most install decisions.`,
       failNote: n === 0
-        ? `No screenshots detected. The first 3 screenshots are the single biggest conversion lever after the icon — upload at least ${ideal}.`
+        ? `No screenshots detected. The first three screenshots are the biggest conversion lever after the icon — upload at least ${ideal}.`
         : `Only ${n} screenshot(s). ${listing.source === "ios" ? "iOS allows 10 per device" : "Play allows 8 per device"}; aim for ${ideal}+ so users see scenarios beyond the first frame.`,
     }));
   }
@@ -531,10 +657,6 @@ function scoreListing(listing: ScoreListing): ScoreResult {
 // ---- URL-only fallback (legacy preview path) ------------------------------
 
 function scoreUrlOnly(url: string): ScoreResult {
-  // No listing data available — return a low-confidence preview so the
-  // marketing /score page still has something to show. The detailed report
-  // page fetches /api/audit which calls calculateScore() with the real listing
-  // and replaces this stub.
   const charSum = url.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0);
   const score = (charSum % 30) + 55;
   return {
@@ -545,7 +667,7 @@ function scoreUrlOnly(url: string): ScoreResult {
         label: "Listing preview only",
         passed: false,
         note:
-          "We haven't fetched the live listing yet — this is a quick preview score. Open the detailed report for a real audit against top-app benchmarks.",
+          "We haven't fetched the live listing yet — this is a quick preview. Open the detailed report for a real audit.",
       },
     ],
   };
@@ -580,14 +702,61 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function keywordPresent(keyword: string, text: string): boolean {
+  const lower = text.toLowerCase();
+  if (new RegExp(`\\b${escapeRegex(keyword)}\\b`).test(lower)) return true;
+  const words = keyword.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return false;
+  return words.every((w) => new RegExp(`\\b${escapeRegex(w)}\\b`).test(lower));
+}
+
 function sentenceCount(text: string): number {
   const matches = text.match(/[.!?](\s|$)/g);
   return matches ? matches.length : 1;
 }
 
-// Rough emoji pattern — pictographic ranges that show up in real descriptions.
-// Excludes plain bullet/dash characters (those are handled separately).
 const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
+
+function splitIntoBlocks(text: string): string[] {
+  if (!text) return [];
+  const doubleNewline = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  if (doubleNewline.length >= 3) return doubleNewline;
+
+  const lines = text.split("\n");
+  const blocks: string[] = [];
+  let current: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "") {
+      if (current.length) { blocks.push(current.join("\n")); current = []; }
+      continue;
+    }
+    const isHeader = /^[A-Z][A-Za-z\s&,]{2,60}:?\s*$/.test(trimmed) && !trimmed.endsWith(".");
+    const isBullet = /^\s*[•◦●\-*✓✔☑✦➤➜►→★✧▶◉]\s/.test(trimmed);
+    const prevIsBullet = current.length > 0 && /^\s*[•◦●\-*✓✔☑✦➤➜►→★✧▶◉]\s/.test(current[current.length - 1]);
+
+    if (isHeader && current.length > 0) {
+      blocks.push(current.join("\n"));
+      current = [trimmed];
+    } else if (isBullet && !prevIsBullet && current.length > 0) {
+      blocks.push(current.join("\n"));
+      current = [trimmed];
+    } else {
+      current.push(trimmed);
+    }
+  }
+  if (current.length) blocks.push(current.join("\n"));
+
+  return blocks.length >= 2 ? blocks : doubleNewline.length > 0 ? doubleNewline : [text.trim()];
+}
+
+function extractHook(block: string): string {
+  if (!block || block.length <= 500) return block;
+  const sentences = block.match(/[^.!?]+[.!?]+(\s|$)/g);
+  if (!sentences || sentences.length <= 3) return block;
+  return sentences.slice(0, 3).join("").trim();
+}
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
@@ -603,12 +772,6 @@ function monthsSince(iso: string): number | null {
 }
 
 // ---- Strategic advice (not scored) ----------------------------------------
-//
-// Some ranking signals can't be measured from a public listing scrape — review
-// velocity, install rate from search, retention, in-app behaviour, A/B test
-// outcomes — but they matter more than most copy decisions. We surface these
-// as advisories the user should track separately in Play Console / App Store
-// Connect.
 
 export interface StrategicAdvisory {
   label: string;
@@ -619,11 +782,10 @@ export interface StrategicAdvisory {
 export function strategicAdvisoriesFor(listing: ScoreListing): StrategicAdvisory[] {
   const out: StrategicAdvisory[] = [];
 
-  // Always-relevant ranking advice — the signals the scrape can't see.
   out.push({
     label: "Drive review velocity, not just count",
     detail:
-      "Fresh reviews count for more than old ones. Trigger an in-app rating prompt after a positive moment (e.g. completing a task), not on launch. Apple/Google both weight recent rating delta.",
+      "Fresh reviews count for more than old ones. Trigger an in-app rating prompt after a positive moment (e.g. completing a task), not on launch. Both stores weight recent rating delta.",
     category: "ranking",
   });
 
@@ -637,7 +799,7 @@ export function strategicAdvisoriesFor(listing: ScoreListing): StrategicAdvisory
   out.push({
     label: "A/B test screenshots and short description",
     detail:
-      "Play Console Store Listing Experiments and App Store Connect Product Page Optimization both run real-traffic A/B tests at no cost. Test the first 3 screenshots first — they're the biggest conversion lever.",
+      "Play Console Store Listing Experiments and App Store Connect Product Page Optimization both run real-traffic A/B tests at no cost. Test the first three screenshots first — they're the biggest conversion lever.",
     category: "conversion",
   });
 
@@ -652,7 +814,7 @@ export function strategicAdvisoriesFor(listing: ScoreListing): StrategicAdvisory
     out.push({
       label: "Fix the top-themed 1-star complaints first",
       detail:
-        "Group your 1–3 star reviews by theme (sort by Most Recent in Console). The 1–2 issues mentioned most often hold your rating ceiling. Ship a fix, then reply to those reviews — Play surfaces developer replies.",
+        "Group your 1–3 star reviews by theme (sort by Most Recent in Console). The one or two issues mentioned most often hold your rating ceiling. Ship a fix, then reply to those reviews — Play surfaces developer replies.",
       category: "ranking",
     });
   }
@@ -660,9 +822,12 @@ export function strategicAdvisoriesFor(listing: ScoreListing): StrategicAdvisory
   out.push({
     label: "Ship a small update every 6–8 weeks",
     detail:
-      "Both stores weight 'recently updated' in search ranking. A version bump with a refreshed What's New note + one screenshot refresh is enough to maintain the freshness signal.",
+      "Both stores weight 'recently updated' in search ranking. A version bump with a refreshed What's New note plus one screenshot refresh is enough to maintain the freshness signal.",
     category: "maintenance",
   });
 
   return out;
 }
+
+// Re-export the loaded benchmarks type so other modules can consume it.
+export type { CategoryBenchmarks, Distribution };

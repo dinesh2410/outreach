@@ -6,7 +6,6 @@ import Link from "next/link";
 import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
-import { calculateScore } from "@/lib/score";
 import type { AuditPayload, ScoreCheck, ScoreResult } from "@/lib/types";
 
 // Deterministic id from URL so re-running the same audit replaces the prior
@@ -36,7 +35,7 @@ import {
   Loader2,
   RefreshCw,
   Archive,
-} from "lucide-react";
+} from "@/components/shared/Icon";
 
 // AuditPayload comes from lib/types so the audit record snapshot type and
 // the in-page audit type stay in sync.
@@ -50,126 +49,125 @@ type CheckMeta = {
   fixedNote: string;
 };
 
-// Each check's weight + rationale comes from the top-app pattern analysis
-// (see CHANGES.md). The numbers here mirror lib/score.ts so the audit display
-// and the underlying score stay aligned.
+// Per-check weight, rationale, and recommended fix. The weights here mirror
+// lib/score.ts so the audit display and the underlying score stay aligned.
 const CHECK_META: Record<string, CheckMeta> = {
   "Title length within range": {
     weight: 3,
     rationale:
-      "Top apps median title length is 16 chars; only 1/20 uses the 30-char cap. Comma-stuffed titles look amateur and convert worse.",
+      "Title is the single most visible field on the listing. Sitting at the 30-char cap reads as keyword-stuffed; sitting too short wastes space that could carry a descriptor.",
     fix: "Aim for 12–26 chars. Use 'Brand: Descriptor' if the brand isn't yet recognisable; just the brand if it is.",
-    fixedNote: "Title length sits in the band top apps use — clean and uncrowded.",
+    fixedNote: "Title length sits in a clean, uncrowded range.",
   },
   "Title format is clean": {
     weight: 3,
     rationale:
-      "When top apps add a descriptor, they use ' - ' or ': ' after the brand. Zero top apps comma-chain keywords like 'App, Tracker, Planner'.",
+      "Strong listings add a descriptor with ' - ' or ': ' after the brand. Comma-chained keywords ('App, Tracker, Planner') read as stuffed and lower conversion.",
     fix: "Replace commas with a single colon or dash. Pick the strongest descriptor and drop the rest.",
     fixedNote: "Title format follows the brand + separator + descriptor pattern.",
   },
   "Short description uses available space": {
     weight: 4,
     rationale:
-      "11/19 top apps use ≥70 of the 80 short-desc chars. Under-using this slot wastes prime real estate above the fold.",
+      "The 80-char short description is prime real estate above the fold. Under-using it forfeits a free conversion lever.",
     fix: "Expand to 60–80 chars. Lead with what the app does for the user; end as a complete clause.",
     fixedNote: "Short description uses the available space without overflowing the 80-char cap.",
   },
   "Short description leads with action": {
     weight: 3,
     rationale:
-      "10/19 top apps open the short description with a verb (Make, Stay, Create, Listen…). Verb-led copy reads as confident and direct.",
+      "Verb-led copy (Make, Stay, Create, Listen…) reads as confident and direct. Leading with a noun phrase blunts the hook.",
     fix: "Rewrite to start with a strong verb or imperative. Avoid leading with the app name — the user already sees it.",
-    fixedNote: "Short description opens with a verb — top-app pattern.",
+    fixedNote: "Short description opens with a verb — direct and confident.",
   },
   "Full description hits target length": {
     weight: 4,
     rationale:
-      "Top-app median is 2539 chars; the band is 1800–3600. Below 1800 reads as under-developed; near 4000 reads as bloated.",
-    fix: "Aim for ~2500 chars. Add a section if you're short; consolidate if you're long.",
-    fixedNote: "Full description hits the 1800–3600 band where top apps cluster.",
+      "Listings under ~1500 chars read as under-developed; those near the 4000 cap read as bloated. A balanced body lands in between.",
+    fix: "Aim for a body length that matches the category band shown above. Add a section if you're short; consolidate if you're long.",
+    fixedNote: "Full description hits the comfortable range for the category.",
   },
   "Hook paragraph length": {
     weight: 4,
     rationale:
-      "The hook is the only thing most users read. Top apps land it in 150–400 chars — one positioning sentence + one capability sentence.",
+      "The hook is the only thing most users read. Land it in roughly one positioning sentence plus one capability sentence so it reads above the fold.",
     fix: "Trim or expand the first paragraph to ~250 chars. Sentence 1: brand + outcome. Sentence 2: capability/proof.",
-    fixedNote: "Hook fits the 150–400 char band — punchy enough to read above the fold.",
+    fixedNote: "Hook is punchy enough to read above the fold.",
   },
   "Hook anchors the brand name": {
     weight: 4,
     rationale:
-      "14/20 top apps put the brand in the first sentence. Heavy brand anchoring builds recognition signal across the listing.",
+      "Anchoring the brand in the first sentence builds recognition across the listing and makes the rest of the body read in context.",
     fix: "Open with '[Brand] is/lets/helps [outcome]' or 'Use [Brand] to…'. The brand should appear in the first 10 words.",
     fixedNote: "Hook anchors the brand — readers know exactly what they're looking at.",
   },
   "Hook uses a proven opener pattern": {
     weight: 3,
     rationale:
-      "17/20 top apps use one of three openers: '[Brand] is/lets/helps…', imperative verb, or scenario ('Whether you're…'). Pain-question openers ('Tired of…?') appear in zero top apps.",
+      "Three opener patterns work consistently: '[Brand] is/lets/helps…', imperative verb, or scenario ('Whether you're…'). Pain-question openers ('Tired of…?') tend to under-convert.",
     fix: "Switch to one of: '[Brand] is/lets/helps [outcome]', 'Use/Get/Explore [Brand] to…', or 'Whether you're [scenario]…'. Drop any question opener.",
-    fixedNote: "Hook uses one of the three opener patterns top apps converge on.",
+    fixedNote: "Hook uses one of the three opener patterns that read confidently.",
   },
   "Uses a consistent bullet character": {
     weight: 5,
     rationale:
-      "14/20 top apps use • (U+2022); 2/20 use dashes (Instagram, Netflix). Both are valid. What's wrong is mixing chars or using ▶/◉/→ — those don't appear in any top app.",
+      "Consistent bullets read as a clean list; mixed characters or arrow-shaped bullets (▶/◉/→) read as amateur and break the scan.",
     fix: "Pick one bullet character (• preferred, - and * also valid) and use it consistently. Avoid ▶, ◉, →, or other ASCII-arrow shapes.",
-    fixedNote: "Bullet character is consistent — matches the discipline of top apps.",
+    fixedNote: "Bullet character is consistent — clean and scannable.",
   },
   "Body is split into scannable sections": {
     weight: 5,
     rationale:
-      "17/20 top apps chunk the body — either via Title-Case labels + bullet lists OR by ending the hook with ':' and following with a long bullet list (the Google productivity-suite pattern).",
+      "A chunked body lets users scan to the section they care about. Wall-of-text bodies drop completion rates and bury the capabilities.",
     fix: "Either add Title-Case labels above each bullet group (e.g. 'Sync everywhere', 'Built for privacy'), or end your hook with ':' so the bullets read as one labelled section.",
     fixedNote: "Body is chunked into scannable sections — the eye finds the structure.",
   },
   "Paragraphs stay short": {
     weight: 4,
     rationale:
-      "15/20 top apps keep paragraphs ≤2 sentences. Long paragraphs drop completion rates on the listing.",
+      "Short paragraphs (≤4 sentences) scan cleanly. Long paragraphs drop completion rates and hide the strongest capability lines.",
     fix: "Split any paragraph longer than 4 sentences into bullets or two shorter paragraphs.",
     fixedNote: "Paragraphs stay short — the body scans cleanly.",
   },
   "Section count is balanced": {
     weight: 2,
     rationale:
-      "Top apps median is 10 paragraph blocks; the band is 5–14. Too few = under-structured; too many = fragmented.",
+      "Too few sections = under-structured; too many = fragmented. A balanced count keeps each section focused on one capability.",
     fix: "Consolidate or split until you have 6–12 sections. Each one should cover a single capability area.",
     fixedNote: "Section count sits in the balanced range.",
   },
   "Hits core benefit keywords": {
     weight: 3,
     rationale:
-      "Top apps hit 4–5 of: privacy/secure, free, easy/simple, share, anywhere/offline, help. These map to the dominant user-search vocabulary.",
+      "Benefit terms (privacy, free, easy, share, offline, secure) map to common store-search vocabulary. Missing all of them forfeits both indexing weight and reader fit.",
     fix: "Work at least 3 of these benefit terms into the body naturally — typically one per feature section.",
     fixedNote: "Core benefit vocabulary is well-covered across the body.",
   },
   "Closing avoids store-CTA clichés": {
     weight: 2,
     rationale:
-      "Only 1/20 top apps close with 'Download now' energy. The cliché caps how mature the listing reads.",
+      "'Download now' / 'Get it today' clichés read as aggressive and cap how mature the listing feels. The user is already on the install page — they don't need the push.",
     fix: "Replace any store-CTA line with a soft sign-off ('Start your free trial today') or move it to a links/legal footer.",
     fixedNote: "Closing avoids 'Download now' clichés — reads mature, not aggressive.",
   },
   "Emoji usage is restrained": {
     weight: 2,
     rationale:
-      "Only 2/20 top apps use emoji. Emoji-heavy bodies read as amateur copy on a professional platform.",
+      "Emoji-heavy bodies read as amateur copy on a professional platform. Restrained use keeps the listing credible.",
     fix: "Cap emoji at 2–3 across the whole description, and only where they earn their place (rating snippets, section dividers).",
-    fixedNote: "Emoji usage is restrained — matches the discipline of top apps.",
+    fixedNote: "Emoji usage is restrained — credible and professional.",
   },
   "Exclamation marks stay restrained": {
     weight: 2,
     rationale:
-      "Top apps run 0–2 exclamation marks in a 2500-char description. Heavy '!' use reads as hype.",
+      "Heavy '!' use reads as hype and lowers credibility. A restrained tone makes the body feel substantive.",
     fix: "Replace exclamation marks with periods. Reserve them for the one moment in the body that genuinely calls for it.",
     fixedNote: "Exclamation discipline is tight — body doesn't read as hype.",
   },
   "Brand name repeats across body": {
     weight: 2,
     rationale:
-      "Top apps repeat the brand 3–8 times across the body. Heavy anchoring builds recognition and reinforces the search term.",
+      "Repeating the brand 3–8 times across the body builds recognition and reinforces the search term without crossing into stuffing.",
     fix: "Sprinkle the brand into section labels and bullet lead-ins. Avoid repeating it inside every sentence (that reads as stuffing).",
     fixedNote: "Brand is well-anchored across the body without overstuffing.",
   },
@@ -180,13 +178,34 @@ const CHECK_META: Record<string, CheckMeta> = {
     fix: "Open the detailed report (or refresh) to fetch the live listing and run the full audit.",
     fixedNote: "Live listing available.",
   },
+  "Title pairs brand with a descriptor": {
+    weight: 3,
+    rationale:
+      "Per Google Play ranking research, the optimal title pairs the brand with a generic functional descriptor. A bare brand-only title leaves non-branded search traffic on the table.",
+    fix: "Append a short functional descriptor after a `:` or ` - ` (e.g. 'Brand: Calorie Tracker'). The descriptor should capture the core search intent.",
+    fixedNote: "Title pairs the brand with a functional descriptor — captures both branded and non-branded search.",
+  },
+  "Short description opens with substance": {
+    weight: 3,
+    rationale:
+      "Google Play indexes the first 30 characters of the short description most heavily. Filler openers like 'Welcome to…' or 'Introducing…' burn the highest-weight slot on words that carry zero search intent.",
+    fix: "Drop the filler opener and lead with what the app does. The first 30 characters should contain a functional keyword.",
+    fixedNote: "Short description opens with substance — functional keywords sit in the most heavily indexed slot.",
+  },
   // Ranking-signal checks (added 2026-05-13).
   "Primary keyword appears in title": {
     weight: 5,
     rationale:
-      "Title is the heaviest-indexed field on Play and the strongest factor in iOS search ranking. Industry research (Phiture, AppTweak) consistently rates it as the single highest-leverage edit.",
+      "Title is the heaviest-indexed field on Play and the strongest factor in iOS search ranking — the single highest-leverage edit you can make.",
     fix: "Add the primary keyword as a short descriptor after the brand (e.g. 'Brand: Keyword Tool'). Keep the title under 30 chars and avoid keyword-stuffing.",
     fixedNote: "Primary keyword is in the title — the highest-impact ranking position.",
+  },
+  "Primary keyword is front-loaded in title": {
+    weight: 4,
+    rationale:
+      "Google Play applies a positional decay to keyword indexing — the same keyword counts for more when it appears earlier in the title. Front-loading the primary keyword maximises ranking weight.",
+    fix: "Move the primary keyword toward the front of the title (e.g. 'Keyword: Brand' instead of 'Brand: Keyword'). The first half of the title carries the heaviest indexing weight.",
+    fixedNote: "Primary keyword is front-loaded in the title — maximum indexing weight.",
   },
   "Primary keyword appears in short description": {
     weight: 4,
@@ -194,6 +213,27 @@ const CHECK_META: Record<string, CheckMeta> = {
       "Google Play indexes the 80-char short description for ranking. Missing the primary keyword here forfeits ranking signal Apple/Play both reward.",
     fix: "Work the primary keyword naturally into the short description — ideally near the start. Don't stuff; one occurrence is enough.",
     fixedNote: "Primary keyword sits in the short description — Play indexes this field.",
+  },
+  "Primary keyword sits in the opening sentence": {
+    weight: 4,
+    rationale:
+      "Play prioritises primary keywords located in the very first sentence of the short description — the field's most heavily indexed slot.",
+    fix: "Rewrite the short description so the primary keyword lands in the first sentence. That slot carries the heaviest indexing weight within the field.",
+    fixedNote: "Primary keyword sits in the opening sentence of the short description — the highest-weight position.",
+  },
+  "Primary keyword anchors the hook paragraph": {
+    weight: 4,
+    rationale:
+      "The opening paragraph of the full description is the most heavily indexed body slot. Placing the primary keyword here anchors the listing to the right search intent from the first chunk.",
+    fix: "Work the primary keyword into the first one or two sentences of the full description. Play's search crawler weighs hook-paragraph keywords more than body mentions.",
+    fixedNote: "Primary keyword appears in the hook — anchored in the most heavily indexed body slot.",
+  },
+  "Keyword density stays natural": {
+    weight: 4,
+    rationale:
+      "Google Play's NLP-based relevance evaluation flags any content word exceeding ~2.5% density as unnatural keyword stuffing, which triggers algorithmic suppression. Top-ranked listings sit closer to 0.5–1% per term.",
+    fix: "Replace some repeated mentions with related synonyms or concepts (e.g. 'workout', 'training', 'fitness routine' instead of repeating the same word). Aim for under 2% density per term.",
+    fixedNote: "Keyword density reads as natural language — no single term dominates the body.",
   },
   "Average rating": {
     weight: 5,
@@ -219,15 +259,15 @@ const CHECK_META: Record<string, CheckMeta> = {
   "Screenshot coverage": {
     weight: 4,
     rationale:
-      "Screenshots drive conversion rate, which feeds install velocity (a ranking signal). Top-3 screenshots are critical — they're the only ones visible in most search results.",
+      "Screenshots drive conversion rate, which feeds install velocity (a ranking signal). The first 3 screenshots are critical — they're the only ones visible in most search results.",
     fix: "Upload at least 5 screenshots. Lead with the most install-worthy frames; treat the first 3 as the 'hero trio' and A/B test them.",
-    fixedNote: "Screenshot coverage matches the slots top apps fill.",
+    fixedNote: "Screenshot coverage fills the slots that matter for conversion.",
   },
 };
 
 const FALLBACK_META: CheckMeta = {
   weight: 2,
-  rationale: "Contributes to the overall ASO score against patterns from top-app listings.",
+  rationale: "Contributes to the overall ASO score.",
   fix: "Review this check against the recommended action and update your listing.",
   fixedNote: "This check is passing — keep it on your review checklist.",
 };
@@ -259,6 +299,8 @@ function ScoreReportInner() {
   const { user, loading, audits, recordAudit } = useAuth();
   const { push } = useToast();
   const rawUrl = search.get("url") ?? "";
+  const initialKeyword = search.get("keyword") ?? "";
+  const [keyword, setKeyword] = useState(initialKeyword);
   const [exporting, setExporting] = useState(false);
 
   const [audit, setAudit] = useState<AuditPayload | null>(null);
@@ -279,15 +321,17 @@ function ScoreReportInner() {
   // Fire a live audit fetch + persist with full snapshot. Pulled out so the
   // Refresh button can re-trigger it without going through useEffect dance.
   const runAudit = useCallback(
-    async (url: string) => {
+    async (url: string, kw?: string) => {
       setAuditLoading(true);
       setAuditError(null);
       setSnapshotAt(null);
       try {
+        const payload: Record<string, string> = { url };
+        if (kw?.trim()) payload.keyword = kw.trim();
         const r = await fetch("/api/audit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify(payload),
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const data = (await r.json()) as AuditPayload;
@@ -322,10 +366,8 @@ function ScoreReportInner() {
     if (resolvedRef.current === rawUrl) return;
     const id = auditIdFor(rawUrl);
     const saved = audits.find((a) => a.id === id);
-    if (saved?.snapshot) {
+    if (saved?.snapshot && !initialKeyword) {
       resolvedRef.current = rawUrl;
-      // Restore the exact saved view; URL-driven sync from external state.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAudit(saved.snapshot);
       setSnapshotAt(saved.createdAt);
       setAuditLoading(false);
@@ -335,20 +377,44 @@ function ScoreReportInner() {
     // hydrating, otherwise we'd unnecessarily re-scrape on every replay.
     if (loading) return;
     resolvedRef.current = rawUrl;
-    runAudit(rawUrl);
-  }, [rawUrl, user, audits, loading, runAudit]);
+    runAudit(rawUrl, keyword);
+  }, [rawUrl, user, audits, loading, runAudit, keyword]);
 
   async function handleRefresh() {
     if (auditLoading) return;
-    await runAudit(rawUrl);
+    await runAudit(rawUrl, keyword);
   }
 
-  // The score is computed from the scraped listing once /api/audit returns it.
-  // Before the audit lands (or if the scrape failed), we fall back to the
-  // URL-only preview so the page can render something.
+  // The score is computed server-side by /api/audit and returned in the
+  // payload. Until that lands (or if the scrape failed entirely), we render
+  // a URL-only preview so the page has something on screen.
   const result: ScoreResult | null = useMemo(() => {
     if (!rawUrl) return null;
-    return calculateScore(rawUrl, audit?.scrape ?? null);
+    if (audit?.score?.checks?.length) {
+      return {
+        score: audit.score.score,
+        grade: audit.score.grade,
+        checks: audit.score.checks,
+      };
+    }
+    // URL-only preview — mirrors the legacy scoreUrlOnly() output so the page
+    // can render before the audit completes.
+    const charSum = rawUrl.split("").reduce((sum, c) => sum + c.charCodeAt(0), 0);
+    const score = (charSum % 30) + 55;
+    const grade =
+      score >= 80 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : score >= 35 ? "D" : "F";
+    return {
+      score,
+      grade,
+      checks: [
+        {
+          label: "Listing preview only",
+          passed: false,
+          note:
+            "We haven't fetched the live listing yet — this is a quick preview. The detailed report runs the full set of checks once the audit completes.",
+        },
+      ],
+    };
   }, [rawUrl, audit]);
 
   if (loading || !user) return null;
@@ -471,7 +537,7 @@ function ScoreReportInner() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `outreach-audit-${Date.now()}.json`;
+    a.download = `reachfront-audit-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     push("Report downloaded", "success");
@@ -566,6 +632,44 @@ function ScoreReportInner() {
       {/* Listing snapshot — real data from the scraper */}
       {(auditLoading || audit) && (
         <ListingSnapshot audit={audit} loading={auditLoading} error={auditError} />
+      )}
+
+      {/* Primary keyword override */}
+      {audit && (
+        <section className="mb-6">
+          <div className="card-soft p-6 flex flex-col sm:flex-row items-start sm:items-end gap-4">
+            <div className="flex-1 min-w-0 w-full">
+              <label className="eyebrow text-[10px] mb-1.5 block">
+                Primary keyword
+                <span className="font-normal text-ink-faint tracking-normal normal-case ml-1">
+                  · {keyword ? "your keyword" : "AI-detected"}
+                </span>
+              </label>
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder={audit.keywords.primary?.word || "e.g. cloud storage, habit tracker"}
+                className="w-full px-5 py-3 rounded-full bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+              />
+              <p className="text-[11px] text-ink-faint mt-1.5">
+                Enter the search term you want to rank for, then re-score. All keyword placement checks will use this term.
+              </p>
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={auditLoading}
+              className="px-5 py-3 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors inline-flex items-center justify-center gap-2 shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {auditLoading ? (
+                <Loader2 size={13} className="animate-spin-slow" />
+              ) : (
+                <RefreshCw size={13} strokeWidth={2} />
+              )}
+              {auditLoading ? "Scoring…" : "Re-score"}
+            </button>
+          </div>
+        </section>
       )}
 
       {/* Keyword profile */}
@@ -730,7 +834,7 @@ function ScoreReportInner() {
           </h2>
           <p className="text-[14px] text-ink-muted leading-relaxed mb-6 max-w-lg">
             Hand these fixes to the ASO Generator. It bakes the priority recommendations
-            into your next set of variants automatically.
+            into your next listing automatically.
           </p>
           <Link
             href="/generator"
@@ -1083,7 +1187,6 @@ function CharacterUsage({
           const pct = Math.min(100, (u.actual / u.limit) * 100);
           const barColor =
             u.status === "over" ? "#B0274F"
-            : u.status === "tight" ? "#FBBF24"
             : u.status === "missing" ? "#9CA3AF"
             : "#10B981";
           const statusLabel =
@@ -1093,7 +1196,7 @@ function CharacterUsage({
             : "Within limit";
           const statusTile =
             u.status === "over" ? "tile-rose"
-            : u.status === "tight" ? "tile-cream"
+            : u.status === "tight" ? "tile-mint"
             : u.status === "missing" ? "bg-cream-deep text-ink-muted"
             : "tile-mint";
 

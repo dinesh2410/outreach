@@ -18,10 +18,10 @@ import {
   searchPlayStore,
   type StoreListing,
 } from "./store-scraper";
-import type { RankedApp, KeywordRankResult } from "./types";
+import type { RankedApp, KeywordRankResult, KeywordInsight } from "./types";
 
 export type RankStore = "play" | "ios" | "both";
-export type { RankedApp, KeywordRankResult };
+export type { RankedApp, KeywordRankResult, KeywordInsight };
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MAX_LIMIT = 30;
@@ -123,6 +123,7 @@ export async function rankKeyword(args: {
         rating: l.rating,
         ratingCount: l.ratingCount,
         genre: l.genre,
+        downloads: l.downloads,
       };
     });
 

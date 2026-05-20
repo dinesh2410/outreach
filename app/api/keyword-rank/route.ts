@@ -22,6 +22,10 @@ export async function POST(req: Request) {
     lang?: string;
     store?: string;
     limit?: number;
+    // Client-side IP-to-country fallback used when edge geo headers aren't
+    // populated (local dev). Ignored if the edge already resolved the
+    // country.
+    clientCountry?: string;
   };
   try {
     body = await req.json();
@@ -51,10 +55,19 @@ export async function POST(req: Request) {
 
   const rawCountry = (body.country ?? "us").toLowerCase();
   const lang = (body.lang ?? "en").toLowerCase();
-  // "auto" → resolve from the user's edge-detected country (set by Vercel /
-  // Cloudflare). Falls back to US in local dev where those headers aren't
-  // populated. After resolution we still require a 2-letter code.
-  const country = rawCountry === "auto" ? (inferUserCountry(req) ?? "us") : rawCountry;
+  // "auto" → resolve from the user's edge-detected country (Vercel /
+  // Cloudflare). Falls back to a client-supplied hint (set by the browser
+  // via IP-to-country lookup — used in local dev where edge headers are
+  // absent), and finally to "us" if nothing resolves. After resolution
+  // we still require a 2-letter code.
+  const clientHint = typeof body.clientCountry === "string"
+    ? body.clientCountry.trim().toLowerCase()
+    : null;
+  const validClientHint = clientHint && /^[a-z]{2}$/.test(clientHint) ? clientHint : null;
+  const country =
+    rawCountry === "auto"
+      ? (inferUserCountry(req) ?? validClientHint ?? "us")
+      : rawCountry;
   if (!/^[a-z]{2}$/.test(country)) {
     return NextResponse.json({ error: "country must be a 2-letter code or 'auto'" }, { status: 400 });
   }

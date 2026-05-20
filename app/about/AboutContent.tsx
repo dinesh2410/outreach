@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/shared/Icon";
 import { useInView } from "@/lib/useInView";
 
 const PRINCIPLES = [
@@ -42,12 +42,12 @@ export function AboutContent() {
         style={{ backgroundColor: "#D7E5FB" }}
       >
         <div className="max-w-[1400px] mx-auto px-8 py-24 lg:py-32 text-center">
-          <p className="eyebrow mb-5">About · Outreach</p>
+          <p className="eyebrow mb-5">About · ReachFront</p>
           <h1 className="text-[44px] lg:text-[64px] font-semibold text-ink leading-[1.05] tracking-[-0.02em] max-w-4xl mx-auto">
             We&apos;ve watched a lot of indie launches.
           </h1>
           <p className="mt-7 text-[17px] lg:text-[19px] text-ink leading-relaxed max-w-2xl mx-auto">
-            Good apps with bad listings. We see it every week — and we built Outreach
+            Good apps with bad listings. We see it every week — and we built ReachFront
             to close the gap between &ldquo;ship it&rdquo; and &ldquo;people find it.&rdquo;
           </p>
         </div>
@@ -76,7 +76,7 @@ export function AboutContent() {
               see — it&apos;s not an afterthought, it&apos;s the pitch.
             </p>
             <p>
-              We built Outreach because the existing options were either too generic
+              We built ReachFront because the existing options were either too generic
               (ChatGPT doesn&apos;t know Play Store limits) or too expensive (agencies
               charge thousands). There should be a middle ground: smart, store-aware
               tools an indie dev can use in under a minute.
@@ -128,8 +128,8 @@ export function AboutContent() {
             Ready to write a better listing?
           </h2>
           <p className="mt-6 text-[17px] text-ink max-w-xl mx-auto leading-relaxed">
-            Generate your first set of variants in under a minute. Free for your
-            first listing.
+            Generate your first keyword-optimized listing in under a minute.
+            Free for your first listing.
           </p>
           <Link
             href="/auth"

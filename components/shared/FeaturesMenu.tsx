@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/shared/Icon";
 import { FEATURES } from "@/lib/features";
 
 // Dropdown menu rendered inside the public nav.

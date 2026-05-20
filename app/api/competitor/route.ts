@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     competitors?: string[];
     stores?: StoreFilter;
     country?: string;
+    keyword?: string;
   };
   try {
     body = await req.json();
@@ -81,9 +82,25 @@ export async function POST(req: Request) {
   const targetListing = await fetchStoreListing(targetUrl).catch(() => null);
 
   const targetKeywords = targetListing
-    ? extractKeywords(combineCopy(targetListing))
+    ? extractKeywords({
+        title: targetListing.title,
+        subtitle: targetListing.subtitle,
+        shortDesc: targetListing.shortDesc,
+        fullDesc: targetListing.fullDesc,
+        brand: targetListing.developer,
+      })
     : [];
-  const targetPrimaryKw = targetKeywords[0];
+  // Caller-supplied keyword wins over auto-detected. The auto path runs
+  // against this exact term, so the user can steer the SERP they care about
+  // (e.g. "habit tracker" instead of whatever the title currently leads with).
+  const userKeyword = body.keyword?.trim().toLowerCase();
+  const searchTerm = userKeyword || targetKeywords[0]?.word;
+  // Treat the user-supplied keyword (when present) as the target's primary
+  // for downstream relevance scoring + keyword-overlap signals, so the rest
+  // of the pipeline aligns with what they asked us to focus on.
+  if (userKeyword) {
+    targetKeywords.unshift({ word: userKeyword, count: targetKeywords[0]?.count ?? 1 });
+  }
 
   // Determine which competitor URLs to fetch.
   let competitorUrls: string[] = manualCompetitorUrls;
@@ -114,7 +131,7 @@ export async function POST(req: Request) {
     //
     // Self-match: same app on Play vs iOS has different IDs, so we also
     // filter by normalized title to keep the user's own listing out.
-    if (targetPrimaryKw) {
+    if (searchTerm) {
       const country = explicitCountry ?? userCountry ?? "us";
       const targetAppId = targetListing?.appId;
       const targetSource = classifyStoreUrl(targetUrl);
@@ -134,10 +151,10 @@ export async function POST(req: Request) {
 
       const [iosCandidates, playRawUrls] = await Promise.all([
         wantIosSource
-          ? searchAppStore(targetPrimaryKw.word, { country, limit: IOS_POOL })
+          ? searchAppStore(searchTerm, { country, limit: IOS_POOL })
           : Promise.resolve<StoreListing[]>([]),
         wantPlaySource
-          ? searchPlayStore(targetPrimaryKw.word, { country, limit: PLAY_POOL })
+          ? searchPlayStore(searchTerm, { country, limit: PLAY_POOL })
           : Promise.resolve<string[]>([]),
       ]);
 
@@ -274,6 +291,27 @@ export async function POST(req: Request) {
     listingToData(u, competitorListings[i])
   );
 
+  // When the user explicitly told us which keyword they care about, anchor
+  // the comparison table to that exact phrase. Target always uses it (that's
+  // the search they're competing on, regardless of what's in their title
+  // right now). Competitors only switch to it when their own listing
+  // actually contains the phrase — otherwise we keep their auto-detected
+  // primary so the table still tells the truth about each one.
+  if (userKeyword) {
+    target.primaryKeyword = {
+      word: userKeyword,
+      count: countOccurrences(combineCorpus(targetListing), userKeyword),
+    };
+    for (let i = 0; i < competitors.length; i++) {
+      const listing = competitorListings[i];
+      if (!listing) continue;
+      const occurrences = countOccurrences(combineCorpus(listing), userKeyword);
+      if (occurrences > 0) {
+        competitors[i].primaryKeyword = { word: userKeyword, count: occurrences };
+      }
+    }
+  }
+
   const insights = buildInsights(target, competitors);
   const keywordOverlap = buildKeywordOverlap(target, competitors);
 
@@ -294,6 +332,23 @@ function combineCopy(l: StoreListing): string {
   return [l.title, l.shortDesc, l.subtitle, l.fullDesc].filter(Boolean).join(" ");
 }
 
+function combineCorpus(l: StoreListing | null): string {
+  if (!l) return "";
+  return combineCopy(l).toLowerCase();
+}
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (!haystack || !needle) return 0;
+  const n = needle.toLowerCase();
+  let count = 0;
+  let i = 0;
+  while ((i = haystack.indexOf(n, i)) !== -1) {
+    count++;
+    i += n.length;
+  }
+  return count;
+}
+
 function listingToData(url: string, l: StoreListing | null): CompetitorAppData {
   const source = classifyStoreUrl(url);
   if (!l) {
@@ -307,8 +362,16 @@ function listingToData(url: string, l: StoreListing | null): CompetitorAppData {
       fullDescLength: 0,
     };
   }
-  const corpus = combineCopy(l);
-  const kws = corpus.trim() ? extractKeywords(corpus) : [];
+  const hasAnyCopy = !!(l.title || l.subtitle || l.shortDesc || l.fullDesc);
+  const kws = hasAnyCopy
+    ? extractKeywords({
+        title: l.title,
+        subtitle: l.subtitle,
+        shortDesc: l.shortDesc,
+        fullDesc: l.fullDesc,
+        brand: l.developer,
+      })
+    : [];
   return {
     url,
     source,
@@ -328,6 +391,7 @@ function listingToData(url: string, l: StoreListing | null): CompetitorAppData {
     shortDesc: l.shortDesc,
     lastUpdated: l.lastUpdated,
     price: l.price,
+    downloads: l.downloads,
   };
 }
 
@@ -410,6 +474,23 @@ function buildInsights(
           delta >= 0
             ? `You have ${fmt(target.ratingCount)} ratings vs a competitor average of ${fmt(avg)}.`
             : `You have ${fmt(target.ratingCount)} ratings vs a competitor average of ${fmt(avg)}. Competitors are reviewed ${fmt(avg - target.ratingCount)} more times on average.`,
+        tone: delta >= 0 ? "positive" : "warning",
+      });
+    }
+  }
+
+  // Download volume
+  if (target.downloads !== undefined) {
+    const dlCounts = scraped.map((c) => c.downloads).filter((n): n is number => n !== undefined);
+    if (dlCounts.length > 0) {
+      const avg = Math.round(dlCounts.reduce((s, n) => s + n, 0) / dlCounts.length);
+      const delta = target.downloads - avg;
+      out.push({
+        label: delta >= 0 ? "Download volume lead" : "Download volume gap",
+        detail:
+          delta >= 0
+            ? `You have ${fmt(target.downloads)} downloads vs a competitor average of ${fmt(avg)}.`
+            : `You have ${fmt(target.downloads)} downloads vs a competitor average of ${fmt(avg)}. Competitors average ${fmt(avg - target.downloads)} more downloads.`,
         tone: delta >= 0 ? "positive" : "warning",
       });
     }

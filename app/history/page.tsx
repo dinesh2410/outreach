@@ -14,7 +14,7 @@ import {
   Target,
   Tag,
   MessageSquare,
-} from "lucide-react";
+} from "@/components/shared/Icon";
 
 // History is a unified timeline of every activity the user has done across
 // every tool — generator runs, ASO Score audits, competitor analyses, and

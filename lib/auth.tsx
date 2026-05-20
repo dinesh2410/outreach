@@ -23,22 +23,28 @@ import {
   deleteCompetitorEntry,
   deleteHistoryEntry,
   deleteKeywordRankEntry,
+  deleteMyApp,
   deleteRedditAnalysisEntry,
+  deleteReviewIntelEntry,
   ensureUserDoc,
+  fetchMyApps,
   fetchUserApps,
   fetchUserAudits,
   fetchUserCompetitors,
   fetchUserHistory,
   fetchUserKeywordRanks,
   fetchUserRedditAnalyses,
+  fetchUserReviewIntel,
   fetchUserSavedGenerations,
   recordAuditForUser,
   recordCompetitorForUser,
   recordGenerationHistory,
   recordKeywordRankForUser,
   recordRedditAnalysisForUser,
+  recordReviewIntelForUser,
   saveAppForUser,
   saveGenerationForUser,
+  saveMyAppForUser,
   updateUserDoc,
   upsertGenerationOnApp,
 } from "./firestore";
@@ -49,8 +55,10 @@ import {
   CompetitorRecord,
   GenerationResult,
   KeywordRankRecord,
+  MyApp,
   Platform,
   RedditAnalysisRecord,
+  ReviewIntelligenceRecord,
 } from "./types";
 
 // Auth context — backed by Firebase Auth (Google + Email/Password) + Firestore.
@@ -89,6 +97,12 @@ interface AuthContextType {
   redditAnalyses: RedditAnalysisRecord[];
   recordRedditAnalysis: (record: RedditAnalysisRecord) => void;
   removeRedditAnalysis: (analysisId: string) => void;
+  myApps: MyApp[];
+  saveMyApp: (app: MyApp) => void;
+  removeMyApp: (appId: string) => void;
+  reviewIntelligence: ReviewIntelligenceRecord[];
+  recordReviewIntel: (record: ReviewIntelligenceRecord) => void;
+  removeReviewIntel: (recordId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -139,6 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [competitors, setCompetitors] = useState<CompetitorRecord[]>([]);
   const [keywordRanks, setKeywordRanks] = useState<KeywordRankRecord[]>([]);
   const [redditAnalyses, setRedditAnalyses] = useState<RedditAnalysisRecord[]>([]);
+  const [myApps, setMyApps] = useState<MyApp[]>([]);
+  const [reviewIntelligence, setReviewIntelligence] = useState<ReviewIntelligenceRecord[]>([]);
 
   // Listen to auth state. On sign-in, hydrate apps + generations + history from Firestore.
   useEffect(() => {
@@ -152,6 +168,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCompetitors([]);
         setKeywordRanks([]);
         setRedditAnalyses([]);
+        setMyApps([]);
+        setReviewIntelligence([]);
         setLoading(false);
         return;
       }
@@ -183,6 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userCompetitors,
           userKeywordRanks,
           userRedditAnalyses,
+          userMyApps,
+          userReviewIntel,
         ] = await Promise.all([
           safeFetch("apps", () => fetchUserApps(fbUser.uid)),
           safeFetch("savedGenerations", () => fetchUserSavedGenerations(fbUser.uid)),
@@ -191,6 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           safeFetch("competitors", () => fetchUserCompetitors(fbUser.uid)),
           safeFetch("keywordRanks", () => fetchUserKeywordRanks(fbUser.uid)),
           safeFetch("redditAnalyses", () => fetchUserRedditAnalyses(fbUser.uid)),
+          safeFetch("myApps", () => fetchMyApps(fbUser.uid)),
+          safeFetch("reviewIntelligence", () => fetchUserReviewIntel(fbUser.uid)),
         ]);
         setApps(userApps);
         setSavedGenerations(userSaved);
@@ -199,6 +221,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCompetitors(userCompetitors);
         setKeywordRanks(userKeywordRanks);
         setRedditAnalyses(userRedditAnalyses);
+        setMyApps(userMyApps);
+        setReviewIntelligence(userReviewIntel);
       } catch (err) {
         console.error("[auth] failed to hydrate user data:", err);
       } finally {
@@ -449,6 +473,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const saveMyApp = useCallback(
+    (app: MyApp) => {
+      setMyApps((prev) => {
+        const without = prev.filter((a) => a.id !== app.id);
+        return [app, ...without];
+      });
+      if (user) {
+        saveMyAppForUser(user.id, app).catch((err) =>
+          console.error("[auth] saveMyApp persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeMyApp = useCallback(
+    (appId: string) => {
+      setMyApps((prev) => prev.filter((a) => a.id !== appId));
+      if (user) {
+        deleteMyApp(user.id, appId).catch((err) =>
+          console.error("[auth] removeMyApp persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const recordReviewIntel = useCallback(
+    (record: ReviewIntelligenceRecord) => {
+      setReviewIntelligence((prev) => {
+        const without = prev.filter((r) => r.id !== record.id);
+        return [record, ...without];
+      });
+      if (user) {
+        recordReviewIntelForUser(user.id, record).catch((err) =>
+          console.error("[auth] recordReviewIntel persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeReviewIntel = useCallback(
+    (recordId: string) => {
+      setReviewIntelligence((prev) => prev.filter((r) => r.id !== recordId));
+      if (user) {
+        deleteReviewIntelEntry(user.id, recordId).catch((err) =>
+          console.error("[auth] removeReviewIntel persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -479,6 +557,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redditAnalyses,
         recordRedditAnalysis,
         removeRedditAnalysis,
+        myApps,
+        saveMyApp,
+        removeMyApp,
+        reviewIntelligence,
+        recordReviewIntel,
+        removeReviewIntel,
       }}
     >
       {children}

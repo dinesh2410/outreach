@@ -40,7 +40,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "outreach-generations.json";
+    a.download = "reachfront-generations.json";
     a.click();
     URL.revokeObjectURL(url);
     push("Exported all generations", "success");

@@ -7,7 +7,7 @@ import {
   MessageCircle,
   BarChart3,
   Search,
-} from "lucide-react";
+} from "@/components/shared/Icon";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Anchor data — the resting positions of the five tool bubbles.

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
 import { ResultsState } from "@/components/generator/ResultsState";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/shared/Icon";
 
 export default function HistoryDetailPage() {
   const { user, loading, history } = useAuth();

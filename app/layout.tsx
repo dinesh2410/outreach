@@ -13,10 +13,51 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
+const SITE_URL = "https://reachfront.app";
+
 export const metadata: Metadata = {
-  title: "Outreach — The post-build platform for indie app makers",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "ReachFront — The post-build platform for indie app makers",
+    template: "%s | ReachFront",
+  },
   description:
-    "ASO descriptions, screenshots, Reddit replies, competitor analysis, keyword research. Everything after build.",
+    "Generate keyword-optimized App Store and Play Store listings, audit your ASO score, validate demand on Reddit, analyze competitors, and research keywords. The post-build workspace for indie app makers.",
+  keywords: [
+    "ASO",
+    "app store optimization",
+    "store listing generator",
+    "ASO score checker",
+    "app store description generator",
+    "play store optimization",
+    "indie app maker tools",
+    "keyword research app store",
+    "competitor analysis mobile apps",
+  ],
+  authors: [{ name: "ReachFront" }],
+  creator: "ReachFront",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: SITE_URL,
+    siteName: "ReachFront",
+    title: "ReachFront — The post-build platform for indie app makers",
+    description:
+      "Generate keyword-optimized store listings, audit your ASO score, and ship the listing your app deserves. Free to start.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ReachFront — The post-build platform for indie app makers",
+    description:
+      "Generate keyword-optimized store listings, audit your ASO score, and ship the listing your app deserves.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
 };
 
 export default function RootLayout({

@@ -5,7 +5,7 @@ import { GenerationResult, Variant, Platform } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
 import { extractKeywords } from "@/lib/keywords";
-import { Copy, Download, Save, RotateCcw, Check, AlertTriangle } from "lucide-react";
+import { Copy, Download, Save, RotateCcw, Check, AlertTriangle } from "@/components/shared/Icon";
 
 export function ResultsState({
   result,
@@ -78,9 +78,8 @@ export function ResultsState({
     push("Saved to library", "success");
   }
 
-  // Visual status for character counters. green (safe) → gold (>=85%) → warn (over).
+  // Visual status for character counters. green (within limit) → warn (over).
   const charStatus = (current: number, max: number) => {
-    const pct = current / max;
     if (current > max) {
       return {
         text: "text-warn",
@@ -88,9 +87,6 @@ export function ResultsState({
         border: "border-warn/40 focus-within:border-warn",
         over: current - max,
       };
-    }
-    if (pct >= 0.85) {
-      return { text: "text-gold", bar: "bg-gold", border: "border-line", over: 0 };
     }
     return { text: "text-green", bar: "bg-green", border: "border-line", over: 0 };
   };
@@ -145,55 +141,44 @@ export function ResultsState({
         </div>
       </div>
 
-      {/* View toggle */}
-      <div className="flex gap-1 bg-surface rounded-xl border border-line p-1 w-fit mb-6">
-        <button
-          onClick={() => setView("edit")}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            view === "edit" ? "bg-accent text-white" : "text-ink-muted"
-          }`}
-        >
-          Edit one
-        </button>
-        <button
-          onClick={() => setView("compare")}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            view === "compare" ? "bg-accent text-white" : "text-ink-muted"
-          }`}
-        >
-          Compare all
-        </button>
-      </div>
+      {editedVariants.length > 1 && (
+        <div className="flex gap-1 bg-surface rounded-xl border border-line p-1 w-fit mb-6">
+          <button
+            onClick={() => setView("edit")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              view === "edit" ? "bg-accent text-white" : "text-ink-muted"
+            }`}
+          >
+            Edit one
+          </button>
+          <button
+            onClick={() => setView("compare")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              view === "compare" ? "bg-accent text-white" : "text-ink-muted"
+            }`}
+          >
+            Compare all
+          </button>
+        </div>
+      )}
 
-      {view === "edit" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left rail — variant cards */}
-          <div className="lg:col-span-3 space-y-2">
-            {editedVariants.map((v, i) => {
-              const colors =
-                v.approach === "keyword"
-                  ? "border-accent/30 bg-accent/5"
-                  : v.approach === "conversion"
-                    ? "border-gold/30 bg-gold/5"
-                    : "border-green/30 bg-green/5";
-              return (
+      {view === "edit" || editedVariants.length === 1 ? (
+        <div className={editedVariants.length > 1 ? "grid grid-cols-1 lg:grid-cols-12 gap-6" : ""}>
+          {/* Left rail — variant cards (only when more than one variant) */}
+          {editedVariants.length > 1 && (
+            <div className="lg:col-span-3 space-y-2">
+              {editedVariants.map((v, i) => (
                 <button
                   key={v.id}
                   onClick={() => setActiveVariant(i)}
                   className={`w-full text-left p-4 rounded-2xl border-2 transition-colors ${
-                    i === activeVariant ? colors : "border-line bg-surface"
+                    i === activeVariant
+                      ? "border-accent/30 bg-accent/5"
+                      : "border-line bg-surface"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                        v.approach === "keyword"
-                          ? "bg-accent/10 text-accent"
-                          : v.approach === "conversion"
-                            ? "bg-gold/10 text-gold"
-                            : "bg-green/10 text-green"
-                      }`}
-                    >
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-accent/10 text-accent">
                       {String.fromCharCode(65 + i)}
                     </span>
                     <span className="text-xs font-medium text-ink-muted">
@@ -204,12 +189,12 @@ export function ResultsState({
                     {v.title}
                   </p>
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {/* Right pane — editor */}
-          <div className="lg:col-span-9">
+          {/* Editor pane */}
+          <div className={editedVariants.length > 1 ? "lg:col-span-9" : ""}>
             <div className="bg-surface rounded-3xl border border-line p-6 space-y-5">
               {/* Title */}
               {(() => {

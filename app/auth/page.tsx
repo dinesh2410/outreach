@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/shared/ToastProvider";
-import { Sparkles, Star } from "lucide-react";
+import { Sparkles, Star } from "@/components/shared/Icon";
 
 type Mode = "signin" | "signup";
 
@@ -114,7 +114,7 @@ function AuthPageInner() {
 
         <div className="relative z-10">
           <p className="text-[12px] text-ink-muted">
-            &copy; 2026 Outreach · Made for indie makers.
+            &copy; 2026 ReachFront · Made for indie makers.
           </p>
         </div>
       </aside>
@@ -139,7 +139,7 @@ function AuthPageInner() {
           <p className="mt-3 text-[15px] text-ink-muted">
             {mode === "signin"
               ? "Pick up where you left off — your history is right where you parked it."
-              : "Generate your first set of variants in under a minute."}
+              : "Generate your first keyword-optimized listing in under a minute."}
           </p>
 
           <button

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
-import { LayoutDashboard, Wand2, History, BookOpen, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Wand2, History, BookOpen, Settings, LogOut, Menu, X } from "@/components/shared/Icon";
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 

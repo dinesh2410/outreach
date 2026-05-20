@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
+import { Check } from "@/components/shared/Icon";
 
 const STEPS = [
   "Reading your inputs",
   "Considering your audience",
-  "Sketching three angles",
+  "Drafting the listing",
   "Tightening character counts",
-  "Polishing the drafts",
+  "Polishing the draft",
 ];
 
 export function GeneratingState() {

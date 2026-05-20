@@ -30,7 +30,7 @@ export function Showcase() {
             </div>
             <div className="flex-1 mx-4">
               <div className="bg-paper border border-line-soft rounded-full px-3 py-1 text-xs text-ink-faint max-w-md mx-auto">
-                outreach.app/generator
+                reachfront.app/generator
               </div>
             </div>
           </div>

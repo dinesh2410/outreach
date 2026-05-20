@@ -20,12 +20,19 @@ export interface GeneratorInput {
   tone: "professional" | "casual" | "playful" | "minimal";
   storeUrl?: string;
   clarifications?: ClarifyingAnswer[];
+  primaryKeyword?: string;
+  secondaryKeyword?: string;
 }
 
 export interface ClarifyingQuestion {
   id: string;
   question: string;
   why: string;
+}
+
+export interface KeywordCandidates {
+  primary: string[];
+  secondary: string[];
 }
 
 export interface ClarifyingAnswer {
@@ -37,7 +44,7 @@ export interface ClarifyingAnswer {
 export interface Variant {
   id: string;
   label: string;
-  approach: "keyword" | "conversion" | "brand";
+  approach: "keyword";
   title: string;
   shortDesc?: string;
   subtitle?: string;
@@ -51,6 +58,17 @@ export interface GenerationResult {
   android?: Variant[];
   ios?: Variant[];
   createdAt: string;
+  // Token / cost breakdown for the generation. Populated by /api/generate;
+  // not persisted into history (recordHistory strips it) — it flows directly
+  // to /users/{uid}/usage/{genId} via recordUsageForUser instead.
+  usage?: {
+    calls: UsageCall[];
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+    elapsedMs: number;
+  };
 }
 
 export interface AppEntry {
@@ -60,6 +78,26 @@ export interface AppEntry {
   icon: string;
   generations: GenerationResult[];
   createdAt: string;
+}
+
+// "Your applications" — apps the user explicitly saved so they can be
+// pre-selected as input across tools (Generator URL step, Score checker,
+// Competitor target, Reddit-demand context). Different from AppEntry: this
+// is a reusable INPUT reference, not a container for generations.
+export interface MyApp {
+  id: string;                 // deterministic hash of url
+  name: string;               // editable
+  source: "play" | "ios";
+  url: string;
+  appId?: string;             // bundle id (Play) or trackId (iOS)
+  iconUrl?: string;
+  developer?: string;
+  genre?: string;
+  category?: Category;        // best-effort mapping from genre at save time
+  shortDesc?: string;
+  fullDesc?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface User {
@@ -130,7 +168,7 @@ export interface AuditPayload {
     limit: number;
     status: "ok" | "tight" | "over" | "missing";
   }>;
-  score: { score: number; grade: string };
+  score: { score: number; grade: string; checks: ScoreCheck[] };
 }
 
 // Persisted record of a Score Checker audit. Keyed by a hash of the URL so
@@ -168,6 +206,7 @@ export interface CompetitorAppData {
   shortDesc?: string;
   lastUpdated?: string;
   price?: string;
+  downloads?: number;
 }
 
 export interface CompetitorInsight {
@@ -182,6 +221,19 @@ export interface CompetitorAnalysisResult {
   insights: CompetitorInsight[];
   discoveryMode: "manual" | "auto" | "mixed";
   keywordOverlap: { word: string; competitorsCount: number; targetHas: boolean }[];
+  // Optional LLM-generated strategic summary. Populated when the client fires
+  // /api/competitor-insight after the analysis. Saved into the persisted
+  // record so opening from history shows the same insight without re-calling.
+  reportInsight?: CompetitorReportInsight;
+}
+
+export interface CompetitorReportInsight {
+  summary: string;
+  positioningLevel: "ahead" | "comparable" | "behind";
+  positioningRationale: string;
+  observations: string[];
+  topThreat?: string;
+  whitespace?: string;
 }
 
 // Ranked app from a keyword search. Defined here (instead of in
@@ -199,6 +251,7 @@ export interface RankedApp {
   ratingCount?: number;
   genre?: string;
   price?: string;
+  downloads?: number;
 }
 
 export interface KeywordRankResult {
@@ -210,6 +263,19 @@ export interface KeywordRankResult {
   apps: RankedApp[];
   cachedAt: string;
   fromCache: boolean;
+  // Optional LLM-generated insight summary. Populated when the client kicks
+  // off /api/keyword-insight after the rank check. Saved into the persisted
+  // record so opening from history shows the same insight without a re-call.
+  insight?: KeywordInsight;
+}
+
+export interface KeywordInsight {
+  summary: string;
+  competitionLevel: "low" | "moderate" | "high";
+  competitionRationale: string;
+  observations: string[];
+  titlePattern?: string;
+  opportunity?: string;
 }
 
 // Persisted summary of a Competitor Watch run. Keyed by hash of target URL so
@@ -309,8 +375,140 @@ export interface KeywordResult {
   count: number;
 }
 
+// Per-generation usage record. Persisted to /users/{uid}/usage/{genId} after
+// /api/generate returns, so the admin dashboard can aggregate cost + token
+// consumption across all generations without needing a separate analytics
+// pipeline. `calls` is the per-stage breakdown (draft / refine / expand,
+// once per platform) so we can debug which stage is driving usage.
+export interface UsageCall {
+  stage: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+// Which API tool the usage came from. /api/generate is the biggest by far;
+// clarify and reddit are smaller per-call but add up across users.
+export type UsageTool = "generate" | "clarify" | "reddit" | "keyword-insight" | "competitor-insight" | "review-intelligence";
+
+export interface UsageRecord {
+  id: string;                 // per-call id (e.g. generation id, reddit analysis id)
+  userId: string;
+  userEmail?: string;
+  tool: UsageTool;
+  // Tool-specific context — appName/category/platforms for generate, idea
+  // preview for reddit, etc. All optional so the same shape works across
+  // tools.
+  appName?: string;
+  category?: string;
+  platforms?: Platform[];
+  context?: string;           // free-text summary for non-generate tools (e.g. reddit idea preview)
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  elapsedMs: number;
+  calls: UsageCall[];
+  createdAt: string;          // ISO timestamp
+}
+
 export interface Toast {
   id: string;
   message: string;
   type: "default" | "success";
+}
+
+// ─── Review Intelligence ─────────────────────────────────────────────────
+
+export interface ScrapedReview {
+  id: string;
+  text: string;
+  rating: number;
+  date: string;
+  version?: string;
+  helpfulCount?: number;
+  language?: string;
+  reviewerName?: string;
+  store: "play" | "ios";
+}
+
+export interface ReviewTheme {
+  theme: string;
+  mentionCount: number;
+  sentimentStrength: number;
+  trend: "rising" | "stable" | "declining";
+  tone: "positive" | "negative";
+  sampleQuotes: string[];
+}
+
+export interface FeatureRequest {
+  request: string;
+  frequency: number;
+  growthTrend: "rising" | "stable" | "declining";
+}
+
+export interface AspectSentiment {
+  aspect: string;
+  positive: number;
+  neutral: number;
+  negative: number;
+  trend: "improving" | "stable" | "declining";
+}
+
+export interface MarketOpportunity {
+  opportunity: string;
+  signal: string;
+  confidence: "high" | "medium" | "low";
+  category: "feature_gap" | "trust_issue" | "ux_pain" | "monetization" | "unmet_need";
+}
+
+export interface ReviewIntelligenceResult {
+  appUrl: string;
+  appTitle?: string;
+  appIcon?: string;
+  store: "play" | "ios";
+  reviewCount: number;
+  scrapedAt: string;
+
+  ratingDistribution: {
+    star1: number;
+    star2: number;
+    star3: number;
+    star4: number;
+    star5: number;
+  };
+
+  globalSentiment: {
+    positive: number;
+    neutral: number;
+    negative: number;
+    avgRating: number;
+  };
+
+  positiveThemes: ReviewTheme[];
+  negativeThemes: ReviewTheme[];
+  featureRequests: FeatureRequest[];
+  aspectSentiments: AspectSentiment[];
+  marketOpportunities: MarketOpportunity[];
+
+  competitorSummary: {
+    strengths: string[];
+    weaknesses: string[];
+    risingIssues: string[];
+    strategicOpportunities: string[];
+  };
+}
+
+export interface ReviewIntelligenceRecord {
+  id: string;
+  appUrl: string;
+  appTitle?: string;
+  store: "play" | "ios";
+  reviewCount: number;
+  avgRating: number;
+  positiveThemeCount: number;
+  negativeThemeCount: number;
+  opportunityCount: number;
+  createdAt: string;
+  snapshot?: ReviewIntelligenceResult;
 }

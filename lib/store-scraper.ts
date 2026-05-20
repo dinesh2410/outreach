@@ -34,6 +34,14 @@ export interface StoreListing {
   appId?: string;           // bundle id (Play) or trackId (iOS)
   lastUpdated?: string;     // ISO date when available
   price?: string;           // formatted price ("Free", "$2.99")
+  downloads?: number;       // install count (Play only, from JSON-LD or HTML text)
+  ratingHistogram?: {       // real per-star counts from the store page (Play only)
+    star1: number;
+    star2: number;
+    star3: number;
+    star4: number;
+    star5: number;
+  };
 }
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -164,6 +172,40 @@ function parsePlayStore(html: string, url: string): StoreListing {
     /* noop */
   }
 
+  // Download / install count — try JSON-LD interactionStatistic first, fall
+  // back to the "N+ downloads" text that Play renders in the page body.
+  let downloads: number | undefined;
+  const interactions = ld?.interactionStatistic;
+  if (Array.isArray(interactions)) {
+    for (const stat of interactions) {
+      const s = stat as Record<string, unknown>;
+      if (
+        s["@type"] === "InteractionCounter" &&
+        (s.interactionType === "https://schema.org/DownloadAction" ||
+          (s.interactionType as Record<string, unknown>)?.["@type"] === "DownloadAction")
+      ) {
+        const v = Number(s.userInteractionCount);
+        if (Number.isFinite(v) && v > 0) downloads = v;
+      }
+    }
+  }
+  if (!downloads) {
+    // Play Store renders downloads as e.g. "50K+" or "1M+" inside a div,
+    // followed by a sibling div containing "Downloads".
+    const dlMatch =
+      html.match(/([\d,.]+)\s*([KMBkmb])?\+?\s*<\/div>\s*<div[^>]*>\s*Downloads/i) ??
+      html.match(/([\d,]+)\+?\s*downloads/i);
+    if (dlMatch) {
+      const num = Number(dlMatch[1].replace(/,/g, ""));
+      const suffix = (dlMatch[2] ?? "").toUpperCase();
+      const multiplier = suffix === "K" ? 1_000 : suffix === "M" ? 1_000_000 : suffix === "B" ? 1_000_000_000 : 1;
+      const parsed = num * multiplier;
+      if (Number.isFinite(parsed) && parsed > 0) downloads = parsed;
+    }
+  }
+
+  const ratingHistogram = parsePlayRatingHistogram(html);
+
   return {
     source: "play",
     url,
@@ -176,6 +218,8 @@ function parsePlayStore(html: string, url: string): StoreListing {
     genre,
     iconUrl,
     appId,
+    downloads,
+    ratingHistogram,
   };
 }
 
@@ -184,6 +228,29 @@ function appendPlayIconSize(url: string): string {
   // If a size suffix is already present (=wNN-hNN... or =sNN), leave it alone.
   if (/=[ws]\d/.test(url)) return url;
   return `${url}=w256-h256-rw`;
+}
+
+function parsePlayRatingHistogram(html: string): StoreListing["ratingHistogram"] {
+  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const re = /aria-label="([\d,]+)\s+reviews?\s+for\s+star\s+rating\s+(\d)"/gi;
+  let m: RegExpExecArray | null;
+  let found = 0;
+  while ((m = re.exec(html)) !== null) {
+    const count = Number(m[1].replace(/,/g, ""));
+    const star = Number(m[2]);
+    if (star >= 1 && star <= 5 && Number.isFinite(count)) {
+      counts[star] = count;
+      found++;
+    }
+  }
+  if (found === 0) return undefined;
+  return {
+    star1: counts[1],
+    star2: counts[2],
+    star3: counts[3],
+    star4: counts[4],
+    star5: counts[5],
+  };
 }
 
 function humanizeGenre(raw: string): string {
@@ -352,8 +419,43 @@ export async function searchPlayStore(
   }
 }
 
-// iTunes Search API — used for competitor auto-discovery.
+// iTunes Search API — used for competitor auto-discovery + keyword ranking.
 // `https://itunes.apple.com/search?term={kw}&entity=software&country={cc}&limit=N`
+//
+// Apple's search endpoint does OR-matching across tokens (not phrase / AND),
+// so a query like "12 testers" returns anything containing "12" OR "testers"
+// — pulling in Battery Master 12V, etc. We over-fetch and then apply a
+// relevance filter requiring ALL non-stopword query tokens to appear in
+// title + developer + genre + description, restoring expected behaviour for
+// multi-word ASO keywords. Single-token queries skip the filter.
+const STOPWORDS = new Set([
+  "a", "an", "and", "the", "for", "of", "to", "in", "on", "with", "by", "at",
+  "is", "it", "or", "as", "be", "are",
+]);
+
+function queryTokens(term: string): string[] {
+  return term
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
+}
+
+function listingMatchesAllTokens(tokens: string[], listing: StoreListing): boolean {
+  if (tokens.length <= 1) return true; // single-token queries trust Apple
+  const haystack = [
+    listing.title,
+    listing.developer,
+    listing.genre,
+    listing.subtitle,
+    listing.fullDesc,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return tokens.every((t) => haystack.includes(t));
+}
+
 export async function searchAppStore(
   term: string,
   options: { country?: string; limit?: number; genreId?: string } = {}
@@ -361,11 +463,14 @@ export async function searchAppStore(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
+    // Over-fetch by 2x to absorb relevance-filter losses on multi-word queries.
+    const requestedLimit = options.limit ?? 10;
+    const overFetch = Math.min(200, requestedLimit * 2 + 10);
     const search = new URL("https://itunes.apple.com/search");
     search.searchParams.set("term", term);
     search.searchParams.set("entity", "software");
     search.searchParams.set("country", options.country ?? "us");
-    search.searchParams.set("limit", String(options.limit ?? 10));
+    search.searchParams.set("limit", String(overFetch));
     if (options.genreId) search.searchParams.set("genreId", options.genreId);
 
     const res = await fetch(search.toString(), {
@@ -376,14 +481,19 @@ export async function searchAppStore(
     if (!res.ok) return [];
     const data = await res.json();
     const items = Array.isArray(data?.results) ? data.results : [];
-    return items
+    const tokens = queryTokens(term);
+
+    const listings = items
       .filter((item: Record<string, unknown>) => typeof item.trackId === "number")
       .map((item: Record<string, unknown>) =>
         iTunesItemToListing(
           `https://apps.apple.com/${options.country ?? "us"}/app/id${item.trackId}`,
           item
         )
-      );
+      )
+      .filter((listing: StoreListing) => listingMatchesAllTokens(tokens, listing));
+
+    return listings.slice(0, requestedLimit);
   } catch {
     return [];
   } finally {

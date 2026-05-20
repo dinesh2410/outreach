@@ -1,35 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight, TrendingUp } from "@/components/shared/Icon";
 
 export function Capabilities() {
   return (
     <section className="bg-white">
-      <div className="max-w-[1400px] mx-auto px-8 py-24 lg:py-32 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-8 section-pad grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
         {/* Left: product UI mosaic */}
-        <div className="relative h-[520px]">
+        <div className="relative h-[400px] lg:h-[520px] hidden md:block overflow-hidden">
           {/* Card A — Library / variants list */}
           <div className="absolute top-0 left-0 w-[320px] rounded-2xl bg-white border border-line-soft shadow-[0_24px_50px_-24px_rgba(11,61,122,0.3)] p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-accent-band flex items-center justify-center text-[11px] font-bold" style={{ color: "#0B3D7A" }}>
+                <div className="w-7 h-7 rounded-lg bg-accent-band flex items-center justify-center text-[11px] font-bold text-accent-ink">
                   L
                 </div>
                 <div>
                   <div className="text-[13px] font-semibold text-ink">Library</div>
-                  <div className="text-[11px] text-ink-faint">12 saved variants</div>
+                  <div className="text-[11px] text-ink-faint">12 saved listings</div>
                 </div>
               </div>
-              <button className="px-2.5 py-1 rounded-md text-[11px] font-medium text-white" style={{ backgroundColor: "#2563EB" }}>
+              <button className="px-2.5 py-1 rounded-md text-[11px] font-medium text-white bg-accent">
                 New
               </button>
             </div>
             <div className="space-y-2.5">
               {[
-                { l: "Conversion · v3", t: "Build habits that actually stick.", s: "Active", c: "#10B981" },
-                { l: "Brand · v2",      t: "Snapnote — capture, sort, forget.", s: "Draft",  c: "#9CA3AF" },
-                { l: "Discovery · v1",  t: "Daily habits, weekly streaks.",     s: "Active", c: "#10B981" },
+                { l: "HabitFlow · Play", t: "Build habits that actually stick.", s: "Active", c: "#10B981" },
+                { l: "Snapnote · iOS",   t: "Snapnote — capture, sort, forget.", s: "Draft",  c: "#9CA3AF" },
+                { l: "Streaky · Play",   t: "Daily habits, weekly streaks.",     s: "Active", c: "#10B981" },
               ].map((row) => (
                 <div key={row.l} className="rounded-lg border border-line-soft px-3 py-2.5">
                   <div className="flex items-center justify-between mb-1">
@@ -103,27 +103,25 @@ export function Capabilities() {
           <div className="absolute bottom-32 right-8 w-[180px] rounded-2xl bg-white border border-line-soft shadow-[0_24px_50px_-24px_rgba(11,61,122,0.3)] p-4">
             <div className="text-[10px] uppercase tracking-wider text-ink-faint">Generated today</div>
             <div className="text-[28px] font-bold text-ink leading-none mt-1">14</div>
-            <div className="text-[11px] text-ink-muted mt-1">variants · 3 listings</div>
+            <div className="text-[11px] text-ink-muted mt-1">listings generated</div>
           </div>
         </div>
 
         {/* Right: copy */}
         <div>
           <div
-            className="text-[13px] font-bold uppercase tracking-[0.15em] mb-6"
-            style={{ color: "#0B3D7A" }}
+            className="text-[12px] sm:text-[13px] font-bold uppercase tracking-[0.15em] mb-4 sm:mb-6 text-accent-ink"
           >
             All-In-One Workspace
           </div>
           <h2
-            className="text-[40px] lg:text-[56px] font-semibold leading-[1.05] tracking-[-0.02em]"
-            style={{ color: "#0B3D7A" }}
+            className="text-[28px] sm:text-[36px] lg:text-[48px] font-semibold leading-[1.1] sm:leading-[1.05] tracking-[-0.02em] text-accent-ink"
           >
             Built to scale with every launch
           </h2>
-          <p className="mt-7 text-[17px] lg:text-[18px] text-ink leading-relaxed max-w-md">
+          <p className="mt-5 sm:mt-7 text-[15px] sm:text-[17px] lg:text-[18px] text-ink leading-relaxed max-w-md">
             From your first MVP to your fifth side-project, manage every app
-            listing in one place. Track score, save variants, and re-use what
+            listing in one place. Track scores, save generations, and re-use what
             works across your portfolio.
           </p>
 

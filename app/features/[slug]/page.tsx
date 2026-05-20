@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Bell } from "lucide-react";
+import { ArrowRight, Bell } from "@/components/shared/Icon";
 import { PublicNav } from "@/components/shared/PublicNav";
 import { Footer } from "@/components/shared/Footer";
 import { getFeature, FEATURES } from "@/lib/features";
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps) {
   const feature = getFeature(slug);
   if (!feature) return {};
   return {
-    title: `${feature.name} — Outreach`,
+    title: `${feature.name} — ReachFront`,
     description: feature.description,
   };
 }
