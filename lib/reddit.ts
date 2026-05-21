@@ -1,12 +1,11 @@
-// Reddit search helpers — anonymous public JSON API.
-//
-// Reddit's www.reddit.com/search.json endpoint serves JSON to anyone with a
-// real User-Agent; no OAuth required. Rate-limited at ~60 req/min/IP. For our
-// purposes (5–8 fan-out queries per analysis) that's plenty.
+// Reddit search helpers — shells out to curl to bypass Reddit's TLS
+// fingerprint blocking of Node.js fetch.
 //
 // We do NOT trust any field shape — Reddit silently changes payloads and the
 // JSON often contains nulls in places the docs claim are strings. Every field
 // is read defensively.
+
+import { execFile } from "node:child_process";
 
 export interface RedditPost {
   id: string;
@@ -21,30 +20,39 @@ export interface RedditPost {
   nsfw: boolean;
 }
 
-const USER_AGENT =
-  "outreach.app:demand-validator:v0.1 (+https://outreach-psi-sooty.vercel.app)";
+// --- low-level curl fetch ------------------------------------------------
 
-// --- low-level fetch ------------------------------------------------------
+function curlFetch(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      "curl.exe",
+      [
+        "-s",
+        "-L",
+        "--max-time", "10",
+        "-H", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "-H", "Accept: application/json",
+        "-H", "Accept-Language: en-US,en;q=0.9",
+        url,
+      ],
+      { maxBuffer: 5 * 1024 * 1024, timeout: 15000 },
+      (err, stdout, stderr) => {
+        if (err) {
+          reject(new Error(`curl failed for ${url}: ${err.message} | stderr: ${stderr}`));
+          return;
+        }
+        if (!stdout || stdout.startsWith("<")) {
+          reject(new Error(`Reddit returned HTML or empty for ${url}`));
+          return;
+        }
+        resolve(stdout);
+      }
+    );
+  });
+}
 
 async function redditFetch(url: string): Promise<unknown> {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": USER_AGENT,
-      Accept: "application/json",
-    },
-    // Reddit's CDN occasionally serves stale 200s with HTML; we'll catch
-    // those in the parser. Cache disabled because demand changes hourly.
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(`Reddit ${res.status} for ${url}`);
-  }
-  const text = await res.text();
-  // Reddit sometimes returns an HTML "rate limited" page with a 200. Guard
-  // against that so we don't blow up the JSON parser.
-  if (text.startsWith("<")) {
-    throw new Error("Reddit returned HTML (likely rate-limited)");
-  }
+  const text = await curlFetch(url);
   try {
     return JSON.parse(text);
   } catch {
@@ -92,7 +100,7 @@ export interface RedditSearchOptions {
   subreddit?: string;
   /** How many results to fetch per query. Reddit caps at 100. */
   limit?: number;
-  /** Sort: relevance, new, top. Default "relevance". */
+  /** Sort: relevance, new, top. Default "new". */
   sort?: "relevance" | "new" | "top";
   /** Time window for top/relevance. Default "year". */
   t?: "hour" | "day" | "week" | "month" | "year" | "all";
@@ -100,7 +108,7 @@ export interface RedditSearchOptions {
 
 export async function searchReddit(opts: RedditSearchOptions): Promise<RedditPost[]> {
   const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
-  const sort = opts.sort ?? "relevance";
+  const sort = opts.sort ?? "new";
   const t = opts.t ?? "year";
   const params = new URLSearchParams({
     q: opts.query,
@@ -140,10 +148,6 @@ export async function searchRedditMany(
 }
 
 // --- demand-phrase heuristics --------------------------------------------
-//
-// Quick local check used as a fallback signal when the LLM is unavailable
-// (and as a feature input to the LLM ranker). These map to the "tag" each
-// post will eventually wear in the UI.
 
 const REQUEST_PATTERNS = [
   /\bis there an? app\b/i,

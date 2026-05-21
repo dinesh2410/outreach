@@ -10,6 +10,7 @@ import { proxiedIcon } from "@/lib/icon-proxy";
 import type { Category, MyApp } from "@/lib/types";
 import {
   Plus, Loader2, AlertCircle, ExternalLink, Trash2, Smartphone, Apple, Link2, ChevronRight,
+  Edit3, Storefront, ChevronDown,
 } from "@/components/shared/Icon";
 
 // Deterministic id from the app URL so the same listing can't be saved twice.
@@ -49,14 +50,40 @@ function mapGenreToCategory(genre: string | undefined): Category | undefined {
   return "Other";
 }
 
+type AddMode = false | "choose" | "store" | "manual";
+
+const CATEGORIES: Category[] = [
+  "Productivity", "AI / ML", "Dev tools", "Game", "Social", "Lifestyle", "Finance", "Health & fitness", "Other",
+];
+
 export default function MyAppsPage() {
   const { user, loading, myApps, saveMyApp, removeMyApp } = useAuth();
   const router = useRouter();
   const { push } = useToast();
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<AddMode>(false);
   const [url, setUrl] = useState("");
   const [scraping, setScraping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Manual form state
+  const [manualName, setManualName] = useState("");
+  const [manualSource, setManualSource] = useState<"play" | "ios">("play");
+  const [manualCategory, setManualCategory] = useState<Category>("Other");
+  const [manualShortDesc, setManualShortDesc] = useState("");
+  const [manualFullDesc, setManualFullDesc] = useState("");
+  const [manualDeveloper, setManualDeveloper] = useState("");
+
+  function resetForms() {
+    setAdding(false);
+    setUrl("");
+    setError(null);
+    setManualName("");
+    setManualSource("play");
+    setManualCategory("Other");
+    setManualShortDesc("");
+    setManualFullDesc("");
+    setManualDeveloper("");
+  }
 
   useEffect(() => {
     if (!loading && !user) router.push("/auth?next=%2Fapps");
@@ -64,7 +91,7 @@ export default function MyAppsPage() {
 
   if (loading || !user) return null;
 
-  async function handleAdd(e: React.FormEvent) {
+  async function handleStoreAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim() || scraping) return;
     setScraping(true);
@@ -98,13 +125,34 @@ export default function MyAppsPage() {
       };
       saveMyApp(app);
       push(`Saved "${app.name}"`, "success");
-      setUrl("");
-      setAdding(false);
+      resetForms();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error while scraping");
     } finally {
       setScraping(false);
     }
+  }
+
+  function handleManualAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!manualName.trim()) return;
+    const now = new Date().toISOString();
+    const syntheticUrl = `manual://${manualSource}/${manualName.trim().toLowerCase().replace(/\s+/g, "-")}`;
+    const app: MyApp = {
+      id: myAppIdFor(syntheticUrl),
+      name: manualName.trim(),
+      source: manualSource,
+      url: syntheticUrl,
+      developer: manualDeveloper.trim() || undefined,
+      category: manualCategory,
+      shortDesc: manualShortDesc.trim() || undefined,
+      fullDesc: manualFullDesc.trim() || undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+    saveMyApp(app);
+    push(`Saved "${app.name}"`, "success");
+    resetForms();
   }
 
   return (
@@ -115,7 +163,7 @@ export default function MyAppsPage() {
       actions={
         !adding ? (
           <button
-            onClick={() => setAdding(true)}
+            onClick={() => setAdding("choose")}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors"
           >
             <Plus size={14} strokeWidth={2} />
@@ -124,8 +172,53 @@ export default function MyAppsPage() {
         ) : undefined
       }
     >
-      {adding && (
-        <form onSubmit={handleAdd} className="card-soft p-6 mb-8">
+      {/* ── Method picker ── */}
+      {adding === "choose" && (
+        <div className="card-soft p-6 mb-8">
+          <p className="eyebrow mb-4">How would you like to add your app?</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => setAdding("store")}
+              className="flex items-start gap-4 p-5 rounded-2xl border border-line-soft bg-white hover:border-accent/40 transition-colors text-left group"
+            >
+              <div className="w-10 h-10 rounded-xl tile-blue flex items-center justify-center shrink-0">
+                <Storefront size={18} strokeWidth={1.85} />
+              </div>
+              <div>
+                <p className="text-[14px] font-semibold text-ink group-hover:text-accent transition-colors">Import from store</p>
+                <p className="text-[12px] text-ink-muted mt-0.5">
+                  Paste a Google Play or App Store link and we&apos;ll pull all the details automatically.
+                </p>
+              </div>
+            </button>
+            <button
+              onClick={() => setAdding("manual")}
+              className="flex items-start gap-4 p-5 rounded-2xl border border-line-soft bg-white hover:border-accent/40 transition-colors text-left group"
+            >
+              <div className="w-10 h-10 rounded-xl tile-blue flex items-center justify-center shrink-0">
+                <Edit3 size={18} strokeWidth={1.85} />
+              </div>
+              <div>
+                <p className="text-[14px] font-semibold text-ink group-hover:text-accent transition-colors">Add manually</p>
+                <p className="text-[12px] text-ink-muted mt-0.5">
+                  For apps not yet published or still in development — fill in the details yourself.
+                </p>
+              </div>
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={resetForms}
+            className="mt-4 text-[13px] text-ink-muted hover:text-ink transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* ── Store import form ── */}
+      {adding === "store" && (
+        <form onSubmit={handleStoreAdd} className="card-soft p-6 mb-8">
           <label className="eyebrow mb-3 block">Store URL</label>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -158,11 +251,7 @@ export default function MyAppsPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setAdding(false);
-                setUrl("");
-                setError(null);
-              }}
+              onClick={resetForms}
               className="px-4 py-3.5 rounded-full text-ink-muted text-[14px] hover:text-ink transition-colors"
             >
               Cancel
@@ -180,8 +269,135 @@ export default function MyAppsPage() {
         </form>
       )}
 
+      {/* ── Manual add form ── */}
+      {adding === "manual" && (
+        <form onSubmit={handleManualAdd} className="card-soft p-6 mb-8">
+          <p className="eyebrow mb-4">App details</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            {/* App name */}
+            <div>
+              <label className="block text-[12px] font-medium text-ink-muted mb-1.5">App name *</label>
+              <input
+                type="text"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                placeholder="My awesome app"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+              />
+            </div>
+
+            {/* Developer */}
+            <div>
+              <label className="block text-[12px] font-medium text-ink-muted mb-1.5">Developer / company</label>
+              <input
+                type="text"
+                value={manualDeveloper}
+                onChange={(e) => setManualDeveloper(e.target.value)}
+                placeholder="Acme Inc."
+                className="w-full px-4 py-3 rounded-xl bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+              />
+            </div>
+
+            {/* Platform */}
+            <div>
+              <label className="block text-[12px] font-medium text-ink-muted mb-1.5">Platform</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setManualSource("play")}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[13px] font-medium border transition-colors ${
+                    manualSource === "play"
+                      ? "border-accent bg-accent/5 text-accent"
+                      : "border-line-soft bg-white text-ink-muted hover:border-ink-faint"
+                  }`}
+                >
+                  <Smartphone size={14} strokeWidth={1.85} />
+                  Android
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setManualSource("ios")}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[13px] font-medium border transition-colors ${
+                    manualSource === "ios"
+                      ? "border-accent bg-accent/5 text-accent"
+                      : "border-line-soft bg-white text-ink-muted hover:border-ink-faint"
+                  }`}
+                >
+                  <Apple size={14} strokeWidth={1.85} />
+                  iOS
+                </button>
+              </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-[12px] font-medium text-ink-muted mb-1.5">Category</label>
+              <div className="relative">
+                <select
+                  value={manualCategory}
+                  onChange={(e) => setManualCategory(e.target.value as Category)}
+                  className="w-full appearance-none px-4 py-3 pr-10 rounded-xl bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink transition-colors"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Short description */}
+          <div className="mb-4">
+            <label className="block text-[12px] font-medium text-ink-muted mb-1.5">Short description</label>
+            <input
+              type="text"
+              value={manualShortDesc}
+              onChange={(e) => setManualShortDesc(e.target.value)}
+              placeholder="A brief tagline or summary of what your app does"
+              className="w-full px-4 py-3 rounded-xl bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
+            />
+          </div>
+
+          {/* Full description */}
+          <div className="mb-5">
+            <label className="block text-[12px] font-medium text-ink-muted mb-1.5">Full description</label>
+            <textarea
+              value={manualFullDesc}
+              onChange={(e) => setManualFullDesc(e.target.value)}
+              placeholder="Describe your app's features, benefits, and what makes it unique…"
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors resize-none leading-relaxed"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={!manualName.trim()}
+              className="px-6 py-3 rounded-full bg-accent text-white text-[14px] font-medium hover:bg-accent-deep transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Save app
+            </button>
+            <button
+              type="button"
+              onClick={resetForms}
+              className="px-4 py-3 rounded-full text-ink-muted text-[14px] hover:text-ink transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="text-[12px] text-ink-faint mt-3">
+            You can always update these details later. Only the app name is required.
+          </p>
+        </form>
+      )}
+
       {myApps.length === 0 ? (
-        <EmptyState onAdd={() => setAdding(true)} hide={adding} />
+        <EmptyState onAdd={() => setAdding("choose")} hide={!!adding} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {myApps.map((app) => (
@@ -216,7 +432,9 @@ function AppCard({ app, onRemove }: { app: MyApp; onRemove: () => void }) {
             <p className="text-[15px] font-semibold text-ink truncate">{app.name}</p>
             <p className="text-[11px] text-ink-faint truncate mt-0.5 inline-flex items-center gap-1">
               <StoreIcon size={10} strokeWidth={1.85} />
-              {app.source === "ios" ? "App Store" : "Play Store"}
+              {app.url.startsWith("manual://")
+                ? `${app.source === "ios" ? "iOS" : "Android"} · Manual`
+                : app.source === "ios" ? "App Store" : "Play Store"}
               {app.developer ? ` · ${app.developer}` : ""}
             </p>
             {app.category && (
@@ -240,17 +458,19 @@ function AppCard({ app, onRemove }: { app: MyApp; onRemove: () => void }) {
       </Link>
 
       <div className="absolute top-3 right-3 flex items-center gap-1">
-        <a
-          href={app.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Open store listing"
-          title="Open store listing"
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-cream-deep"
-        >
-          <ExternalLink size={13} />
-        </a>
+        {!app.url.startsWith("manual://") && (
+          <a
+            href={app.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Open store listing"
+            title="Open store listing"
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-cream-deep"
+          >
+            <ExternalLink size={13} />
+          </a>
+        )}
         <button
           type="button"
           onClick={(e) => {

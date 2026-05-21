@@ -70,26 +70,36 @@ export async function POST(req: Request) {
   }
 
   // --- Step 2: fan-out search ---------------------------------------------
-  // Build a batch of queries: each demandQuery against all of Reddit, plus
-  // each primaryKeyword scoped to each of the top subreddits. We cap total
-  // queries at 12 so we don't trip Reddit's rate limiter on a single run.
-  const queries: { query: string; subreddit?: string }[] = [];
+  // Two batches: "new" sort for freshness, "relevance" for signal strength.
+  // Demand queries search globally; keyword queries scope to subreddits.
+  const queries: { query: string; subreddit?: string; sort?: "new" | "relevance" }[] = [];
+
+  // Demand queries — run as "new" to get the latest posts
   for (const q of plan.demandQueries.slice(0, 5)) {
-    queries.push({ query: q });
+    queries.push({ query: q, sort: "new" });
   }
-  const topSubs = plan.subreddits.slice(0, 3);
+
+  // Keyword+subreddit combos — half new, half relevance for coverage
+  const topSubs = plan.subreddits.slice(0, 4);
   const topKw = plan.primaryKeywords.slice(0, 2);
   for (const sub of topSubs) {
     for (const kw of topKw) {
-      if (queries.length >= 12) break;
-      queries.push({ query: kw, subreddit: sub });
+      if (queries.length >= 15) break;
+      queries.push({ query: kw, subreddit: sub, sort: "new" });
     }
-    if (queries.length >= 12) break;
+    if (queries.length >= 15) break;
+  }
+  // Add a few relevance queries to catch high-engagement posts
+  for (const kw of topKw) {
+    if (queries.length >= 18) break;
+    queries.push({ query: kw, sort: "relevance" });
   }
 
   let allPosts: RedditPost[] = [];
   try {
-    allPosts = await searchRedditMany(queries.map((q) => ({ ...q, limit: 15 })));
+    allPosts = await searchRedditMany(
+      queries.map((q) => ({ ...q, limit: 15, t: "year" as const }))
+    );
   } catch (err) {
     console.error("[/api/reddit] fan-out failed:", err);
     return Response.json(

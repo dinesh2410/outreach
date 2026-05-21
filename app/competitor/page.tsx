@@ -368,7 +368,6 @@ function CompetitorPageInner() {
             running={running}
             myApps={myApps}
           />
-          <ReviewIntelligenceSection myApps={myApps} />
           {competitors.length > 0 && (
             <RecentAnalyses
               records={competitors}
@@ -380,7 +379,6 @@ function CompetitorPageInner() {
         <>
           {snapshotAt && <SnapshotBanner savedAt={snapshotAt} onRefresh={handleRefresh} running={running} />}
           <Results analysis={analysis} insightLoading={insightLoading} />
-          <ReviewIntelligenceSection myApps={myApps} />
         </>
       )}
     </AppShell>
@@ -683,97 +681,6 @@ function InputForm({
         />
       </div>
     </div>
-  );
-}
-
-function ReviewIntelligenceSection({ myApps }: { myApps: MyApp[] }) {
-  const router = useRouter();
-  const [url, setUrl] = useState("");
-
-  const handleGo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!url.trim()) return;
-    router.push(`/competitor/reviews?url=${encodeURIComponent(url.trim())}`);
-  };
-
-  return (
-    <section className="mt-10">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl tile-rose flex items-center justify-center">
-          <ChartBar size={16} strokeWidth={1.85} />
-        </div>
-        <div>
-          <p className="eyebrow">Intelligence</p>
-          <h2
-            className="text-[22px] font-semibold tracking-[-0.01em]"
-            style={{ color: "#0B3D7A" }}
-          >
-            Review Intelligence
-          </h2>
-        </div>
-      </div>
-
-      <p className="text-[13px] text-ink-muted leading-relaxed mb-5 max-w-2xl">
-        Analyze real user reviews from any app and extract themes, sentiment, feature requests, and market opportunities using AI.
-      </p>
-
-      <form onSubmit={handleGo} className="card-soft p-5 max-w-2xl">
-        {myApps.length > 0 && (
-          <div className="mb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted mb-2.5">Your apps</p>
-            <div className="flex flex-wrap gap-2">
-              {myApps.map((app) => {
-                const selected = url === app.url;
-                return (
-                  <button
-                    key={app.id}
-                    type="button"
-                    onClick={() => setUrl(selected ? "" : app.url)}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-medium transition-all ${
-                      selected
-                        ? "bg-ink text-white"
-                        : "bg-cream-deep border border-line text-ink hover:border-ink-faint"
-                    }`}
-                  >
-                    {app.iconUrl ? (
-                      <img src={proxiedIcon(app.iconUrl)} alt="" className="w-5 h-5 rounded-md" />
-                    ) : (
-                      <Smartphone size={13} strokeWidth={1.85} />
-                    )}
-                    <span className="truncate max-w-[140px]">{app.name}</span>
-                    <span className={`text-[10px] uppercase tracking-wider ${selected ? "text-white/70" : "text-ink-faint"}`}>
-                      {app.source === "ios" ? "iOS" : "Play"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex items-center gap-3 mt-3">
-              <div className="flex-1 h-px bg-line" />
-              <span className="text-[11px] text-ink-faint uppercase tracking-widest">or enter URL</span>
-              <div className="flex-1 h-px bg-line" />
-            </div>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://apps.apple.com/… or https://play.google.com/store/apps/…"
-            className="flex-1 px-5 py-3 rounded-full bg-cream-deep border border-transparent focus:border-ink-faint outline-none text-[14px] text-ink placeholder:text-ink-faint transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={!url.trim()}
-            className="px-5 py-3 rounded-full bg-ink text-white text-[13px] font-medium hover:bg-night-soft transition-colors inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
-          >
-            <Sparkles size={14} strokeWidth={2} />
-            Analyze
-          </button>
-        </div>
-      </form>
-    </section>
   );
 }
 
@@ -1242,15 +1149,24 @@ function AppCard({ data, highlight }: { data: CompetitorAppData; highlight?: boo
 
           <div className="pt-3 border-t border-line-soft flex items-center justify-between text-[11px] text-ink-faint tabular-nums">
             <span>{data.fullDescLength} char desc</span>
-            <a
-              href={data.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:text-ink transition-colors"
-            >
-              View listing
-              <ExternalLink size={11} />
-            </a>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/competitor/reviews?url=${encodeURIComponent(data.url)}`}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium text-white bg-ink hover:bg-night-soft transition-colors"
+              >
+                <ChartBar size={11} />
+                Review Intel
+              </Link>
+              <a
+                href={data.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 hover:text-ink transition-colors"
+              >
+                View listing
+                <ExternalLink size={11} />
+              </a>
+            </div>
           </div>
         </>
       ) : (
