@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const listing = await fetchStoreListing(url);
+  const listing = await fetchStoreListing(url).catch(() => null);
   if (!listing) {
     return Response.json(
       { error: "Could not scrape the listing. The store may be rate-limiting, or the page layout changed." },

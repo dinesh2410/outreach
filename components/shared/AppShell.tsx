@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Target,
   Tag,
+  Bell,
   Menu,
   X,
   FileText,
@@ -26,6 +27,7 @@ import {
   Gauge,
   Smartphone,
   ChartBar,
+  DollarSign,
 } from "@/components/shared/Icon";
 import { Logo } from "./Logo";
 import { useAuth } from "@/lib/auth";
@@ -73,11 +75,13 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/reddit", label: "Reddit Demand", icon: MessageSquare },
       { href: "/competitor", label: "Competitor Watch", icon: Target },
       { href: "/keywords", label: "Keyword Research", icon: Tag },
+      { href: "/buzz", label: "Buzz Tracker", icon: Bell },
     ],
   },
   {
     label: "Account",
     links: [
+      { href: "/pricing", label: "Plans & Pricing", icon: DollarSign },
       { href: "/settings", label: "Settings", icon: Settings },
     ],
   },
@@ -219,6 +223,8 @@ function SidebarBody({
   signOut: () => void;
 }) {
   const pathname = usePathname();
+  const { buzzTrackers } = useAuth();
+  const buzzUnseen = buzzTrackers.reduce((sum, t) => sum + t.unseenCount, 0);
   const navGroups = isAdmin(userEmail)
     ? [...NAV_GROUPS, ADMIN_NAV_GROUP]
     : NAV_GROUPS;
@@ -251,6 +257,11 @@ function SidebarBody({
                       {link.status === "soon" && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gold/10 text-gold">
                           Soon
+                        </span>
+                      )}
+                      {link.href === "/buzz" && buzzUnseen > 0 && (
+                        <span className="min-w-[18px] text-center text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-ember-600 text-white">
+                          {buzzUnseen > 99 ? "99+" : buzzUnseen}
                         </span>
                       )}
                     </Link>

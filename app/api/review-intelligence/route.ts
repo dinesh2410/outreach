@@ -194,10 +194,11 @@ Return ONLY the structured object.`;
     });
   } catch (err) {
     console.error("[/api/review-intelligence] failed:", err);
-    return Response.json(
-      { error: err instanceof Error ? err.message : "Failed to generate intelligence" },
-      { status: 500 }
-    );
+    const msg = err instanceof Error ? err.message : "Failed to generate intelligence";
+    const userMessage = msg.includes("No object generated")
+      ? "AI couldn't analyze these reviews — try again or use a different app."
+      : msg;
+    return Response.json({ error: userMessage }, { status: 500 });
   }
 }
 

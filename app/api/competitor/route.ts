@@ -151,10 +151,10 @@ export async function POST(req: Request) {
 
       const [iosCandidates, playRawUrls] = await Promise.all([
         wantIosSource
-          ? searchAppStore(searchTerm, { country, limit: IOS_POOL })
+          ? searchAppStore(searchTerm, { country, limit: IOS_POOL }).catch(() => [] as StoreListing[])
           : Promise.resolve<StoreListing[]>([]),
         wantPlaySource
-          ? searchPlayStore(searchTerm, { country, limit: PLAY_POOL })
+          ? searchPlayStore(searchTerm, { country, limit: PLAY_POOL }).catch(() => [] as string[])
           : Promise.resolve<string[]>([]),
       ]);
 

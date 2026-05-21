@@ -17,6 +17,8 @@ import {
   query,
   setDoc,
   updateDoc,
+  where,
+  writeBatch,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -24,7 +26,10 @@ import { firestore } from "./firebase-client";
 import {
   AppEntry,
   AuditRecord,
+  BuzzMention,
+  BuzzTracker,
   CompetitorRecord,
+  EMPTY_QUOTAS,
   GenerationResult,
   KeywordRankRecord,
   MyApp,
@@ -33,7 +38,10 @@ import {
   ReviewIntelligenceRecord,
   UsageRecord,
   User,
+  UserQuotas,
 } from "./types";
+import type { PlanId, QuotaTool } from "./plan-limits";
+import { TRIAL_DURATION_DAYS } from "./plan-limits";
 
 interface UserDoc {
   email: string;
@@ -41,6 +49,10 @@ interface UserDoc {
   lastName: string;
   defaultPlatform: Platform;
   emailNotifications: boolean;
+  plan: PlanId;
+  planExpiresAt?: string;
+  trialEndsAt?: string;
+  couponCode?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -92,6 +104,12 @@ const myAppRef = (uid: string, appId: string) =>
 const reviewIntelCol = (uid: string) => collection(firestore, "users", uid, "reviewIntelligence");
 const reviewIntelRef = (uid: string, recordId: string) =>
   doc(firestore, "users", uid, "reviewIntelligence", recordId);
+const buzzTrackersCol = (uid: string) => collection(firestore, "users", uid, "buzzTrackers");
+const buzzTrackerRef = (uid: string, trackerId: string) =>
+  doc(firestore, "users", uid, "buzzTrackers", trackerId);
+const buzzMentionsCol = (uid: string) => collection(firestore, "users", uid, "buzzMentions");
+const buzzMentionRef = (uid: string, mentionId: string) =>
+  doc(firestore, "users", uid, "buzzMentions", mentionId);
 
 // Read the user doc; create with sensible defaults if it doesn't exist.
 // Returns the resolved fields (not the raw Firestore doc).
@@ -108,14 +126,23 @@ export async function ensureUserDoc(
       lastName: d.lastName ?? seed.lastName,
       defaultPlatform: (d.defaultPlatform as Platform) ?? "android",
       emailNotifications: d.emailNotifications ?? true,
+      plan: (d.plan as PlanId) ?? "free",
+      planExpiresAt: d.planExpiresAt,
+      trialEndsAt: d.trialEndsAt,
+      couponCode: d.couponCode,
     };
   }
+  const trialEnd = new Date(
+    Date.now() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
   const fresh: Omit<UserDoc, "createdAt" | "updatedAt"> = {
     email: seed.email,
     firstName: seed.firstName,
     lastName: seed.lastName,
     defaultPlatform: "android",
     emailNotifications: true,
+    plan: "trial",
+    trialEndsAt: trialEnd,
   };
   await setDoc(userRef(uid), {
     ...fresh,
@@ -322,4 +349,131 @@ export async function fetchUserReviewIntel(uid: string): Promise<ReviewIntellige
 
 export async function deleteReviewIntelEntry(uid: string, recordId: string): Promise<void> {
   await deleteDoc(reviewIntelRef(uid, recordId));
+}
+
+// --- quotas (monthly usage counters) -------------------------------------
+//
+// Stored at /users/{uid}/quotas/current. The `periodStart` field marks when
+// the current billing period began (ISO). If more than ~30 days have passed,
+// the counters are auto-reset on read.
+
+const quotaRef = (uid: string) => doc(firestore, "users", uid, "quotas", "current");
+
+function currentPeriodStart(): string {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+}
+
+function shouldResetQuotas(periodStart: string): boolean {
+  return new Date(periodStart).getMonth() !== new Date().getMonth() ||
+    new Date(periodStart).getFullYear() !== new Date().getFullYear();
+}
+
+export async function fetchUserQuotas(uid: string): Promise<UserQuotas> {
+  const snap = await getDoc(quotaRef(uid));
+  if (!snap.exists()) {
+    const fresh: UserQuotas = { ...EMPTY_QUOTAS, periodStart: currentPeriodStart() };
+    await setDoc(quotaRef(uid), fresh);
+    return fresh;
+  }
+  const data = snap.data() as UserQuotas;
+  if (shouldResetQuotas(data.periodStart)) {
+    const reset: UserQuotas = { ...EMPTY_QUOTAS, periodStart: currentPeriodStart() };
+    await setDoc(quotaRef(uid), reset);
+    return reset;
+  }
+  return data;
+}
+
+export async function incrementQuota(uid: string, tool: QuotaTool): Promise<UserQuotas> {
+  const current = await fetchUserQuotas(uid);
+  const updated: UserQuotas = { ...current, [tool]: (current[tool] ?? 0) + 1 };
+  await setDoc(quotaRef(uid), updated);
+  return updated;
+}
+
+// --- coupons (top-level collection, admin-managed) -----------------------
+//
+// Coupons live at /coupons/{code} so they're globally accessible. Redemption
+// records live at /couponRedemptions/{id} for audit trails. The actual
+// coupon validation + redemption logic runs server-side in the API route
+// using the Admin SDK — these client-side helpers are just for reading
+// the user's own plan status after redemption.
+
+// --- buzz tracker (brand mention monitor) --------------------------------
+
+export async function saveBuzzTrackerForUser(uid: string, tracker: BuzzTracker): Promise<void> {
+  await setDoc(buzzTrackerRef(uid, tracker.id), stripUndefined(tracker));
+}
+
+export async function fetchUserBuzzTrackers(uid: string): Promise<BuzzTracker[]> {
+  const snap = await getDocs(query(buzzTrackersCol(uid), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as BuzzTracker);
+}
+
+export async function deleteBuzzTrackerForUser(uid: string, trackerId: string): Promise<void> {
+  await deleteDoc(buzzTrackerRef(uid, trackerId));
+}
+
+export async function updateBuzzTrackerAfterCheck(
+  uid: string,
+  trackerId: string,
+  patch: Partial<BuzzTracker>,
+): Promise<void> {
+  await updateDoc(buzzTrackerRef(uid, trackerId), stripUndefined(patch));
+}
+
+export async function saveBuzzMentionsBatch(uid: string, mentions: BuzzMention[]): Promise<void> {
+  if (!mentions.length) return;
+  const batch = writeBatch(firestore);
+  for (const m of mentions) {
+    batch.set(buzzMentionRef(uid, m.id), stripUndefined(m));
+  }
+  await batch.commit();
+}
+
+export async function fetchBuzzMentions(
+  uid: string,
+  trackerId?: string,
+): Promise<BuzzMention[]> {
+  const col = buzzMentionsCol(uid);
+  const q = trackerId
+    ? query(col, where("trackerId", "==", trackerId), orderBy("foundAt", "desc"))
+    : query(col, orderBy("foundAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => d.data() as BuzzMention);
+}
+
+export async function markBuzzMentionsSeen(uid: string, mentionIds: string[]): Promise<void> {
+  if (!mentionIds.length) return;
+  const batch = writeBatch(firestore);
+  for (const id of mentionIds) {
+    batch.update(buzzMentionRef(uid, id), { seen: true });
+  }
+  await batch.commit();
+}
+
+export async function deleteBuzzMentionsForTracker(uid: string, trackerId: string): Promise<void> {
+  const snap = await getDocs(query(buzzMentionsCol(uid), where("trackerId", "==", trackerId)));
+  if (snap.empty) return;
+  const batch = writeBatch(firestore);
+  for (const d of snap.docs) batch.delete(d.ref);
+  await batch.commit();
+}
+
+// --- coupons (top-level collection, admin-managed) -----------------------
+
+export async function updateUserPlan(
+  uid: string,
+  plan: PlanId,
+  expiresAt?: string,
+  couponCode?: string,
+): Promise<void> {
+  const updates: Record<string, unknown> = {
+    plan,
+    updatedAt: serverTimestamp(),
+  };
+  if (expiresAt) updates.planExpiresAt = expiresAt;
+  if (couponCode) updates.couponCode = couponCode;
+  await updateDoc(userRef(uid), updates);
 }

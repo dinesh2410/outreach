@@ -6,6 +6,7 @@
 // is read defensively.
 
 import { execFile } from "node:child_process";
+import { platform } from "node:os";
 
 export interface RedditPost {
   id: string;
@@ -22,10 +23,12 @@ export interface RedditPost {
 
 // --- low-level curl fetch ------------------------------------------------
 
+const CURL_BIN = platform() === "win32" ? "curl.exe" : "curl";
+
 function curlFetch(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     execFile(
-      "curl.exe",
+      CURL_BIN,
       [
         "-s",
         "-L",
@@ -176,4 +179,48 @@ export function localTag(post: RedditPost): "request" | "complaint" | "discussio
   if (REQUEST_PATTERNS.some((re) => re.test(haystack))) return "request";
   if (COMPLAINT_PATTERNS.some((re) => re.test(haystack))) return "complaint";
   return "discussion";
+}
+
+// --- Buzz Tracker helpers -------------------------------------------------
+
+export async function fetchSubredditNew(
+  subreddit: string,
+  limit = 100,
+): Promise<RedditPost[]> {
+  const cap = Math.min(Math.max(limit, 1), 100);
+  const url = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/new.json?limit=${cap}&raw_json=1`;
+  const json = await redditFetch(url);
+  return parseListing(json).filter((p) => !p.nsfw);
+}
+
+export function keywordInPost(post: RedditPost, keyword: string): boolean {
+  const kw = keyword.toLowerCase();
+  return (
+    post.title.toLowerCase().includes(kw) ||
+    post.body.toLowerCase().includes(kw)
+  );
+}
+
+export async function fetchAndMatchKeywords(
+  subreddits: string[],
+  keywords: string[],
+  limit = 100,
+): Promise<RedditPost[]> {
+  const results = await Promise.allSettled(
+    subreddits.map((sub) => fetchSubredditNew(sub, limit)),
+  );
+  const seen = new Map<string, RedditPost>();
+  for (const r of results) {
+    if (r.status !== "fulfilled") {
+      console.warn("[reddit] subreddit feed failed:", r.reason);
+      continue;
+    }
+    for (const post of r.value) {
+      if (seen.has(post.id)) continue;
+      if (keywords.some((kw) => keywordInPost(post, kw))) {
+        seen.set(post.id, post);
+      }
+    }
+  }
+  return Array.from(seen.values());
 }

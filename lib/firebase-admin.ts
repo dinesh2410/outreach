@@ -15,7 +15,6 @@ function getAdminApp(): App {
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  // .env files store \n as the literal string "\n" — turn it back into a real newline.
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
   if (!projectId || !clientEmail || !privateKey) {
@@ -29,6 +28,10 @@ function getAdminApp(): App {
   });
 }
 
-export const adminApp = getAdminApp();
-export const adminAuth: Auth = getAuth(adminApp);
-export const adminFirestore: Firestore = getFirestore(adminApp);
+export function getAdminFirestore(): Firestore {
+  return getFirestore(getAdminApp());
+}
+
+export function getAdminAuth(): Auth {
+  return getAuth(getAdminApp());
+}

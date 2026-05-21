@@ -20,6 +20,8 @@ import {
 import { firebaseAuth, googleAuthProvider } from "./firebase-client";
 import {
   deleteAuditEntry,
+  deleteBuzzMentionsForTracker,
+  deleteBuzzTrackerForUser,
   deleteCompetitorEntry,
   deleteHistoryEntry,
   deleteKeywordRankEntry,
@@ -27,15 +29,20 @@ import {
   deleteRedditAnalysisEntry,
   deleteReviewIntelEntry,
   ensureUserDoc,
+  fetchBuzzMentions,
   fetchMyApps,
   fetchUserApps,
   fetchUserAudits,
+  fetchUserBuzzTrackers,
   fetchUserCompetitors,
   fetchUserHistory,
   fetchUserKeywordRanks,
+  fetchUserQuotas,
   fetchUserRedditAnalyses,
   fetchUserReviewIntel,
   fetchUserSavedGenerations,
+  incrementQuota,
+  markBuzzMentionsSeen,
   recordAuditForUser,
   recordCompetitorForUser,
   recordGenerationHistory,
@@ -43,31 +50,58 @@ import {
   recordRedditAnalysisForUser,
   recordReviewIntelForUser,
   saveAppForUser,
+  saveBuzzMentionsBatch,
+  saveBuzzTrackerForUser,
   saveGenerationForUser,
   saveMyAppForUser,
+  updateBuzzTrackerAfterCheck,
   updateUserDoc,
+  updateUserPlan,
   upsertGenerationOnApp,
 } from "./firestore";
 import {
   User,
   AppEntry,
   AuditRecord,
+  BuzzMention,
+  BuzzTracker,
   CompetitorRecord,
+  EMPTY_QUOTAS,
   GenerationResult,
   KeywordRankRecord,
   MyApp,
   Platform,
   RedditAnalysisRecord,
   ReviewIntelligenceRecord,
+  UserQuotas,
 } from "./types";
+import type { PlanId, QuotaTool } from "./plan-limits";
+import {
+  getEffectivePlan,
+  getLimits,
+  type PlanLimits,
+} from "./plan-limits";
 
 // Auth context — backed by Firebase Auth (Google + Email/Password) + Firestore.
 // Apps and saved generations persist to Firestore so they survive refresh and sync across devices.
+
+export interface QuotaCheck {
+  allowed: boolean;
+  used: number;
+  limit: number;
+  planId: PlanId;
+}
 
 interface AuthContextType {
   user: User | null;
   apps: AppEntry[];
   loading: boolean;
+  plan: PlanId;
+  planLimits: PlanLimits;
+  quotas: UserQuotas;
+  checkQuota: (tool: QuotaTool) => QuotaCheck;
+  useQuota: (tool: QuotaTool) => Promise<UserQuotas>;
+  redeemCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
     firstName: string,
@@ -103,6 +137,12 @@ interface AuthContextType {
   reviewIntelligence: ReviewIntelligenceRecord[];
   recordReviewIntel: (record: ReviewIntelligenceRecord) => void;
   removeReviewIntel: (recordId: string) => void;
+  buzzTrackers: BuzzTracker[];
+  buzzMentions: BuzzMention[];
+  saveBuzzTracker: (tracker: BuzzTracker) => void;
+  removeBuzzTracker: (trackerId: string) => void;
+  addBuzzMentions: (mentions: BuzzMention[], trackerId: string, newCount: number) => void;
+  markMentionsSeen: (trackerId: string, mentionIds: string[]) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -125,8 +165,6 @@ function splitName(displayName: string | null | undefined): { firstName: string;
 }
 
 async function firebaseUserToAppUser(fbUser: FirebaseUser): Promise<User> {
-  // Read or create the Firestore user doc; that's the source of truth for app-side fields
-  // (defaultPlatform, emailNotifications, custom firstName/lastName overrides).
   const split = splitName(fbUser.displayName);
   const stored = await ensureUserDoc(fbUser.uid, {
     email: fbUser.email ?? "",
@@ -140,6 +178,10 @@ async function firebaseUserToAppUser(fbUser: FirebaseUser): Promise<User> {
     lastName: stored.lastName,
     defaultPlatform: stored.defaultPlatform,
     emailNotifications: stored.emailNotifications,
+    plan: stored.plan ?? "free",
+    planExpiresAt: stored.planExpiresAt,
+    trialEndsAt: stored.trialEndsAt,
+    couponCode: stored.couponCode,
   };
 }
 
@@ -155,6 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [redditAnalyses, setRedditAnalyses] = useState<RedditAnalysisRecord[]>([]);
   const [myApps, setMyApps] = useState<MyApp[]>([]);
   const [reviewIntelligence, setReviewIntelligence] = useState<ReviewIntelligenceRecord[]>([]);
+  const [buzzTrackers, setBuzzTrackers] = useState<BuzzTracker[]>([]);
+  const [buzzMentions, setBuzzMentions] = useState<BuzzMention[]>([]);
+  const [quotas, setQuotas] = useState<UserQuotas>({ ...EMPTY_QUOTAS, periodStart: new Date().toISOString() });
 
   // Listen to auth state. On sign-in, hydrate apps + generations + history from Firestore.
   useEffect(() => {
@@ -170,6 +215,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRedditAnalyses([]);
         setMyApps([]);
         setReviewIntelligence([]);
+        setBuzzTrackers([]);
+        setBuzzMentions([]);
+        setQuotas({ ...EMPTY_QUOTAS, periodStart: new Date().toISOString() });
         setLoading(false);
         return;
       }
@@ -203,6 +251,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userRedditAnalyses,
           userMyApps,
           userReviewIntel,
+          userBuzzTrackers,
+          userBuzzMentions,
+          userQuotas,
         ] = await Promise.all([
           safeFetch("apps", () => fetchUserApps(fbUser.uid)),
           safeFetch("savedGenerations", () => fetchUserSavedGenerations(fbUser.uid)),
@@ -213,6 +264,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           safeFetch("redditAnalyses", () => fetchUserRedditAnalyses(fbUser.uid)),
           safeFetch("myApps", () => fetchMyApps(fbUser.uid)),
           safeFetch("reviewIntelligence", () => fetchUserReviewIntel(fbUser.uid)),
+          safeFetch("buzzTrackers", () => fetchUserBuzzTrackers(fbUser.uid)),
+          safeFetch("buzzMentions", () => fetchBuzzMentions(fbUser.uid)),
+          fetchUserQuotas(fbUser.uid).catch(() => ({ ...EMPTY_QUOTAS, periodStart: new Date().toISOString() })),
         ]);
         setApps(userApps);
         setSavedGenerations(userSaved);
@@ -223,6 +277,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRedditAnalyses(userRedditAnalyses);
         setMyApps(userMyApps);
         setReviewIntelligence(userReviewIntel);
+        setBuzzTrackers(userBuzzTrackers);
+        setBuzzMentions(userBuzzMentions);
+        setQuotas(userQuotas);
       } catch (err) {
         console.error("[auth] failed to hydrate user data:", err);
       } finally {
@@ -527,12 +584,165 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const saveBuzzTracker = useCallback(
+    (tracker: BuzzTracker) => {
+      setBuzzTrackers((prev) => {
+        const without = prev.filter((t) => t.id !== tracker.id);
+        return [tracker, ...without];
+      });
+      if (user) {
+        saveBuzzTrackerForUser(user.id, tracker).catch((err) =>
+          console.error("[auth] saveBuzzTracker persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const removeBuzzTracker = useCallback(
+    (trackerId: string) => {
+      setBuzzTrackers((prev) => prev.filter((t) => t.id !== trackerId));
+      setBuzzMentions((prev) => prev.filter((m) => m.trackerId !== trackerId));
+      if (user) {
+        deleteBuzzTrackerForUser(user.id, trackerId).catch((err) =>
+          console.error("[auth] removeBuzzTracker persist failed:", err)
+        );
+        deleteBuzzMentionsForTracker(user.id, trackerId).catch((err) =>
+          console.error("[auth] removeBuzzMentions persist failed:", err)
+        );
+      }
+    },
+    [user]
+  );
+
+  const addBuzzMentions = useCallback(
+    (mentions: BuzzMention[], trackerId: string, newCount: number) => {
+      setBuzzMentions((prev) => [...mentions, ...prev]);
+      setBuzzTrackers((prev) =>
+        prev.map((t) =>
+          t.id === trackerId
+            ? {
+                ...t,
+                totalMentions: t.totalMentions + newCount,
+                unseenCount: t.unseenCount + newCount,
+                lastCheckedAt: new Date().toISOString(),
+              }
+            : t
+        )
+      );
+      if (user) {
+        saveBuzzMentionsBatch(user.id, mentions).catch((err) =>
+          console.error("[auth] addBuzzMentions persist failed:", err)
+        );
+        updateBuzzTrackerAfterCheck(user.id, trackerId, {
+          totalMentions: (buzzTrackers.find((t) => t.id === trackerId)?.totalMentions ?? 0) + newCount,
+          unseenCount: (buzzTrackers.find((t) => t.id === trackerId)?.unseenCount ?? 0) + newCount,
+          lastCheckedAt: new Date().toISOString(),
+        }).catch((err) =>
+          console.error("[auth] updateBuzzTracker persist failed:", err)
+        );
+      }
+    },
+    [user, buzzTrackers]
+  );
+
+  const markMentionsSeen = useCallback(
+    (trackerId: string, mentionIds: string[]) => {
+      setBuzzMentions((prev) =>
+        prev.map((m) => (mentionIds.includes(m.id) ? { ...m, seen: true } : m))
+      );
+      setBuzzTrackers((prev) =>
+        prev.map((t) =>
+          t.id === trackerId
+            ? { ...t, unseenCount: Math.max(0, t.unseenCount - mentionIds.length) }
+            : t
+        )
+      );
+      if (user) {
+        markBuzzMentionsSeen(user.id, mentionIds).catch((err) =>
+          console.error("[auth] markMentionsSeen persist failed:", err)
+        );
+        const tracker = buzzTrackers.find((t) => t.id === trackerId);
+        if (tracker) {
+          updateBuzzTrackerAfterCheck(user.id, trackerId, {
+            unseenCount: Math.max(0, tracker.unseenCount - mentionIds.length),
+          }).catch((err) =>
+            console.error("[auth] updateBuzzTracker unseenCount persist failed:", err)
+          );
+        }
+      }
+    },
+    [user, buzzTrackers]
+  );
+
+  const effectivePlan = user
+    ? getEffectivePlan(user.plan, user.trialEndsAt, user.planExpiresAt)
+    : "free" as PlanId;
+  const planLimits = getLimits(effectivePlan);
+
+  const checkQuota = useCallback(
+    (tool: QuotaTool): QuotaCheck => {
+      const limits = getLimits(effectivePlan);
+      const limit = limits[tool];
+      const used = quotas[tool] ?? 0;
+      if (limit === 0) return { allowed: false, used, limit: 0, planId: effectivePlan };
+      if (!isFinite(limit)) return { allowed: true, used, limit: Infinity, planId: effectivePlan };
+      return { allowed: used < limit, used, limit, planId: effectivePlan };
+    },
+    [effectivePlan, quotas]
+  );
+
+  const useQuota = useCallback(
+    async (tool: QuotaTool): Promise<UserQuotas> => {
+      if (!user) return quotas;
+      const updated = await incrementQuota(user.id, tool);
+      setQuotas(updated);
+      return updated;
+    },
+    [user, quotas]
+  );
+
+  const redeemCoupon = useCallback(
+    async (code: string): Promise<{ success: boolean; message: string }> => {
+      if (!user) return { success: false, message: "Not signed in" };
+      try {
+        const res = await fetch("/api/redeem-coupon", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: code.trim().toUpperCase(), userId: user.id, userEmail: user.email }),
+        });
+        const data = await res.json();
+        if (!res.ok) return { success: false, message: data.error ?? "Redemption failed" };
+        setUser((prev) =>
+          prev
+            ? { ...prev, plan: data.plan, planExpiresAt: data.planExpiresAt, couponCode: code.trim().toUpperCase() }
+            : null
+        );
+        if (user) {
+          updateUserPlan(user.id, data.plan, data.planExpiresAt, code.trim().toUpperCase()).catch(
+            (err) => console.error("[auth] updateUserPlan after coupon failed:", err)
+          );
+        }
+        return { success: true, message: data.message ?? "Coupon redeemed!" };
+      } catch (err) {
+        return { success: false, message: err instanceof Error ? err.message : "Network error" };
+      }
+    },
+    [user]
+  );
+
   return (
     <AuthContext.Provider
       value={{
         user,
         apps,
         loading,
+        plan: effectivePlan,
+        planLimits,
+        quotas,
+        checkQuota,
+        useQuota,
+        redeemCoupon,
         signIn,
         signUp,
         signInWithGoogle,
@@ -563,6 +773,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         reviewIntelligence,
         recordReviewIntel,
         removeReviewIntel,
+        buzzTrackers,
+        buzzMentions,
+        saveBuzzTracker,
+        removeBuzzTracker,
+        addBuzzMentions,
+        markMentionsSeen,
       }}
     >
       {children}

@@ -1,3 +1,5 @@
+import type { PlanId, QuotaTool } from "./plan-limits";
+
 export type Platform = "android" | "ios";
 
 export type Category =
@@ -107,7 +109,55 @@ export interface User {
   email: string;
   defaultPlatform: Platform;
   emailNotifications: boolean;
+  plan: PlanId;
+  planExpiresAt?: string;
+  trialEndsAt?: string;
+  couponCode?: string;
 }
+
+export interface UserQuotas {
+  generator: number;
+  reddit: number;
+  competitor: number;
+  keywordRank: number;
+  reviewIntel: number;
+  buzzTracker: number;
+  periodStart: string;
+}
+
+export const EMPTY_QUOTAS: UserQuotas = {
+  generator: 0,
+  reddit: 0,
+  competitor: 0,
+  keywordRank: 0,
+  reviewIntel: 0,
+  buzzTracker: 0,
+  periodStart: new Date().toISOString(),
+};
+
+export interface CouponCode {
+  id: string;
+  plan: "pro" | "max";
+  durationDays: number;
+  maxRedemptions: number;
+  redemptions: number;
+  createdBy: string;
+  createdAt: string;
+  expiresAt?: string;
+  active: boolean;
+  note?: string;
+}
+
+export interface CouponRedemption {
+  couponId: string;
+  userId: string;
+  userEmail: string;
+  plan: "pro" | "max";
+  durationDays: number;
+  redeemedAt: string;
+}
+
+export type { PlanId, QuotaTool };
 
 export interface ScoreResult {
   score: number;
@@ -511,4 +561,42 @@ export interface ReviewIntelligenceRecord {
   opportunityCount: number;
   createdAt: string;
   snapshot?: ReviewIntelligenceResult;
+}
+
+// ─── Buzz Tracker (Brand Mention Monitor) ───────────────────────────────
+
+export interface BuzzTracker {
+  id: string;
+  keywords: string[];
+  subreddits?: string[];
+  enabled: boolean;
+  lastCheckedAt?: string;
+  totalMentions: number;
+  unseenCount: number;
+  createdAt: string;
+}
+
+export interface BuzzMention {
+  id: string;
+  trackerId: string;
+  postId: string;
+  title: string;
+  body: string;
+  author: string;
+  subreddit: string;
+  permalink: string;
+  score: number;
+  numComments: number;
+  matchedKeyword: string;
+  postCreatedAt: string;
+  foundAt: string;
+  seen: boolean;
+}
+
+export interface BuzzCheckResult {
+  trackerId: string;
+  newMentionCount: number;
+  totalChecked: number;
+  checkedAt: string;
+  errors?: string[];
 }

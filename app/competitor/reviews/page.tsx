@@ -163,14 +163,15 @@ function ReviewIntelligencePageInner() {
           | undefined;
 
         // Compute sentiment from real histogram when available
-        let sentimentFromHistogram = intelligence.globalSentiment;
+        const defaultSentiment = { positive: 0, neutral: 0, negative: 0, avgRating: 0 };
+        let sentimentFromHistogram = intelligence.globalSentiment ?? defaultSentiment;
         if (storeHistogram) {
           const total = storeHistogram.star1 + storeHistogram.star2 + storeHistogram.star3 + storeHistogram.star4 + storeHistogram.star5 || 1;
           sentimentFromHistogram = {
             positive: Math.round(((storeHistogram.star4 + storeHistogram.star5) / total) * 100),
             neutral: Math.round((storeHistogram.star3 / total) * 100),
             negative: Math.round(((storeHistogram.star1 + storeHistogram.star2) / total) * 100),
-            avgRating: storeRating,
+            avgRating: storeRating ?? 0,
           };
         }
 
@@ -586,7 +587,7 @@ function Results({ result }: { result: ReviewIntelligenceResult }) {
         <RatingDistribution
           dist={result.ratingDistribution ?? { star1: 0, star2: 0, star3: 0, star4: 0, star5: 0 }}
           total={result.reviewCount}
-          avgRating={result.globalSentiment.avgRating}
+          avgRating={result.globalSentiment?.avgRating ?? 0}
         />
         <div className="grid grid-cols-1 gap-3">
           <SignalTile
@@ -745,7 +746,7 @@ function AppBanner({ result }: { result: ReviewIntelligenceResult }) {
             {result.store === "ios" ? <Apple size={12} /> : <Smartphone size={12} />}
             {result.store === "ios" ? "App Store" : "Play Store"}
           </span>
-          <span>{result.globalSentiment.avgRating.toFixed(1)}★ avg rating</span>
+          <span>{(result.globalSentiment?.avgRating ?? 0).toFixed(1)}★ avg rating</span>
           <span>Analyzed {relativeTime(result.scrapedAt)}</span>
         </div>
       </div>
