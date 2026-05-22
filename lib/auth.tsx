@@ -738,11 +738,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const redeemCoupon = useCallback(
     async (code: string): Promise<{ success: boolean; message: string }> => {
       if (!user) return { success: false, message: "Not signed in" };
+      const normalized = code.trim().toUpperCase();
+      if (user.couponCode === normalized) {
+        return { success: false, message: "You've already redeemed this coupon" };
+      }
       try {
         const res = await fetch("/api/redeem-coupon", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: code.trim().toUpperCase(), userId: user.id, userEmail: user.email }),
+          body: JSON.stringify({ code: normalized, userId: user.id, userEmail: user.email, currentCouponCode: user.couponCode }),
         });
         const data = await res.json();
         if (!res.ok) return { success: false, message: data.error ?? "Redemption failed" };

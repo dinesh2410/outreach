@@ -17,6 +17,7 @@ interface RedeemRequest {
   code?: string;
   userId?: string;
   userEmail?: string;
+  currentCouponCode?: string;
 }
 
 export async function POST(req: Request) {
@@ -36,6 +37,9 @@ export async function POST(req: Request) {
   // Fast path: hardcoded beta coupons (no admin SDK required).
   const beta = BETA_COUPONS[code];
   if (beta) {
+    if (body.currentCouponCode === code) {
+      return Response.json({ error: "You've already redeemed this coupon" }, { status: 409 });
+    }
     const planExpiresAt =
       beta.durationDays > 0
         ? new Date(Date.now() + beta.durationDays * 24 * 60 * 60 * 1000).toISOString()
