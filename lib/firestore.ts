@@ -29,6 +29,8 @@ import {
   BuzzMention,
   BuzzTracker,
   CompetitorRecord,
+  CouponCode,
+  CouponRedemption,
   EMPTY_QUOTAS,
   GenerationResult,
   KeywordRankRecord,
@@ -316,6 +318,39 @@ export async function fetchAllUsage(maxRecords = 500): Promise<UsageRecord[]> {
   const q = query(collectionGroup(firestore, "usage"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.slice(0, maxRecords).map((d) => d.data() as UsageRecord);
+}
+
+export async function fetchAllUsers(): Promise<User[]> {
+  const snap = await getDocs(collection(firestore, "users"));
+  return snap.docs.map((d) => {
+    const raw = d.data() as UserDoc & Record<string, unknown>;
+    return {
+      id: d.id,
+      firstName: raw.firstName ?? "",
+      lastName: raw.lastName ?? "",
+      email: raw.email ?? "",
+      defaultPlatform: raw.defaultPlatform ?? "android",
+      emailNotifications: raw.emailNotifications ?? false,
+      plan: raw.plan ?? "free",
+      planExpiresAt: raw.planExpiresAt,
+      trialEndsAt: raw.trialEndsAt,
+      couponCode: raw.couponCode,
+      dodoSubscriptionId: raw.dodoSubscriptionId as string | undefined,
+      dodoCustomerId: raw.dodoCustomerId as string | undefined,
+      billingInterval: raw.billingInterval as "monthly" | "annual" | undefined,
+      createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate().toISOString() : undefined,
+    } as User & { createdAt?: string };
+  });
+}
+
+export async function fetchAllCoupons(): Promise<CouponCode[]> {
+  const snap = await getDocs(query(collection(firestore, "coupons"), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => d.data() as CouponCode);
+}
+
+export async function fetchCouponRedemptions(): Promise<CouponRedemption[]> {
+  const snap = await getDocs(query(collection(firestore, "couponRedemptions"), orderBy("redeemedAt", "desc")));
+  return snap.docs.map((d) => d.data() as CouponRedemption);
 }
 
 // --- Your applications (MyApp reusable refs) -----------------------------

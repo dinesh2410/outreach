@@ -20,6 +20,7 @@ import {
   Trash2,
   X,
   Sparkles,
+  Activity,
 } from "@/components/shared/Icon";
 
 function djb2(str: string): string {
@@ -47,6 +48,19 @@ function timeAgo(iso: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+const TILE_COLORS = [
+  "tile-blue",
+  "tile-lilac",
+  "tile-mint",
+  "tile-cream",
+  "tile-rose",
+  "tile-peach",
+] as const;
+
+function tileForIndex(i: number) {
+  return TILE_COLORS[i % TILE_COLORS.length];
 }
 
 type SortKey = "newest" | "score" | "comments";
@@ -169,12 +183,12 @@ function BuzzContent() {
         addToast(
           result.newMentionCount > 0
             ? `Found ${result.newMentionCount} mention${result.newMentionCount === 1 ? "" : "s"}!`
-            : "Tracker created. No mentions found yet — we'll check hourly.",
+            : "Tracker created. No mentions found yet — we'll check every 2 hours.",
           result.newMentionCount > 0 ? "success" : "default",
         );
       }
     } catch {
-      addToast("Tracker created but initial check failed. We'll retry hourly.", "default");
+      addToast("Tracker created but initial check failed. We'll retry in 2 hours.", "default");
     }
 
     setKeywords([]);
@@ -276,11 +290,11 @@ function BuzzContent() {
     return (
       <AppShell>
         <div className="mx-auto max-w-2xl py-20 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl tile-blue">
-            <Bell className="h-6 w-6" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl tile-blue">
+            <Bell className="h-7 w-7" />
           </div>
           <h1 className="text-[22px] font-semibold text-ink">Buzz Tracker</h1>
-          <p className="mt-2 text-[15px] text-ink-muted">
+          <p className="mt-2 text-[15px] text-ink-muted leading-relaxed">
             Sign in to monitor brand mentions on Reddit.
           </p>
         </div>
@@ -304,7 +318,7 @@ function BuzzContent() {
             <button
               onClick={() => handleRunNow(selectedId)}
               disabled={!!checking}
-              className="flex items-center gap-2 rounded-full border border-line px-4 py-2 text-[13px] font-medium text-ink-muted transition-colors hover:border-ink-faint hover:text-ink"
+              className="flex items-center gap-2 rounded-full border border-line px-4 py-2 text-[13px] font-medium text-ink-muted transition-colors hover:border-ink-faint hover:text-ink disabled:opacity-40"
             >
               {checking === selectedId ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -322,8 +336,7 @@ function BuzzContent() {
           </div>
         }
       >
-        <div className="mx-auto max-w-4xl px-4 sm:px-6">
-          {/* Back link */}
+        <div>
           <button
             onClick={() => router.push("/buzz")}
             className="mb-6 text-[13px] font-medium text-accent-ink hover:text-accent transition-colors"
@@ -331,7 +344,31 @@ function BuzzContent() {
             &larr; All trackers
           </button>
 
-          {/* Keywords + stats */}
+          {/* Stats strip */}
+          <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-line bg-paper px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-0.5">Keywords</p>
+              <p className="text-[20px] font-semibold text-ink">{selectedTracker.keywords.length}</p>
+            </div>
+            <div className="rounded-xl border border-line bg-paper px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-0.5">Mentions</p>
+              <p className="text-[20px] font-semibold text-ink">{trackerMentions.length}</p>
+            </div>
+            <div className="rounded-xl border border-line bg-paper px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-0.5">Subreddits</p>
+              <p className="text-[20px] font-semibold text-ink">
+                {selectedTracker.subreddits?.length ?? "All"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-line bg-paper px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-0.5">Last checked</p>
+              <p className="text-[14px] font-medium text-ink mt-0.5">
+                {selectedTracker.lastCheckedAt ? timeAgo(selectedTracker.lastCheckedAt) : "Never"}
+              </p>
+            </div>
+          </div>
+
+          {/* Keyword chips */}
           <div className="mb-5 flex flex-wrap items-center gap-2">
             {selectedTracker.keywords.map((kw) => (
               <span
@@ -342,41 +379,35 @@ function BuzzContent() {
                 {kw}
               </span>
             ))}
-            <span className="text-[13px] text-ink-muted">
-              · {trackerMentions.length} mention{trackerMentions.length !== 1 ? "s" : ""}
-            </span>
-            {selectedTracker.lastCheckedAt && (
-              <span className="flex items-center gap-1 text-[13px] text-ink-faint">
-                <Clock className="h-3 w-3" />
-                {timeAgo(selectedTracker.lastCheckedAt)}
-              </span>
-            )}
           </div>
 
           {/* Sort pills */}
-          <div className="mb-6 flex gap-2">
+          <div className="mb-6 flex items-center gap-2">
+            <span className="text-[12px] font-semibold uppercase tracking-wider text-ink-faint mr-1">Sort</span>
             {(["newest", "score", "comments"] as SortKey[]).map((key) => (
               <button
                 key={key}
                 onClick={() => setSort(key)}
-                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all ${
                   sort === key
-                    ? "bg-accent-ink text-white"
-                    : "bg-cream-deep text-ink-muted hover:text-ink"
+                    ? "bg-accent-ink text-white shadow-sm"
+                    : "bg-cream-deep text-ink-muted hover:text-ink hover:bg-cream"
                 }`}
               >
-                {key === "newest" ? "Newest" : key === "score" ? "Most upvoted" : "Most comments"}
+                {key === "newest" ? "Newest" : key === "score" ? "Top score" : "Most discussed"}
               </button>
             ))}
           </div>
 
           {/* Mentions list */}
           {trackerMentions.length === 0 ? (
-            <div className="rounded-2xl border border-line bg-paper py-16 text-center">
-              <Search className="mx-auto mb-3 h-8 w-8 text-ink-faint" />
-              <p className="text-[15px] font-medium text-ink">No mentions found yet.</p>
-              <p className="mt-1 text-[13px] text-ink-muted">
-                Click &quot;Run now&quot; or wait for the next hourly check.
+            <div className="rounded-2xl border border-dashed border-line bg-paper py-16 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl tile-cream">
+                <Search className="h-6 w-6" />
+              </div>
+              <p className="text-[15px] font-semibold text-ink">No mentions found yet</p>
+              <p className="mt-1.5 text-[13px] text-ink-muted max-w-sm mx-auto leading-relaxed">
+                Click &ldquo;Scan now&rdquo; to check Reddit, or wait for the next automatic check (every 2 hours).
               </p>
             </div>
           ) : (
@@ -415,152 +446,187 @@ function BuzzContent() {
         </button>
       }
     >
-      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+      <div>
         {/* Create form */}
         {showCreate && (
-          <div className="mb-8 rounded-2xl border border-line bg-paper p-6">
-            <h2 className="mb-5 text-[17px] font-semibold text-ink">Create a new tracker</h2>
-
-            {/* Keywords input */}
-            <label className="mb-1.5 block text-[13px] font-semibold text-ink">
-              Keywords <span className="font-normal text-ink-faint">(max 5)</span>
-            </label>
-            {keywords.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {keywords.map((kw) => (
-                  <span
-                    key={kw}
-                    className="inline-flex items-center gap-1.5 rounded-full tile-blue px-3 py-1 text-[13px] font-medium"
-                  >
-                    {kw}
-                    <button
-                      onClick={() => setKeywords((prev) => prev.filter((k) => k !== kw))}
-                      className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-accent/20"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+          <div className="mb-8 rounded-2xl border border-line bg-paper overflow-hidden animate-fade-up">
+            {/* Form header */}
+            <div className="px-6 pt-6 pb-4 border-b border-line-soft">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl tile-blue">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-[16px] font-semibold text-ink">Create a new tracker</h2>
+                    <p className="text-[12px] text-ink-faint">Add keywords to monitor across Reddit</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowCreate(false);
+                    setKeywords([]);
+                    setSubreddits([]);
+                    setSuggestions([]);
+                  }}
+                  className="rounded-full p-2 text-ink-faint transition-colors hover:bg-cream-deep hover:text-ink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-            )}
-            <div className="mb-4 flex gap-2">
-              <input
-                type="text"
-                value={kwInput}
-                onChange={(e) => setKwInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addKeyword();
-                  }
-                }}
-                placeholder="Type a keyword and press Enter"
-                className="flex-1 rounded-full bg-cream-deep px-5 py-3 text-[14px] text-ink outline-none border border-transparent transition-colors focus:border-ink-faint placeholder:text-ink-faint"
-                disabled={keywords.length >= 5}
-              />
-              <button
-                onClick={addKeyword}
-                disabled={!kwInput.trim() || keywords.length >= 5}
-                className="rounded-full border border-line px-4 py-2.5 text-[13px] font-medium text-ink-muted transition-colors hover:border-ink-faint hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Add
-              </button>
             </div>
 
-            {/* AI suggestions */}
-            {(keywords.length > 0 || kwInput.trim()) && keywords.length < 5 && (
-              <div className="mb-5">
-                <button
-                  onClick={fetchSuggestions}
-                  disabled={loadingSuggestions}
-                  className="mb-2.5 flex items-center gap-1.5 text-[13px] font-medium text-accent-ink transition-colors hover:text-accent"
-                >
-                  {loadingSuggestions ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
-                  )}
-                  {loadingSuggestions ? "Finding related keywords..." : "Suggest related keywords with AI"}
-                </button>
-                {suggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {suggestions.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => {
-                          if (keywords.length >= 5 || keywords.includes(s)) return;
-                          setKeywords((prev) => [...prev, s]);
-                          setSuggestions((prev) => prev.filter((x) => x !== s));
-                        }}
-                        disabled={keywords.length >= 5 || keywords.includes(s)}
-                        className="inline-flex items-center gap-1 rounded-full border border-line bg-paper px-3 py-1.5 text-[12px] font-medium text-ink-muted transition-all hover:border-accent hover:bg-accent-band-soft hover:text-accent-ink disabled:opacity-40 disabled:cursor-not-allowed"
+            <div className="p-6 space-y-6">
+              {/* Keywords section */}
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-ink">
+                  <Tag className="h-3.5 w-3.5 text-accent-ink" />
+                  Keywords
+                  <span className="font-normal text-ink-faint">({keywords.length}/5)</span>
+                </label>
+                {keywords.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {keywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className="group/chip inline-flex items-center gap-1.5 rounded-full tile-blue px-3 py-1.5 text-[13px] font-medium transition-all"
                       >
-                        <Plus className="h-3 w-3" />
-                        {s}
-                      </button>
+                        {kw}
+                        <button
+                          onClick={() => setKeywords((prev) => prev.filter((k) => k !== kw))}
+                          className="rounded-full p-0.5 opacity-60 transition-opacity hover:opacity-100"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
                     ))}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Subreddits input */}
-            <label className="mb-1.5 block text-[13px] font-semibold text-ink">
-              Subreddits <span className="font-normal text-ink-faint">(optional, for focused monitoring)</span>
-            </label>
-            {subreddits.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {subreddits.map((sub) => (
-                  <span
-                    key={sub}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-cream-deep px-3 py-1 text-[13px] font-medium text-ink-muted"
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={kwInput}
+                    onChange={(e) => setKwInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addKeyword();
+                      }
+                    }}
+                    placeholder="Type a keyword and press Enter"
+                    className="flex-1 rounded-xl bg-cream-deep px-4 py-3 text-[14px] text-ink outline-none border border-transparent transition-all focus:border-accent/30 focus:bg-white focus:shadow-sm placeholder:text-ink-faint"
+                    disabled={keywords.length >= 5}
+                  />
+                  <button
+                    onClick={addKeyword}
+                    disabled={!kwInput.trim() || keywords.length >= 5}
+                    className="rounded-xl border border-line px-4 py-2.5 text-[13px] font-medium text-ink-muted transition-all hover:border-ink-faint hover:text-ink hover:bg-cream disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    r/{sub}
-                    <button
-                      onClick={() => setSubreddits((prev) => prev.filter((s) => s !== sub))}
-                      className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-ink/10"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+                    Add
+                  </button>
+                </div>
               </div>
-            )}
-            <div className="mb-6 flex gap-2">
-              <input
-                type="text"
-                value={subInput}
-                onChange={(e) => setSubInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addSubreddit();
-                  }
-                }}
-                placeholder="e.g. android, androidapps"
-                className="flex-1 rounded-full bg-cream-deep px-5 py-3 text-[14px] text-ink outline-none border border-transparent transition-colors focus:border-ink-faint placeholder:text-ink-faint"
-              />
-              <button
-                onClick={addSubreddit}
-                disabled={!subInput.trim()}
-                className="rounded-full border border-line px-4 py-2.5 text-[13px] font-medium text-ink-muted transition-colors hover:border-ink-faint hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Add
-              </button>
+
+              {/* AI suggestions */}
+              {(keywords.length > 0 || kwInput.trim()) && keywords.length < 5 && (
+                <div className="rounded-xl bg-accent-band-soft/50 border border-accent-band p-4">
+                  <button
+                    onClick={fetchSuggestions}
+                    disabled={loadingSuggestions}
+                    className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-accent-ink transition-colors hover:text-accent"
+                  >
+                    {loadingSuggestions ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    {loadingSuggestions ? "Finding related keywords..." : "Suggest related keywords with AI"}
+                  </button>
+                  {suggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => {
+                            if (keywords.length >= 5 || keywords.includes(s)) return;
+                            setKeywords((prev) => [...prev, s]);
+                            setSuggestions((prev) => prev.filter((x) => x !== s));
+                          }}
+                          disabled={keywords.length >= 5 || keywords.includes(s)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-white border border-accent-band px-3 py-1.5 text-[12px] font-medium text-accent-ink shadow-sm transition-all hover:border-accent hover:shadow-md hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="h-3 w-3" />
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Subreddits section */}
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-ink">
+                  <MessageCircle className="h-3.5 w-3.5 text-accent-ink" />
+                  Subreddits
+                  <span className="font-normal text-ink-faint">(optional)</span>
+                </label>
+                {subreddits.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {subreddits.map((sub) => (
+                      <span
+                        key={sub}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-cream-deep px-3 py-1.5 text-[13px] font-medium text-ink-muted"
+                      >
+                        r/{sub}
+                        <button
+                          onClick={() => setSubreddits((prev) => prev.filter((s) => s !== sub))}
+                          className="rounded-full p-0.5 opacity-60 transition-opacity hover:opacity-100"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={subInput}
+                    onChange={(e) => setSubInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addSubreddit();
+                      }
+                    }}
+                    placeholder="e.g. android, androidapps, startups"
+                    className="flex-1 rounded-xl bg-cream-deep px-4 py-3 text-[14px] text-ink outline-none border border-transparent transition-all focus:border-accent/30 focus:bg-white focus:shadow-sm placeholder:text-ink-faint"
+                  />
+                  <button
+                    onClick={addSubreddit}
+                    disabled={!subInput.trim()}
+                    className="rounded-xl border border-line px-4 py-2.5 text-[13px] font-medium text-ink-muted transition-all hover:border-ink-faint hover:text-ink hover:bg-cream disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Form footer */}
+            <div className="flex items-center gap-3 px-6 py-4 border-t border-line-soft bg-cream/30">
               <button
                 onClick={handleCreate}
                 disabled={keywords.length === 0 || creating}
-                className="flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[14px] font-medium text-white transition-colors hover:bg-night-soft disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-full bg-ink px-6 py-2.5 text-[14px] font-medium text-white transition-all hover:bg-night-soft hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {creating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
-                Create &amp; check now
+                Create &amp; scan now
               </button>
               <button
                 onClick={() => {
@@ -569,7 +635,7 @@ function BuzzContent() {
                   setSubreddits([]);
                   setSuggestions([]);
                 }}
-                className="rounded-full border border-line px-4 py-2.5 text-[13px] font-medium text-ink-muted transition-colors hover:border-ink-faint hover:text-ink"
+                className="rounded-full px-4 py-2.5 text-[13px] font-medium text-ink-muted transition-colors hover:text-ink"
               >
                 Cancel
               </button>
@@ -579,29 +645,66 @@ function BuzzContent() {
 
         {/* Tracker list */}
         {buzzTrackers.length === 0 && !showCreate ? (
-          <div className="rounded-2xl border border-line bg-paper py-20 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl tile-blue">
-              <Bell className="h-6 w-6" />
+          <div className="rounded-2xl border border-dashed border-line bg-paper py-20 text-center">
+            {/* Decorative icon cluster */}
+            <div className="relative mx-auto mb-6 h-20 w-28">
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-2xl tile-blue shadow-sm">
+                <Bell className="h-7 w-7" />
+              </div>
+              <div className="absolute -left-1 top-0 flex h-9 w-9 items-center justify-center rounded-xl tile-lilac shadow-sm rotate-[-8deg]">
+                <Tag className="h-4 w-4" />
+              </div>
+              <div className="absolute -right-1 bottom-0 flex h-9 w-9 items-center justify-center rounded-xl tile-mint shadow-sm rotate-[8deg]">
+                <Activity className="h-4 w-4" />
+              </div>
             </div>
-            <h2 className="text-[17px] font-semibold text-ink">No trackers yet</h2>
-            <p className="mt-1 text-[14px] text-ink-muted">
-              Create one to start monitoring Reddit for your keywords.
+            <h2 className="text-[18px] font-semibold text-ink">No trackers yet</h2>
+            <p className="mt-2 text-[14px] text-ink-muted max-w-sm mx-auto leading-relaxed">
+              Create a tracker to start monitoring Reddit for your brand, product, or any keyword that matters.
             </p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-night-soft"
+            >
+              <Plus className="h-4 w-4" />
+              Create your first tracker
+            </button>
           </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {buzzTrackers.map((tracker) => (
-              <TrackerCard
-                key={tracker.id}
-                tracker={tracker}
-                mentionCount={buzzMentions.filter((m) => m.trackerId === tracker.id).length}
-                onOpen={() => router.push(`/buzz?id=${tracker.id}`)}
-                onRunNow={() => handleRunNow(tracker.id)}
-                onDelete={() => handleDelete(tracker.id)}
-                checking={checking === tracker.id}
-              />
-            ))}
-          </div>
+        ) : buzzTrackers.length > 0 && (
+          <>
+            {/* Summary bar */}
+            <div className="mb-6 flex items-center gap-4 rounded-xl bg-paper border border-line px-5 py-3.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg tile-blue">
+                <Activity className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-ink">
+                  {buzzTrackers.length} tracker{buzzTrackers.length !== 1 ? "s" : ""} active
+                </p>
+                <p className="text-[12px] text-ink-faint">
+                  {buzzMentions.length} total mention{buzzMentions.length !== 1 ? "s" : ""}
+                  {totalUnseen > 0 && (
+                    <span className="text-accent font-semibold"> · {totalUnseen} new</span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {buzzTrackers.map((tracker, i) => (
+                <TrackerCard
+                  key={tracker.id}
+                  tracker={tracker}
+                  mentionCount={buzzMentions.filter((m) => m.trackerId === tracker.id).length}
+                  onOpen={() => router.push(`/buzz?id=${tracker.id}`)}
+                  onRunNow={() => handleRunNow(tracker.id)}
+                  onDelete={() => handleDelete(tracker.id)}
+                  checking={checking === tracker.id}
+                  tileColor={tileForIndex(i)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </AppShell>
@@ -617,6 +720,7 @@ function TrackerCard({
   onRunNow,
   onDelete,
   checking,
+  tileColor,
 }: {
   tracker: BuzzTracker;
   mentionCount: number;
@@ -624,67 +728,87 @@ function TrackerCard({
   onRunNow: () => void;
   onDelete: () => void;
   checking: boolean;
+  tileColor: string;
 }) {
   return (
-    <div className="card-soft group relative rounded-2xl border border-line bg-paper p-5 transition-all">
-      <button onClick={onOpen} className="block w-full text-left">
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {tracker.keywords.map((kw) => (
-            <span
-              key={kw}
-              className="inline-flex items-center gap-1 rounded-full tile-blue px-2.5 py-0.5 text-[12px] font-semibold"
-            >
-              <Tag className="h-2.5 w-2.5" />
-              {kw}
-            </span>
-          ))}
+    <div className="card-soft group relative rounded-2xl border border-line bg-paper transition-all overflow-hidden">
+      <button onClick={onOpen} className="block w-full text-left p-5 pb-0">
+        {/* Icon + keyword header */}
+        <div className="flex items-start gap-3 mb-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tileColor} shrink-0`}>
+            <Bell className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap gap-1.5">
+              {tracker.keywords.map((kw) => (
+                <span
+                  key={kw}
+                  className="inline-flex items-center gap-1 rounded-full tile-blue px-2.5 py-0.5 text-[12px] font-semibold"
+                >
+                  <Tag className="h-2.5 w-2.5" />
+                  {kw}
+                </span>
+              ))}
+            </div>
+            {tracker.subreddits && tracker.subreddits.length > 0 && (
+              <p className="mt-1.5 text-[12px] text-ink-faint truncate">
+                {tracker.subreddits.map((s) => `r/${s}`).join(", ")}
+              </p>
+            )}
+          </div>
         </div>
 
-        {tracker.subreddits && tracker.subreddits.length > 0 && (
-          <p className="mb-2 text-[12px] text-ink-faint">
-            {tracker.subreddits.map((s) => `r/${s}`).join(", ")}
-          </p>
-        )}
-
-        <div className="flex items-center gap-3 text-[13px] text-ink-muted">
-          <span className="font-medium">{mentionCount} mention{mentionCount !== 1 ? "s" : ""}</span>
+        {/* Stats row */}
+        <div className="flex items-center gap-4 py-3 border-t border-line-soft">
+          <div>
+            <p className="text-[18px] font-semibold text-ink leading-none">{mentionCount}</p>
+            <p className="text-[11px] text-ink-faint mt-0.5">mention{mentionCount !== 1 ? "s" : ""}</p>
+          </div>
           {tracker.unseenCount > 0 && (
-            <span className="inline-flex items-center rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-white">
-              {tracker.unseenCount} new
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-white animate-fade-in">
+              +{tracker.unseenCount} new
             </span>
           )}
+          <div className="ml-auto flex items-center gap-2">
+            {tracker.enabled && (
+              <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Auto · 2h
+              </span>
+            )}
+            {tracker.lastCheckedAt && (
+              <span className="flex items-center gap-1 text-[11px] text-ink-faint">
+                <Clock className="h-3 w-3" />
+                {timeAgo(tracker.lastCheckedAt)}
+              </span>
+            )}
+          </div>
         </div>
-
-        {tracker.lastCheckedAt && (
-          <p className="mt-1.5 flex items-center gap-1 text-[12px] text-ink-faint">
-            <Clock className="h-3 w-3" />
-            {timeAgo(tracker.lastCheckedAt)}
-          </p>
-        )}
       </button>
 
-      <div className="mt-4 flex items-center gap-2 border-t border-line-soft pt-3">
+      {/* Action bar */}
+      <div className="flex items-center gap-2 px-5 py-3 border-t border-line-soft bg-cream/20">
         <button
           onClick={(e) => {
             e.stopPropagation();
             onRunNow();
           }}
           disabled={checking}
-          className="flex items-center gap-1.5 text-[12px] font-medium text-ink-muted transition-colors hover:text-ink"
+          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-ink-muted transition-all hover:bg-cream-deep hover:text-ink disabled:opacity-40"
         >
           {checking ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
             <RefreshCw className="h-3 w-3" />
           )}
-          Run now
+          Scan now
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="ml-auto flex items-center gap-1 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-cream-deep hover:text-red-500"
+          className="ml-auto flex items-center gap-1 rounded-lg p-1.5 text-ink-faint transition-all hover:bg-red-50 hover:text-red-500"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -702,7 +826,7 @@ function highlightKeyword(text: string, keywords: string[]): React.ReactNode {
   const parts = text.split(regex);
   return parts.map((part, i) =>
     regex.test(part) ? (
-      <mark key={i} className="rounded bg-yellow-200/70 px-0.5 text-yellow-900 font-medium">
+      <mark key={i} className="rounded bg-gold/30 px-0.5 text-ink font-semibold">
         {part}
       </mark>
     ) : (
@@ -723,51 +847,62 @@ function MentionCard({
     : mention.body;
 
   return (
-    <div className="card-soft rounded-2xl border border-line bg-paper p-5 transition-all">
-      <div className="mb-2 flex items-center gap-2 text-[12px] text-ink-faint">
-        <span className="font-semibold text-ink-muted">r/{mention.subreddit}</span>
-        <span>&middot;</span>
-        <span>u/{mention.author}</span>
-        <span>&middot;</span>
-        <span>{timeAgo(mention.postCreatedAt)}</span>
-        {!mention.seen && (
-          <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-white">
-            NEW
+    <div className="card-soft rounded-2xl border border-line bg-paper overflow-hidden transition-all">
+      <div className="p-5">
+        {/* Top meta row */}
+        <div className="mb-2.5 flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center rounded-full bg-cream-deep px-2.5 py-0.5 text-[12px] font-semibold text-ink">
+            r/{mention.subreddit}
           </span>
+          <span className="text-[12px] text-ink-faint">
+            u/{mention.author}
+          </span>
+          <span className="text-[12px] text-ink-faint flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {timeAgo(mention.postCreatedAt)}
+          </span>
+          {!mention.seen && (
+            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wide">
+              New
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
+        <h3 className="mb-1.5 text-[15px] font-semibold leading-snug text-ink">
+          {highlightKeyword(mention.title, trackerKeywords)}
+        </h3>
+
+        {/* Body preview */}
+        {bodyPreview && (
+          <p className="mb-4 text-[13px] leading-relaxed text-ink-muted line-clamp-3">
+            {highlightKeyword(bodyPreview, trackerKeywords)}
+          </p>
         )}
-      </div>
 
-      <h3 className="mb-1 text-[14px] font-semibold leading-snug text-ink">
-        {highlightKeyword(mention.title, trackerKeywords)}
-      </h3>
-
-      {bodyPreview && (
-        <p className="mb-3 text-[13px] leading-relaxed text-ink-muted">
-          {highlightKeyword(bodyPreview, trackerKeywords)}
-        </p>
-      )}
-
-      <div className="flex items-center gap-4 text-[12px] text-ink-faint">
-        <span className="flex items-center gap-1">
-          <ArrowBigUp className="h-3.5 w-3.5" />
-          {mention.score}
-        </span>
-        <span className="flex items-center gap-1">
-          <MessageCircle className="h-3.5 w-3.5" />
-          {mention.numComments}
-        </span>
-        <span className="rounded-full tile-blue px-2 py-0.5 text-[11px] font-semibold">
-          {mention.matchedKeyword}
-        </span>
-        <a
-          href={mention.permalink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-auto flex items-center gap-1 font-medium text-accent-ink transition-colors hover:text-accent"
-        >
-          <ExternalLink className="h-3 w-3" />
-          Reddit
-        </a>
+        {/* Bottom stats */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-cream-deep px-2.5 py-1 text-[12px] font-medium text-ink-muted">
+            <ArrowBigUp className="h-3.5 w-3.5" />
+            {mention.score}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-cream-deep px-2.5 py-1 text-[12px] font-medium text-ink-muted">
+            <MessageCircle className="h-3.5 w-3.5" />
+            {mention.numComments}
+          </span>
+          <span className="rounded-full tile-blue px-2.5 py-0.5 text-[11px] font-semibold">
+            {mention.matchedKeyword}
+          </span>
+          <a
+            href={mention.permalink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-[12px] font-medium text-accent-ink transition-all hover:border-accent hover:bg-accent-band-soft"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Open on Reddit
+          </a>
+        </div>
       </div>
     </div>
   );

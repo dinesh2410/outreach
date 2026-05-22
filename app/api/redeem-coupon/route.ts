@@ -3,6 +3,16 @@ import { FieldValue } from "firebase-admin/firestore";
 
 export const runtime = "nodejs";
 
+// Hardcoded beta coupons — validated server-side, persisted by the client SDK.
+// Remove this block once Firebase Admin creds are configured and coupons live
+// in Firestore.
+const BETA_COUPONS: Record<
+  string,
+  { plan: "pro" | "max"; durationDays: number }
+> = {
+  TC100: { plan: "pro", durationDays: 30 },
+};
+
 interface RedeemRequest {
   code?: string;
   userId?: string;
@@ -19,10 +29,25 @@ export async function POST(req: Request) {
 
   const code = body.code?.trim().toUpperCase();
   const userId = body.userId?.trim();
-  const userEmail = body.userEmail?.trim();
 
   if (!code) return Response.json({ error: "Missing coupon code" }, { status: 400 });
   if (!userId) return Response.json({ error: "Missing userId" }, { status: 400 });
+
+  // Fast path: hardcoded beta coupons (no admin SDK required).
+  const beta = BETA_COUPONS[code];
+  if (beta) {
+    const planExpiresAt =
+      beta.durationDays > 0
+        ? new Date(Date.now() + beta.durationDays * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+    return Response.json({
+      plan: beta.plan,
+      planExpiresAt,
+      message: `${beta.plan.charAt(0).toUpperCase() + beta.plan.slice(1)} plan activated for ${beta.durationDays} days!`,
+    });
+  }
+
+  const userEmail = body.userEmail?.trim();
 
   const db = getAdminFirestore();
   const couponRef = db.collection("coupons").doc(code);

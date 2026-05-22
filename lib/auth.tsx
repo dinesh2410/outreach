@@ -17,7 +17,8 @@ import {
   updateProfile,
   type User as FirebaseUser,
 } from "firebase/auth";
-import { firebaseAuth, googleAuthProvider } from "./firebase-client";
+import { firebaseAuth, firestore as clientFirestore, googleAuthProvider } from "./firebase-client";
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   deleteAuditEntry,
   deleteBuzzMentionsForTracker,
@@ -202,8 +203,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [quotas, setQuotas] = useState<UserQuotas>({ ...EMPTY_QUOTAS, periodStart: new Date().toISOString() });
 
   // Listen to auth state. On sign-in, hydrate apps + generations + history from Firestore.
+  // Also attach a real-time listener on the user document so plan changes from
+  // webhooks (Dodo Payments, coupon redemption) reflect immediately.
   useEffect(() => {
+    let unsubUserDoc: (() => void) | null = null;
+
     const unsub = onAuthStateChanged(firebaseAuth, async (fbUser) => {
+      if (unsubUserDoc) { unsubUserDoc(); unsubUserDoc = null; }
+
       if (!fbUser) {
         setUser(null);
         setApps([]);
@@ -280,13 +287,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setBuzzTrackers(userBuzzTrackers);
         setBuzzMentions(userBuzzMentions);
         setQuotas(userQuotas);
+
+        // Real-time listener: sync plan/subscription fields whenever the
+        // webhook (or any other server process) updates the user document.
+        unsubUserDoc = onSnapshot(
+          doc(clientFirestore, "users", fbUser.uid),
+          (snap) => {
+            if (!snap.exists()) return;
+            const d = snap.data() as Record<string, unknown>;
+            setUser((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                plan: (d.plan as User["plan"]) ?? prev.plan,
+                planExpiresAt: (d.planExpiresAt as string | undefined) ?? prev.planExpiresAt,
+                trialEndsAt: (d.trialEndsAt as string | undefined) ?? prev.trialEndsAt,
+                couponCode: (d.couponCode as string | undefined) ?? prev.couponCode,
+                dodoSubscriptionId: (d.dodoSubscriptionId as string | undefined) ?? prev.dodoSubscriptionId,
+                dodoCustomerId: (d.dodoCustomerId as string | undefined) ?? prev.dodoCustomerId,
+                billingInterval: (d.billingInterval as User["billingInterval"]) ?? prev.billingInterval,
+              };
+            });
+          },
+        );
       } catch (err) {
         console.error("[auth] failed to hydrate user data:", err);
       } finally {
         setLoading(false);
       }
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (unsubUserDoc) unsubUserDoc();
+    };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

@@ -13,6 +13,8 @@
     "@google/generative-ai": "^0.24.1",
     "@phosphor-icons/react": "^2.1.10",
     "ai": "^6.0.174",
+    "dodopayments": "^2.32.0",
+    "dodopayments-checkout": "^1.8.0",
     "firebase": "^12.12.1",
     "firebase-admin": "^13.8.0",
     "lucide-react": "^1.14.0",

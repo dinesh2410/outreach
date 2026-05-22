@@ -113,6 +113,9 @@ export interface User {
   planExpiresAt?: string;
   trialEndsAt?: string;
   couponCode?: string;
+  dodoSubscriptionId?: string;
+  dodoCustomerId?: string;
+  billingInterval?: "monthly" | "annual";
 }
 
 export interface UserQuotas {

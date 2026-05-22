@@ -28,6 +28,8 @@ import {
   Smartphone,
   ChartBar,
   DollarSign,
+  Users,
+  Key,
 } from "@/components/shared/Icon";
 import { Logo } from "./Logo";
 import { useAuth } from "@/lib/auth";
@@ -93,6 +95,8 @@ const ADMIN_NAV_GROUP: NavGroup = {
   label: "Admin",
   links: [
     { href: "/admin/usage", label: "Usage & cost", icon: Gauge },
+    { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/coupons", label: "Coupons", icon: Key },
   ],
 };
 
@@ -112,10 +116,11 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, plan, signOut } = useAuth();
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase() || "—";
   const userName = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
   const userEmail = user?.email ?? "";
+  const userPlan = user ? plan : "free";
 
   return (
     <div className="min-h-screen bg-white">
@@ -144,7 +149,7 @@ export function AppShell({
                 <X size={22} />
               </button>
             </div>
-            <SidebarBody onNavigate={() => setMobileOpen(false)} initials={initials} userName={userName} userEmail={userEmail} signOut={signOut} />
+            <SidebarBody onNavigate={() => setMobileOpen(false)} initials={initials} userName={userName} userEmail={userEmail} userPlan={userPlan} signOut={signOut} />
           </aside>
         </div>
       )}
@@ -155,7 +160,7 @@ export function AppShell({
           <div className="px-6 h-20 flex items-center">
             <Logo />
           </div>
-          <SidebarBody initials={initials} userName={userName} userEmail={userEmail} signOut={signOut} />
+          <SidebarBody initials={initials} userName={userName} userEmail={userEmail} userPlan={userPlan} signOut={signOut} />
         </aside>
 
         {/* Main column */}
@@ -214,17 +219,20 @@ function SidebarBody({
   initials,
   userName,
   userEmail,
+  userPlan,
   signOut,
 }: {
   onNavigate?: () => void;
   initials: string;
   userName: string;
   userEmail: string;
+  userPlan: string;
   signOut: () => void;
 }) {
   const pathname = usePathname();
   const { buzzTrackers } = useAuth();
   const buzzUnseen = buzzTrackers.reduce((sum, t) => sum + t.unseenCount, 0);
+  const [profileOpen, setProfileOpen] = useState(false);
   const navGroups = isAdmin(userEmail)
     ? [...NAV_GROUPS, ADMIN_NAV_GROUP]
     : NAV_GROUPS;
@@ -274,8 +282,11 @@ function SidebarBody({
       </nav>
 
       {/* User card */}
-      <div className="px-4 py-4 border-t border-line-soft">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-xl">
+      <div className="px-4 py-4 border-t border-line-soft relative">
+        <button
+          onClick={() => setProfileOpen((p) => !p)}
+          className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-cream transition-colors text-left"
+        >
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0 bg-accent-ink"
           >
@@ -283,19 +294,61 @@ function SidebarBody({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-ink truncate leading-tight">{userName || "—"}</p>
-            <p className="text-[11px] text-ink-faint truncate leading-tight">{userEmail}</p>
+            <SidebarPlanBadge plan={userPlan} />
           </div>
-          <button
-            onClick={signOut}
-            className="p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-cream-deep transition-colors shrink-0"
-            title="Sign out"
-            aria-label="Sign out"
-          >
-            <LogOut size={14} />
-          </button>
-        </div>
+        </button>
+
+        {profileOpen && (
+          <div className="absolute bottom-full left-4 right-4 mb-2 card-soft p-4 shadow-lg border border-line-soft z-50">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold text-white shrink-0 bg-accent-ink">
+                {initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-ink truncate">{userName || "—"}</p>
+                <p className="text-[12px] text-ink-faint truncate">{userEmail}</p>
+              </div>
+            </div>
+            <div className="space-y-2 mb-3">
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-ink-faint">Plan</span>
+                <SidebarPlanBadge plan={userPlan} />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2 border-t border-line-soft">
+              <Link
+                href="/settings"
+                onClick={() => { setProfileOpen(false); onNavigate?.(); }}
+                className="flex-1 text-center px-3 py-2 rounded-lg bg-cream-deep text-[12px] font-medium text-ink hover:bg-ink hover:text-white transition-colors"
+              >
+                Settings
+              </Link>
+              <button
+                onClick={signOut}
+                className="flex-1 text-center px-3 py-2 rounded-lg bg-cream-deep text-[12px] font-medium text-ink-muted hover:bg-rose-50 hover:text-rose-600 transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
+  );
+}
+
+function SidebarPlanBadge({ plan }: { plan: string }) {
+  const styles: Record<string, { bg: string; text: string; label: string }> = {
+    free: { bg: "bg-gray-100", text: "text-gray-600", label: "Free" },
+    trial: { bg: "bg-purple-50", text: "text-purple-700", label: "Trial" },
+    pro: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Pro" },
+    max: { bg: "bg-blue-50", text: "text-blue-700", label: "Max" },
+  };
+  const s = styles[plan] ?? styles.free;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${s.bg} ${s.text}`}>
+      {s.label}
+    </span>
   );
 }
 

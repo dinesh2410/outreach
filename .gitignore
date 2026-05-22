@@ -40,4 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# firebase functions build output
+functions/lib
+functions/node_modules
+
 .vercel

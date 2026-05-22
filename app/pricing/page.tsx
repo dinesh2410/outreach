@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/shared/AppShell";
 import { useAuth } from "@/lib/auth";
@@ -17,6 +17,7 @@ import {
   Send,
   Users,
   Zap,
+  Tag,
 } from "@/components/shared/Icon";
 import {
   PLAN_LIMITS,
@@ -192,8 +193,64 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<Billing>("monthly");
   const [couponCode, setCouponCode] = useState("");
   const [redeeming, setRedeeming] = useState(false);
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
+  const [discountCode, setDiscountCode] = useState("");
+  const [dodoReady, setDodoReady] = useState(false);
 
   const effectivePlan = user ? plan : "free";
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.dodopayments.com/checkout.js";
+    script.async = true;
+    script.onload = () => setDodoReady(true);
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, []);
+
+  const handleUpgrade = useCallback(
+    async (planId: "pro" | "max") => {
+      if (!user) {
+        router.push("/auth?next=%2Fpricing");
+        return;
+      }
+      if (upgradingPlan) return;
+      setUpgradingPlan(planId);
+      try {
+        const res = await fetch("/api/payments/create-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            billing,
+            userId: user.id,
+            email: user.email,
+            discountCode: discountCode.trim() || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          push(data.error ?? "Failed to create subscription");
+          return;
+        }
+        if (data.sessionId) {
+          sessionStorage.setItem("dodo_session_id", data.sessionId);
+        }
+        if (data.checkoutUrl && dodoReady && (window as unknown as Record<string, unknown>).DodoPayments) {
+          const Dodo = (window as unknown as Record<string, { Initialize: (opts: unknown) => void; Checkout: { open: (opts: unknown) => void } }>).DodoPayments;
+          Dodo.Initialize({ mode: process.env.NEXT_PUBLIC_DODO_MODE === "live" ? "live" : "test", displayType: "overlay" });
+          Dodo.Checkout.open({ checkoutUrl: data.checkoutUrl });
+        } else if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
+        }
+      } catch {
+        push("Something went wrong. Please try again.");
+      } finally {
+        setUpgradingPlan(null);
+      }
+    },
+    [user, billing, discountCode, dodoReady, upgradingPlan, router, push],
+  );
 
   async function handleRedeem(e: React.FormEvent) {
     e.preventDefault();
@@ -258,6 +315,23 @@ export default function PricingPage() {
           </button>
         </div>
 
+        {/* Discount code */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="flex items-center gap-2 rounded-full bg-paper border border-line px-4 py-2.5">
+            <Tag size={14} className="text-ink-faint shrink-0" />
+            <input
+              type="text"
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value)}
+              placeholder="Discount code"
+              className="w-36 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
+            />
+            {discountCode.trim() && (
+              <span className="text-[11px] font-semibold text-emerald-600 shrink-0">Applied at checkout</span>
+            )}
+          </div>
+        </div>
+
         {/* Tier cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
           {TIERS.map((tier) => (
@@ -267,6 +341,8 @@ export default function PricingPage() {
               billing={billing}
               currentPlan={effectivePlan}
               isLoggedIn={!!user}
+              onUpgrade={handleUpgrade}
+              upgrading={upgradingPlan === tier.id}
             />
           ))}
         </div>
@@ -330,7 +406,7 @@ export default function PricingPage() {
         </section>
 
         {/* Coupon redemption */}
-        <section className="mb-12">
+        <section id="coupon" className="mb-12 scroll-mt-24">
           <div className="card-soft p-7 max-w-xl mx-auto" style={{ background: "linear-gradient(135deg, #FFFFFF 0%, #FEF9C3 100%)" }}>
             <div className="flex items-start gap-4 mb-5">
               <div className="w-10 h-10 rounded-xl tile-cream flex items-center justify-center shrink-0">
@@ -446,30 +522,37 @@ function TierCard({
   billing,
   currentPlan,
   isLoggedIn,
+  onUpgrade,
+  upgrading,
 }: {
   tier: TierConfig;
   billing: Billing;
   currentPlan: PlanId;
   isLoggedIn: boolean;
+  onUpgrade: (planId: "pro" | "max") => void;
+  upgrading: boolean;
 }) {
   const isEnterprise = tier.id === "enterprise";
   const isCurrent = !isEnterprise && tier.id === currentPlan;
   const isTrial = currentPlan === "trial" && tier.id === "pro";
   const price = billing === "annual" ? tier.annual : tier.monthly;
+  const isPaidTier = tier.id === "pro" || tier.id === "max";
 
-  const ctaLabel = isCurrent
-    ? "Current plan"
-    : isTrial && tier.id === "pro"
-      ? "Active (trial)"
-      : isEnterprise
-        ? "Contact us"
-        : tier.cta;
+  const ctaLabel = upgrading
+    ? "Processing..."
+    : isCurrent
+      ? "Current plan"
+      : isTrial && tier.id === "pro"
+        ? "Active (trial)"
+        : isEnterprise
+          ? "Contact us"
+          : tier.cta;
 
-  const ctaDisabled = isCurrent || isTrial;
+  const ctaDisabled = isCurrent || isTrial || upgrading;
 
   const ctaHref = isEnterprise
     ? "mailto:support@testerscommunity.com?subject=ReachFront%20Enterprise%20Inquiry"
-    : !isLoggedIn
+    : !isLoggedIn && isPaidTier
       ? "/auth?next=%2Fpricing"
       : undefined;
 
@@ -543,15 +626,19 @@ function TierCard({
       ) : (
         <button
           disabled={ctaDisabled}
+          onClick={() => {
+            if (isPaidTier && !ctaDisabled) onUpgrade(tier.id as "pro" | "max");
+          }}
           className={`w-full px-5 py-3 rounded-full text-[14px] font-medium transition-colors ${
             tier.popular
               ? "text-white hover:opacity-90"
               : ctaDisabled
                 ? "bg-cream-deep text-ink-faint cursor-not-allowed"
                 : "bg-cream-deep text-ink hover:bg-ink hover:text-white"
-          } disabled:opacity-70 disabled:cursor-not-allowed`}
+          } disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2`}
           style={tier.popular && !ctaDisabled ? { backgroundColor: "#2563EB" } : tier.popular && ctaDisabled ? { backgroundColor: "#2563EB" } : undefined}
         >
+          {upgrading && <Loader2 size={14} className="animate-spin" />}
           {ctaLabel}
         </button>
       )}
