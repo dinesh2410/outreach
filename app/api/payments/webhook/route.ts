@@ -4,11 +4,16 @@ import DodoPayments from "dodopayments";
 
 export const runtime = "nodejs";
 
-const client = new DodoPayments({
-  bearerToken: process.env.DODO_API_KEY,
-  webhookKey: process.env.DODO_WEBHOOK_SECRET,
-  environment: process.env.DODO_ENVIRONMENT === "live_mode" ? "live_mode" : "test_mode",
-});
+let _client: DodoPayments | null = null;
+function getWebhookClient(): DodoPayments {
+  if (_client) return _client;
+  _client = new DodoPayments({
+    bearerToken: process.env.DODO_API_KEY,
+    webhookKey: process.env.DODO_WEBHOOK_SECRET,
+    environment: process.env.DODO_ENVIRONMENT === "live_mode" ? "live_mode" : "test_mode",
+  });
+  return _client;
+}
 
 function billingDurationMs(billing: string): number {
   return billing === "annual"
@@ -26,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     let event;
     try {
-      event = client.webhooks.unwrap(rawBody, { headers });
+      event = getWebhookClient().webhooks.unwrap(rawBody, { headers });
     } catch (err) {
       console.error("[webhook] Signature verification failed:", err);
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
